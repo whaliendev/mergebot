@@ -1,11 +1,19 @@
+# Editors
+*.sw*
+/.vs
+/.idea
+/.vscode
+/.cache
+CMakeSettings.json
+CMakeUserPresets.json
+.vim_localrc
 CMakeLists.txt.user
-CMakeCache.txt
-CMakeFiles
-CMakeScripts
-Testing
-Makefile
-cmake_install.cmake
-install_manifest.txt
-compile_commands.json
-CTestTestfile.cmake
-_deps
+.DS_Store
+
+# cmake files
+build
+cmake-build-*/
+Debug/
+Release/
+.xmake/
+out/
