@@ -130,15 +130,21 @@ if(BUILD_SHARED_LIBS)
 endif(BUILD_SHARED_LIBS)
 
 
+## configure conan 
+include(cmake/conaninstall.cmake)
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+conan_basic_setup()
 
 ### find packages go here.
 ## use conan to manage all the packages it contains
+
+## check linter tools goes here
+include(cmake/checklinter.cmake)
 
 ## use old school methods to manage 3rd party dependency here. 
 # when we talk about old school methods, we refer to find_pacakge, 
 # fetch_content, shell script
 include(cmake/googletest.cmake)
-
 
 ### split compiled libraries and executables to sub folders, 
 ### don't add those targets here

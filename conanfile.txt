@@ -1,0 +1,15 @@
+[requires]
+spdlog/1.10.0
+nlohmann_json/3.11.2 
+boost/1.80.0 # currently we only use program_options lib in boost
+fmt/9.1.0
+
+[generators]
+cmake
+
+[options]
+
+
+[imports]
+bin, *.dll -> ./bin # Copies all dll files from packages bin folder to my "bin" folder
+lib, *.dylib* -> ./bin # Copies all dylib files from packages lib folder to my "bin" folder
