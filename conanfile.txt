@@ -3,6 +3,7 @@ spdlog/1.10.0
 nlohmann_json/3.11.2 
 boost/1.80.0 # currently we only use program_options lib in boost
 fmt/9.1.0
+magic_enum/0.8.1
 
 [generators]
 cmake
