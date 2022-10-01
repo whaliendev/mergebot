@@ -55,7 +55,7 @@ we use `clang-format` to unify the coding style of this project.
 a dev dependency used to handle git commit hooks, ensuring that our linter tools  are executed at specific git hooks. 
 
 #### Howto
-1. install conan 
+1. install conan   
 First, we recommend that you utilize `conan` to install project dependencies.   
 `Conan` can be installed on a host that has at least python 3.6 installed by executing `pip install conan`. Alternatively, if your host has a native package manager, you could also use it to install `conan`. Moreover, the more recent version of `conan` you install, the better. So be cautious if some `conan` installed through your system's package manager is at a very outdated version.  
 After installing `conan`, you must supply a default profile for it and alter the compiler ABI settings to stdc++11. You may accomplish this by using the following commands:   
@@ -64,7 +64,7 @@ conan profile new default --detect
 conan profile update settings.compiler.libcxx=libstdc++11 default
 ```
 
-2. configure cmake
+2. configure cmake  
 AYMK, before cmake's generation step, a configure step is required. 
 ```shell
 cmake -Bbuild
