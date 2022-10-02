@@ -27,6 +27,7 @@ option(MB_INSTALL_TARGET "Enable installation targets" OFF)
 # (But usually don't do this, except maybe for C++ standard)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH} ")
+set(CMAKE_LINK_WHAT_YOU_USE ON)
 
 # C standard can be overridden when this is used as a sub-project
 if(NOT CMAKE_C_STANDARD)
@@ -179,4 +180,3 @@ endif(MB_BUILD_TESTS)
 if(MB_INSTALL_TARGET)
   
 endif(MB_INSTALL_TARGET)
-
