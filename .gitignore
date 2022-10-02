@@ -17,3 +17,5 @@ Debug/
 Release/
 .xmake/
 out/
+
+compile_commands.json
