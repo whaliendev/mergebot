@@ -9,6 +9,8 @@ magic_enum/0.8.1
 cmake
 
 [options]
+# note that we can make all the above dependencies to dynamic linked lib 
+# if needed
 
 
 [imports]

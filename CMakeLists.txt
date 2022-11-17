@@ -1,13 +1,13 @@
 # although cmake is de facto the best build systems generator tool for cpp, F**K CMAKE
 
-### the cmake version we accepted. Donnot modify this, we've been pretty 
-# restrained about the version of cmake we use. 
-# Update the version of cmake on your system to use modern cmake features. 
+### the cmake version we accepted. Don't modify this, we've been pretty
+# restrained about the version of cmake we use.
+# Update the version of cmake on your system to use modern cmake features.
 cmake_minimum_required(VERSION 3.15...3.24)
 
 ### the project statement
-# Note that after we call this line in the top level project, we can use 
-# variables like PROJECT_VERSION_MAJOR, 
+# Note that after we call this line in the top level project, we can use
+# variables like PROJECT_VERSION_MAJOR,
 # <PROJECT-NAME>_VERSION_{MAJOR, MINOR, PATCH, TWEAK} and CMAKE_PROJECT_VERSION
 project(
   mergebot
@@ -104,13 +104,13 @@ endif(MB_USE_CCACHE AND NOT MSVC)
 
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") # MSVC
-    # non standard warning,member function not override any super class memebers, 
-    # non-virtual-dtor 
+    # non standard warning,member function not override any super class memebers,
+    # non-virtual-dtor
     set(CMAKE_cxx_FLAGS "${CMAKE_CXX_FLAGS} /permissive /w14263 /w14265")
   else(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")  # clang and gcc
     set(CMAKE_cxx_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wnon-virtual-dtor\
                          -Wold-style-cast -Woverloaded-virtual -Wnull-dereference")
-  endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") 
+  endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
 
 if(BUILD_SHARED_LIBS)
@@ -123,7 +123,7 @@ include_directories(
   "."
 )
 if(BUILD_SHARED_LIBS)
-  target_compile_definitions(leveldb
+  target_compile_definitions(mergebot
     PUBLIC
       # Used by include/export.h.
       MB_SHARED_LIBRARY
@@ -131,7 +131,7 @@ if(BUILD_SHARED_LIBS)
 endif(BUILD_SHARED_LIBS)
 
 
-## configure conan 
+## configure conan
 include(cmake/conaninstall.cmake)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
@@ -142,12 +142,12 @@ conan_basic_setup()
 ## check linter tools goes here
 include(cmake/checklinter.cmake)
 
-## use old school methods to manage 3rd party dependency here. 
-# when we talk about old school methods, we refer to find_pacakge, 
+## use old school methods to manage 3rd party dependency here.
+# when we talk about old school methods, we refer to find_pacakge,
 # fetch_content, shell script
 include(cmake/googletest.cmake)
 
-### split compiled libraries and executables to sub folders, 
+### split compiled libraries and executables to sub folders,
 ### don't add those targets here
 # add_subdirectory starts here
 # add compiled library here
@@ -159,7 +159,7 @@ add_subdirectory(apps)
 
 
 ### test target goes here
-# TODO(hwa): enable google testing 
+# TODO(hwa): enable google testing
 if(MB_BUILD_TESTS)
   enable_testing()
 
@@ -178,5 +178,5 @@ endif(MB_BUILD_TESTS)
 ### install target goes here
 # TODO(hwa): add install targets
 if(MB_INSTALL_TARGET)
-  
+
 endif(MB_INSTALL_TARGET)
