@@ -14,7 +14,7 @@ if(CONAN_PROGRAM)
         -s build_type=Release
         -b missing
         -r conancenter
-        -pr:b default
+        -pr:b clang
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         RESULT_VARIABLE CONAN_INSTALL_RESULT
     )

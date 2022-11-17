@@ -46,10 +46,10 @@ if(NOT CMAKE_CXX_STANDARD)
 endif(NOT CMAKE_CXX_STANDARD)
 
 # enable dynamic lib to link static lib
-if(NOT DEFINED CMAKE_POSITION_INDEPEDENT_CODE)
+if(NOT DEFINED CMAKE_POSITION_INDEPENDENT_CODE)
     # Otherwise we cannot link .so libs with .a libs
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-endif(NOT DEFINED CMAKE_POSITION_INDEPEDENT_CODE)
+endif(NOT DEFINED CMAKE_POSITION_INDEPENDENT_CODE)
 
 # the default build target is set to Release
 if (NOT CMAKE_BUILD_TYPE)
@@ -73,7 +73,7 @@ if(WIN32)
   add_definitions(-DNOMINMAX -D_USE_MATH_DEFINES)
   add_definitions(-D_UNICODE -DUNICODE)
 else(WIN32)
-  set(MB_PLATFORM_NAME MB_PLATROFM_POSIX)
+  set(MB_PLATFORM_NAME MB_PLATFORM_POSIX)
 endif(WIN32)
 
 if (MB_OUT_TO_BIN)
@@ -104,7 +104,7 @@ endif(MB_USE_CCACHE AND NOT MSVC)
 
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") # MSVC
-    # non standard warning,member function not override any super class memebers,
+    # non standard warning,member function not override any super class members,
     # non-virtual-dtor
     set(CMAKE_cxx_FLAGS "${CMAKE_CXX_FLAGS} /permissive /w14263 /w14265")
   else(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")  # clang and gcc
@@ -118,10 +118,6 @@ if(BUILD_SHARED_LIBS)
   add_compile_options(-fvisibility=hidden)
 endif(BUILD_SHARED_LIBS)
 
-include_directories(
-  "${PROJECT_BINARY_DIR}/include"
-  "."
-)
 if(BUILD_SHARED_LIBS)
   target_compile_definitions(mergebot
     PUBLIC
@@ -143,7 +139,7 @@ conan_basic_setup()
 include(cmake/checklinter.cmake)
 
 ## use old school methods to manage 3rd party dependency here.
-# when we talk about old school methods, we refer to find_pacakge,
+# when we talk about old school methods, we refer to find_package,
 # fetch_content, shell script
 include(cmake/googletest.cmake)
 
@@ -172,7 +168,6 @@ if(MB_BUILD_TESTS)
   # This project is tested using GoogleTest.
   add_subdirectory("third_party/googletest")
 endif(MB_BUILD_TESTS)
-
 
 
 ### install target goes here
