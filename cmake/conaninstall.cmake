@@ -1,8 +1,8 @@
-# check python version and conan 
+# check python version and conan
 # if the check succeed, we install the dependencies in conanfile
 
 find_program(
-    CONAN_PROGRAM 
+    CONAN_PROGRAM
     conan
     DOC "Use conan to install 3rd-party dependencies"
 )
@@ -25,7 +25,7 @@ if(CONAN_PROGRAM)
     endif(NOT CONAN_INSTALL_RESULT EQUAL "0")
 else(CONAN_PROGRAM)
     find_package(
-        Python3 
+        Python3
         REQUIRED
         COMPONENTS Interpreter
     )
