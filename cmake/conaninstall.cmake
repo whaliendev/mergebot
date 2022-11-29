@@ -9,12 +9,12 @@ find_program(
 
 if(CONAN_PROGRAM)
     message(STATUS "Conan found in your system path")
+    ### TODO(hwa): in release phase, we cannot limit conan profile to clang
     execute_process(
         COMMAND ${CONAN_PROGRAM} install . -if ${PROJECT_BINARY_DIR}
-        -s build_type=Release
         -b missing
         -r conancenter
-        -pr:b clang
+        --profile clang
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         RESULT_VARIABLE CONAN_INSTALL_RESULT
     )

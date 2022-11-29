@@ -65,23 +65,7 @@ conan profile update settings.compiler.libcxx=libstdc++11 default
 UPDATE:
 we suggest using clang to compile our project in development phase, as it can
 provide a better diagnostic experience:
-Just touch a profile named `clang` in your conan's profile directory, enter the
-following content:
-```yaml
-[settings]
-  compiler=clang
-  compiler.version=14
-  compiler.libcxx=libstdc++11
-
-[buildenv]
-CC=/usr/bin/clang
-CXX=/usr/bin/clang++
-
-[runenv]
-CC=/usr/bin/gcc
-CXX=/usr/bin/g++
-```
-
+TODO(hwa): add a proper conan clang profile generation method
 ---
 
 2. configure cmake
