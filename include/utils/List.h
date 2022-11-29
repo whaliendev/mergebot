@@ -89,9 +89,12 @@ class List : public std::vector<T> {
     Base::insert(Base::begin() + idx, list.begin(), list.end());
   }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "HidingNonVirtualFunction"
   void insert(size_t idx, const T &val) {
     Base::insert(Base::begin() + idx, val);
   }
+#pragma clang diagnostic pop
 
   void sort() { std::sort(Base::begin(), Base::end()); }
 
@@ -240,8 +243,9 @@ class List : public std::vector<T> {
 
     for (size_t i = 0; i < s; ++i) ret[i] = Base::at(i);
 
-    for (typename List<T>::const_iterator it = t.begin(); it != t.end(); ++it)
+    for (typename List<T>::const_iterator it = t.begin(); it != t.end(); ++it) {
       ret[s++] = *it;
+    }
 
     return ret;
   }

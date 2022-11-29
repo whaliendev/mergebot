@@ -35,11 +35,14 @@ class Map : public std::map<Key, Value, Compare> {
     return *this;
   }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "HidingNonVirtualFunction"
   Map<Key, Value, Compare> &operator=(
       std::initializer_list<typename Base::value_type> init) {
     Base::operator=(init);
     return *this;
   }
+#pragma clang diagnostic pop
 
   bool contains(const Key &t) const { return Base::find(t) != Base::end(); }
 
@@ -109,7 +112,10 @@ class Map : public std::map<Key, Value, Compare> {
     return Base::insert(std::make_pair(key, val)).second;
   }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "HidingNonVirtualFunction"
   Value &operator[](const Key &key) { return Base::operator[](key); }
+#pragma clang diagnostic pop
 
   const Value &operator[](const Key &key) const {
     assert(contains(key));
@@ -154,7 +160,10 @@ class Map : public std::map<Key, Value, Compare> {
     return subtract(other);
   }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "HidingNonVirtualFunction"
   size_t size() const { return Base::size(); }
+#pragma clang diagnostic pop
 
   typename Base::const_iterator constBegin() const { return Base::begin(); }
 
@@ -194,16 +203,16 @@ class Map : public std::map<Key, Value, Compare> {
 };
 
 template <typename Key, typename Value, typename Compare>
-inline const Map<Key, Value, Compare> operator+(
-    const Map<Key, Value, Compare> &l, const Map<Key, Value, Compare> &r) {
+inline Map<Key, Value, Compare> operator+(const Map<Key, Value, Compare> &l,
+                                          const Map<Key, Value, Compare> &r) {
   Map<Key, Value, Compare> ret = l;
   ret += r;
   return ret;
 }
 
 template <typename Key, typename Value, typename Compare>
-inline const Map<Key, Value, Compare> operator-(
-    const Map<Key, Value, Compare> &l, const Map<Key, Value, Compare> &r) {
+inline Map<Key, Value, Compare> operator-(const Map<Key, Value, Compare> &l,
+                                          const Map<Key, Value, Compare> &r) {
   Map<Key, Value, Compare> ret = l;
   ret -= r;
   return ret;
@@ -224,12 +233,15 @@ class MultiMap : public std::multimap<Key, Value, Compare> {
     return *this;
   }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "HidingNonVirtualFunction"
   MultiMap<Key, Value, Compare> &operator=(
       std::initializer_list<typename std::multimap<Key, Value>::value_type>
           init) {
     std::multimap<Key, Value, Compare>::operator=(init);
     return *this;
   }
+#pragma clang diagnostic pop
 
   bool contains(const Key &t) const {
     return std::multimap<Key, Value, Compare>::find(t) !=
@@ -355,7 +367,10 @@ class MultiMap : public std::multimap<Key, Value, Compare> {
     return subtract(other);
   }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "HidingNonVirtualFunction"
   size_t size() const { return std::multimap<Key, Value, Compare>::size(); }
+#pragma clang diagnostic pop
 
   typename std::multimap<Key, Value, Compare>::const_iterator constBegin()
       const {
@@ -403,7 +418,7 @@ class MultiMap : public std::multimap<Key, Value, Compare> {
 };
 
 template <typename Key, typename Value, typename Compare>
-inline const MultiMap<Key, Value, Compare> operator+(
+inline MultiMap<Key, Value, Compare> operator+(
     const MultiMap<Key, Value, Compare> &l,
     const MultiMap<Key, Value, Compare> &r) {
   MultiMap<Key, Value, Compare> ret = l;
@@ -412,7 +427,7 @@ inline const MultiMap<Key, Value, Compare> operator+(
 }
 
 template <typename Key, typename Value, typename Compare>
-inline const MultiMap<Key, Value, Compare> operator-(
+inline MultiMap<Key, Value, Compare> operator-(
     const MultiMap<Key, Value, Compare> &l,
     const MultiMap<Key, Value, Compare> &r) {
   MultiMap<Key, Value, Compare> ret = l;

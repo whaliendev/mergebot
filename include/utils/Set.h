@@ -63,7 +63,10 @@ class Set : public std::set<T> {
     Base::clear();
   }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "HidingNonVirtualFunction"
   bool insert(const T &t) { return Base::insert(t).second; }
+#pragma clang diagnostic pop
 
   Set<T> &unite(const Set<T> &other, size_t *count = nullptr) {
     size_t c = 0;
@@ -145,7 +148,10 @@ class Set : public std::set<T> {
 
   Set<T> &operator-=(const Set<T> &other) { return subtract(other); }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "HidingNonVirtualFunction"
   size_t size() const { return Base::size(); }
+#pragma clang diagnostic pop
 
   typename Base::const_iterator constBegin() const { return Base::begin(); }
 
@@ -192,14 +198,14 @@ class Set : public std::set<T> {
 };
 
 template <typename T>
-inline const Set<T> operator+(const Set<T> &l, const Set<T> &r) {
+inline Set<T> operator+(const Set<T> &l, const Set<T> &r) {
   Set<T> ret = l;
   ret += r;
   return ret;
 }
 
 template <typename T>
-inline const Set<T> operator-(const Set<T> &l, const Set<T> &r) {
+inline Set<T> operator-(const Set<T> &l, const Set<T> &r) {
   Set<T> ret = l;
   ret -= r;
   return ret;

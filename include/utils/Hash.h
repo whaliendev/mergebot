@@ -92,9 +92,12 @@ class Hash : public std::unordered_map<Key, Value> {
         .second;
   }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "HidingNonVirtualFunction"
   Value &operator[](const Key &key) {
     return std::unordered_map<Key, Value>::operator[](key);
   }
+#pragma clang diagnostic pop
 
   const Value &operator[](const Key &key) const {
     assert(contains(key));
@@ -139,7 +142,10 @@ class Hash : public std::unordered_map<Key, Value> {
     return subtract(other);
   }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "HidingNonVirtualFunction"
   size_t size() const { return std::unordered_map<Key, Value>::size(); }
+#pragma clang diagnostic pop
 
   typename std::unordered_map<Key, Value>::const_iterator constBegin() const {
     return std::unordered_map<Key, Value>::begin();
@@ -186,16 +192,16 @@ class Hash : public std::unordered_map<Key, Value> {
 };
 
 template <typename Key, typename Value>
-inline const Hash<Key, Value> operator+(const Hash<Key, Value> &l,
-                                        const Hash<Key, Value> &r) {
+inline Hash<Key, Value> operator+(const Hash<Key, Value> &l,
+                                  const Hash<Key, Value> &r) {
   Hash<Key, Value> ret = l;
   ret += r;
   return ret;
 }
 
 template <typename Key, typename Value>
-inline const Hash<Key, Value> operator-(const Hash<Key, Value> &l,
-                                        const Hash<Key, Value> &r) {
+inline Hash<Key, Value> operator-(const Hash<Key, Value> &l,
+                                  const Hash<Key, Value> &r) {
   Hash<Key, Value> ret = l;
   ret -= r;
   return ret;

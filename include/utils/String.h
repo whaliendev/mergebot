@@ -34,12 +34,15 @@ class String {
   typedef size_t size_type;
 
   enum CaseSensitivity { CaseSensitive, CaseInsensitive };
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "google-explicit-constructor"
   String(const char *ch = nullptr, size_t len = npos) {
     if (ch) {
       if (len == npos) len = strlen(ch);
       mString.assign(ch, len);
     }
   }
+#pragma clang diagnostic pop
   String(const char *start, const char *end) {
     if (start) {
       mString.assign(start, end);
@@ -49,18 +52,24 @@ class String {
 
   String(const String &ba) : mString(ba.mString) {}
 
-  String(String &&ba) : mString(std::move(ba.mString)) {}
+  String(String &&ba) noexcept : mString(std::move(ba.mString)) {}
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "google-explicit-constructor"
   String(const std::string &str) : mString(str) {}
+#pragma clang diagnostic pop
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "google-explicit-constructor"
   String(std::string &&str) : mString(std::move(str)) {}
+#pragma clang diagnostic pop
 
   String &operator=(const String &other) {
     mString = other.mString;
     return *this;
   }
 
-  String &operator=(String &&other) {
+  String &operator=(String &&other) noexcept {
     mString = std::move(other.mString);
     return *this;
   }
@@ -84,8 +93,9 @@ class String {
 
   size_t lastIndexOf(char ch, size_t from = npos,
                      CaseSensitivity cs = CaseSensitive) const {
-    if (cs == CaseSensitive)
-      return mString.rfind(ch, from == npos ? std::string::npos : size_t(from));
+    if (cs == CaseSensitive) {
+      return mString.rfind(ch, from == npos ? std::string::npos : from);
+    }
     const char *str = mString.c_str();
     if (from == npos) from = mString.size() - 1;
     ch = tolower(ch);
@@ -428,16 +438,14 @@ class String {
     return mString == other.mString;
   }
 
-  bool operator==(const char *other) const {
-    return other && !mString.compare(other);
-  }
+  bool operator==(const char *other) const { return other && mString == other; }
 
   bool operator!=(const String &other) const {
     return mString != other.mString;
   }
 
   bool operator!=(const char *other) const {
-    return !other || mString.compare(other);
+    return !other || mString == other;
   }
 
   bool operator<(const String &other) const { return mString < other.mString; }
@@ -545,7 +553,10 @@ class String {
 
   String right(size_t l) const { return mString.substr(size() - l, l); }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "google-explicit-constructor"
   operator std::string() const { return mString; }
+#pragma clang diagnostic pop
 
   std::string &ref() { return mString; }
 
@@ -557,11 +568,12 @@ class String {
     if (!empty()) {
       size_t prev = 0;
       const size_t add = flags & KeepSeparators ? 1 : 0;
-      while (1) {
+      while (true) {
         const size_t next = indexOf(ch, prev);
         if (next == npos) break;
-        if (next > prev || !(flags & SkipEmpty))
+        if (next > prev || !(flags & SkipEmpty)) {
           ret.push_back(mid(prev, next - prev + add));
+        }
         prev = next + 1;
       }
       if (prev < size() || !(flags & SkipEmpty)) ret.push_back(mid(prev));
@@ -578,11 +590,12 @@ class String {
                      unsigned int flags = NoSplitFlag) const {
     List<String> ret;
     size_t prev = 0;
-    while (1) {
+    while (true) {
       const size_t next = indexOf(str, prev);
       if (next == npos) break;
-      if (next > prev || !(flags & SkipEmpty))
+      if (next > prev || !(flags & SkipEmpty)) {
         ret.push_back(mid(prev, next - prev));
+      }
       prev = next + str.size();
     }
     if (prev < size() || !(flags & SkipEmpty)) ret.push_back(mid(prev));
@@ -703,7 +716,6 @@ class String {
       }
       default:
         assert(0);
-        return String();
     }
     char buf[32];
     const size_t w = ::snprintf(buf, sizeof(buf), format, num);
@@ -743,7 +755,7 @@ class String {
     char format[32];
 
     // cast to unsigned because windows doesn't have %z format specifier
-    snprintf(format, sizeof(format), "%%.%uf", (unsigned)prec);
+    snprintf(format, sizeof(format), "%%.%uf", static_cast<unsigned>(prec));
     char buf[32];
     const size_t w = ::snprintf(buf, sizeof(buf), format, num);
     return String(buf, w);
@@ -810,25 +822,25 @@ inline bool operator!=(const char *l, const String &r) {
   return r.operator!=(l);
 }
 
-inline const String operator+(const String &l, const char *r) {
+inline String operator+(const String &l, const char *r) {
   String ret = l;
   ret += r;
   return ret;
 }
 
-inline const String operator+(const char *l, const String &r) {
+inline String operator+(const char *l, const String &r) {
   String ret = l;
   ret += r;
   return ret;
 }
 
-inline const String operator+(const String &l, char ch) {
+inline String operator+(const String &l, char ch) {
   String ret = l;
   ret += ch;
   return ret;
 }
 
-inline const String operator+(char l, const String &r) {
+inline String operator+(char l, const String &r) {
   String ret;
   ret.reserve(r.size() + 1);
   ret += l;
@@ -836,7 +848,7 @@ inline const String operator+(char l, const String &r) {
   return ret;
 }
 
-inline const String operator+(const String &l, const String &r) {
+inline String operator+(const String &l, const String &r) {
   String ret = l;
   ret += r;
   return ret;
