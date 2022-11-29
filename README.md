@@ -61,12 +61,11 @@ After installing `conan`, you must supply a default profile for it and alter the
 conan profile new default --detect
 conan profile update settings.compiler.libcxx=libstdc++11 default
 ```
----
-UPDATE:
+
+> UPDATE:
 we suggest using clang to compile our project in development phase, as it can
 provide a better diagnostic experience:
 TODO(hwa): add a proper conan clang profile generation method
----
 
 2. configure cmake
 AYMK, before cmake's generation step, a configure step is required.
