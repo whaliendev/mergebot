@@ -5,6 +5,12 @@
 # Update the version of cmake on your system to use modern cmake features.
 cmake_minimum_required(VERSION 3.15...3.24)
 
+### optional: C and CXX compiler
+# Note that these two lines must go before enable language, or conan's check
+# will fail
+set(CMAKE_C_COMPILER "clang")
+set(CMAKE_CXX_COMPILER "clang++")
+
 ### the project statement
 # Note that after we call this line in the top level project, we can use
 # variables like PROJECT_VERSION_MAJOR,
@@ -134,6 +140,13 @@ conan_basic_setup()
 
 ### find packages go here.
 ## use conan to manage all the packages it contains
+find_package(ZLIB)
+if (ZLIB_FOUND)
+  set(ZLIB_LIBRARY ${ZLIB_LIBRARIES})
+  add_definitions(-DMB_HAVE_ZLIB)
+else()
+  message("ZLIB can't be found. MergeBot configured without zlib support")
+endif ()
 
 ## check linter tools goes here
 include(cmake/checklinter.cmake)
@@ -150,7 +163,7 @@ include(cmake/googletest.cmake)
 add_subdirectory(src)
 
 # add some executables here
-add_subdirectory(apps)
+add_subdirectory(app)
 
 
 
