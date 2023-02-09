@@ -1,18 +1,18 @@
 ---
 # This file is cloned from google grpc: https://github.com/grpc/grpc
-# 
+#
 # Note on checks are disabled on purpose
-# 
+#
 # - bugprone-reserved-identifier
-# Some macros need to be defined for portability purpose; e.g. _BSD_SOURCE 
+# Some macros need to be defined for portability purpose; e.g. _BSD_SOURCE
 #
 # - google-upgrade-googletest-case
 # This requires googletest 1.10 which is higher than ones installed on many linux distros
-# 
+#
 # Note that there may be issues with some clang-tidy rules
 # if you are sure it's a bug of clang-tidy, disable it and add the rule here.
-# Once these issues are clear, these checks can be enabled later. 
-# 
+# Once these issues are clear, these checks can be enabled later.
+#
 # - bugprone-branch-clone
 # - bugprone-easily-swappable-parameters,
 # - bugprone-implicit-widening-of-multiplication-result
@@ -104,7 +104,7 @@ Checks: '-*,
   modernize-use-override,
   modernize-use-transparent-functors,
   readability-const-return-type,
-  readability-container-size-empty,
+  readability-base-size-empty,
   readability-delete-null-pointer,
   readability-deleted-default,
   readability-function-size,

@@ -20,7 +20,7 @@ String String::compress() const {
   z_stream stream;
   memset(&stream, 0, sizeof(stream));
 
-  if (::deflateInit(&stream, Z_BEST_COMPRESSION) != Z_OK) {
+  if (deflateInit(&stream, Z_BEST_COMPRESSION) != Z_OK) {
     return String();
   }
 

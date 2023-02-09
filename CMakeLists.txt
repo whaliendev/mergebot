@@ -116,6 +116,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   else(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")  # clang and gcc
     set(CMAKE_cxx_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wnon-virtual-dtor\
                          -Wold-style-cast -Woverloaded-virtual -Wnull-dereference")
+    set(CMAKE_cxx_FLAGS "${CMAKE_cxx_FLAGS} -O0 -g")
   endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
 
@@ -143,7 +144,8 @@ conan_basic_setup()
 find_package(ZLIB)
 if (ZLIB_FOUND)
   set(ZLIB_LIBRARY ${ZLIB_LIBRARIES})
-  add_definitions(-DMB_HAVE_ZLIB)
+#  add_definitions(-DMB_HAVE_ZLIB)
+  # TODO(hwa): fix the error of undefined reference to deflate
 else()
   message("ZLIB can't be found. MergeBot configured without zlib support")
 endif ()
@@ -161,9 +163,6 @@ include(cmake/googletest.cmake)
 # add_subdirectory starts here
 # add compiled library here
 add_subdirectory(src)
-
-# add some executables here
-add_subdirectory(app)
 
 
 

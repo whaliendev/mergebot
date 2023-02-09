@@ -39,10 +39,7 @@ To support modern C++ package manager `conan`, at least python 3.6 is needed.
 We use `conan` to manage some 3rd-party library dependencies.
 - cmake
 At least cmake 3.15 is needed to generate the build system.
-- a set of compiler toolchain which supports C++17
-    + gcc >= 7.1(don't use gcc, we need clang for a better diagnose experience)
-    + clang >= 5(specifically, clang=14.0 is preferable)
-    + currently we don't promise the portability to MSVC toolchains
+- clang >= 5(specifically, clang=14.0 is preferable)
 - a build system is required to build the project. Such as `Unix Makefiles`, `Ninja`, `Visual Studio toolkits` and so forth.
 
 #### Optional Dependencies
@@ -51,6 +48,10 @@ You will need the following dev dependencies to contribute:
 we use `clang-format` to unify the coding style of this project.
 - clang-tidy
 `clang-tidy` is our linter tool.
+
+#### DevDependencies
+The deps you need to install on your own:
+- llvm and clang formatting and ast parsing
 
 #### Howto
 1. install conan
