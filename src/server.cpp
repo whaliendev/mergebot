@@ -3,10 +3,12 @@
 //
 
 #include "controller/config_controller.h"
-
+#include "controller/project_controller.h"
+#include "controller/resolve_controller.h"
 #include "crow/app.h"
 #include "crow/middlewares/cors.h"
 
+namespace server = mergebot::server;
 
 void ConfigBPRoutes(crow::Blueprint& bp);
 
@@ -40,19 +42,23 @@ void ConfigBPRoutes(crow::Blueprint& bp) {
   CROW_BP_ROUTE(bp, "/config/patch")
       .methods(crow::HTTPMethod::PUT)(
           [](const crow::request& req) { return "patch configuration"; });
+  // get the current configuration
   CROW_BP_ROUTE(bp, "/config/list")
       .methods(crow::HTTPMethod::GET)(
           [](const crow::request& req) { return "list configuration"; });
 
-  // merge scenario info
-  CROW_BP_ROUTE(bp, "/ms").methods(crow::HTTPMethod::POST)(
-      [](const crow::request& req) {
-        return "add specific merge scenario information";
-      });
+  // project specific
+  CROW_BP_ROUTE(bp, "project")
+      .methods(crow::HTTPMethod::POST)(
+          [](const crow::request& req) { return server::PostProject(req); });
 
-  // resolution result of specific file
+  // post merge scenario information
+  CROW_BP_ROUTE(bp, "/ms").methods(crow::HTTPMethod::POST)(
+      [](const crow::request& req) { return server::PostMergeScenario(req); });
+
+  // resolution result of specified file
   CROW_BP_ROUTE(bp, "/resolve")
       .methods(crow::HTTPMethod::POST)([](const crow::request& req) {
-        return "get specific file resolution result";
+        return server::DoFileResolution(req);
       });
 }

@@ -5,5 +5,7 @@
 #include "resolve_controller.h"
 
 namespace mergebot {
-namespace server {}
+namespace server {
+ResultVO DoFileResolution(const crow::request& req);
+}
 }  // namespace mergebot
