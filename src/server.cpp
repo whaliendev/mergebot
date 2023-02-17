@@ -2,11 +2,13 @@
 // Created by whalien on 09/02/23.
 //
 
+#include "consts/ErrorEnum.h"
 #include "controller/config_controller.h"
 #include "controller/project_controller.h"
 #include "controller/resolve_controller.h"
 #include "crow/app.h"
 #include "crow/middlewares/cors.h"
+#include "utility.h"
 
 namespace server = mergebot::server;
 
@@ -48,9 +50,12 @@ void ConfigBPRoutes(crow::Blueprint& bp) {
           [](const crow::request& req) { return "list configuration"; });
 
   // project specific
-  CROW_BP_ROUTE(bp, "project")
-      .methods(crow::HTTPMethod::POST)(
-          [](const crow::request& req) { return server::PostProject(req); });
+  CROW_BP_ROUTE(bp, "/project")
+      .methods(crow::HTTPMethod::POST)([](const crow::request& req) {
+        //            return server::PostProject(req);
+        return mergebot::ResultVOUtil::error(
+            mergebot::ResultEnum::NOT_A_GIT_REPO);
+      });
 
   // post merge scenario information
   CROW_BP_ROUTE(bp, "/ms").methods(crow::HTTPMethod::POST)(

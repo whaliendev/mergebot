@@ -6,6 +6,9 @@
 
 namespace mergebot {
 namespace server {
-ResultVO DoFileResolution(const crow::request& req);
+ResultVO DoFileResolution(const crow::request& req) {
+  ResultVO rv;
+  return rv;
 }
+}  // namespace server
 }  // namespace mergebot

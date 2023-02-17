@@ -36,7 +36,10 @@ add_executable(
         ../include/base/Map.h
         ../include/base/Set.h
         ../include/base/ThreadPool.cpp
-        ../include/base/ThreadPool.h)
+        ../include/base/ThreadPool.h
+        utility.h
+        consts/ErrorEnum.h
+)
 
 target_include_directories(${PROJECT_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/include")
 

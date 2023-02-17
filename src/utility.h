@@ -5,22 +5,24 @@
 #ifndef MB_UTILITY_H
 #define MB_UTILITY_H
 
+#include <fmt/format.h>
+
 #include <array>
 #include <cstdio>
 #include <memory>
 #include <stdexcept>
 
-#include "base/String.h"
+#include "result_vo_utils.h"
 
 namespace mergebot {
 namespace util {
 // git diff --name-only --diff-filter=U
-String ExecCommand(const char* cmd) {
+std::string ExecCommand(const char* cmd) {
   std::array<char, 128> buffer;
-  String result;
+  std::string result;
   std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
   if (!pipe) {
-    throw std::runtime_error("popen() failed!");
+    throw std::runtime_error(fmt::format("execute {} failed", cmd));
   }
   while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
     result += buffer.data();
@@ -28,6 +30,23 @@ String ExecCommand(const char* cmd) {
   return result;
 }
 }  // namespace util
+
+namespace ResultVOUtil {
+server::ResultVO success(crow::json::wvalue& data) {
+  server::ResultVO rv("00000", "", data);
+  return rv;
+}
+
+server::ResultVO error(server::ResultEnum result) {
+  server::ResultVO rv(result.code, result.errorMsg, nullptr);
+  return rv;
+}
+
+server::ResultVO error(std::string code, std::string errorMsg) {
+  server::ResultVO rv(code, errorMsg, nullptr);
+  return rv;
+}
+}  // namespace ResultVOUtil
 }  // namespace mergebot
 
 #endif  // MB_UTILITY_H
