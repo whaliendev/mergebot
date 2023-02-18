@@ -14,34 +14,15 @@ find_package(fmt)
 #include_directories(${LLVM_INCLUDE_DIRS})
 #separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 #add_definitions(${LLVM_DEFINITIONS_LIST})
+file(GLOB_RECURSE source CONFIGURE_DEPENDS ./*.h ./*.cpp ./*.hpp)
 
 add_executable(
         ${PROJECT_NAME}
-        server.cpp
-        result_vo_utils.cpp
-        result_vo_utils.h
-        controller/config_controller.cpp
-        controller/config_controller.h
-        controller/project_controller.cpp
-        controller/project_controller.h
-        controller/resolve_controller.cpp
-        controller/resolve_controller.h
-        core/MergeScenario.cpp
-        core/MergeScenario.h
-        ../include/base/String.h
-        ../include/base/String.cpp
-        ../include/base/List.h
-        ../include/base/Hash.h
-        ../include/base/LinkedList.h
-        ../include/base/Map.h
-        ../include/base/Set.h
-        ../include/base/ThreadPool.cpp
-        ../include/base/ThreadPool.h
-        utility.h
-        consts/ErrorEnum.h
+        ${source}
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_include_directories(${PROJECT_NAME} PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 #llvm_map_components_to_libnames(llvm_libs
 #        support

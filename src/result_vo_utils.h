@@ -40,6 +40,7 @@ struct ResultVO : public crow::returnable {
         crow::returnable("application/json") {}
 
   std::string dump() const override {
+    // TODO(hwa): refactor to utils/format.h
     auto buf = fmt::memory_buffer();
     fmt::format_to(std::back_inserter(buf),
                    u8R"({{"code": "{}", "errorMsg": "{}", "data": {}}})", code,
