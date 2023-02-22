@@ -4,47 +4,32 @@
 
 #ifndef MB_UTILITY_H
 #define MB_UTILITY_H
-
-#include <array>
-#include <cstdio>
-#include <memory>
-#include <stdexcept>
-
+#include <string>
 #include "result_vo_utils.h"
-#include "utils/format.h"
 
 namespace mergebot {
 namespace util {
 // git diff --name-only --diff-filter=U
-std::string ExecCommand(const char* cmd) {
-  std::array<char, 128> buffer;
-  std::string result;
-  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
-  if (!pipe) {
-    throw std::runtime_error(format("execute {} failed", cmd));
-  }
-  while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-    result += buffer.data();
-  }
-  return result;
-}
+std::string ExecCommand(const char* cmd);
 }  // namespace util
 
+namespace ResultEnum {
+// TODO(hwa): every static var is independent, not global var
+const static server::ResultEnum NO_ROUTE_MATCH("U0001",
+                                               "不存在匹配的路由记录");
+const static server::ResultEnum NOT_A_GIT_REPO("U0002",
+                                               "所传入项目路径非git仓库");
+const static server::ResultEnum NO_CONFLICTS_FOUND("U0003",
+                                                   "当前项目路径下无冲突文件");
+const static server::ResultEnum BAD_REQUEST("C0001", "请求格式异常或参数错误");
+}  // namespace ResultEnum
+
 namespace ResultVOUtil {
-server::ResultVO success(crow::json::wvalue& data) {
-  server::ResultVO rv("00000", "", data);
-  return rv;
-}
+server::ResultVO success(const crow::json::wvalue& data = nullptr);
 
-server::ResultVO error(server::ResultEnum result) {
-  server::ResultVO rv(result.code, result.errorMsg, nullptr);
-  return rv;
-}
+server::ResultVO error(const server::ResultEnum& result);
 
-server::ResultVO error(std::string code, std::string errorMsg) {
-  server::ResultVO rv(code, errorMsg, nullptr);
-  return rv;
-}
+server::ResultVO error(const std::string& code, const std::string& errorMsg);
 }  // namespace ResultVOUtil
 }  // namespace mergebot
 
