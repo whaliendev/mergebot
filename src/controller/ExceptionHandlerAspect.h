@@ -1,0 +1,8 @@
+//
+// Created by whalien on 23/02/23.
+//
+
+#ifndef MB_EXCEPTIONHANDLERWRAPPER_H
+#define MB_EXCEPTIONHANDLERWRAPPER_H
+
+#endif  // MB_EXCEPTIONHANDLERWRAPPER_H

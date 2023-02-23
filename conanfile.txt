@@ -3,7 +3,6 @@ spdlog/1.10.0
 nlohmann_json/3.11.2
 magic_enum/0.8.1
 zlib/1.2.13
-crowcpp-crow/1.0+5
 fmt/9.1.0
 
 [generators]

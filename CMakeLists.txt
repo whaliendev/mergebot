@@ -60,7 +60,8 @@ endif(NOT DEFINED CMAKE_POSITION_INDEPENDENT_CODE)
 # the default build target is set to Release
 if (NOT CMAKE_BUILD_TYPE)
     # Default build target
-    set(CMAKE_BUILD_TYPE Release)
+    # TODO(hwa): in release phase, change default build target to Release
+    set(CMAKE_BUILD_TYPE Debug)
 endif(NOT CMAKE_BUILD_TYPE)
 message(STATUS "Build directory: ${PROJECT_BINARY_DIR}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")

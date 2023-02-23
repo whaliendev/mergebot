@@ -1,4 +1,5 @@
 find_package(fmt)
+find_package(Crow REQUIRED)
 
 #find_package(Clang REQUIRED)
 
