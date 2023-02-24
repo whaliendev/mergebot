@@ -4,6 +4,7 @@
 
 #ifndef MB_RESULT_VO_UTILS_H
 #define MB_RESULT_VO_UTILS_H
+#include <crow/http_response.h>
 #include <crow/json.h>
 #include <fmt/format.h>
 
@@ -11,27 +12,23 @@
 
 #include "crow/returnable.h"
 
-// using namespace fmt::literals;
-
 namespace mergebot {
 namespace server {
-struct ResultEnum {
+struct Result {
   std::string code;
   std::string errorMsg;
 
-  ResultEnum(std::string code, std::string errorMsg)
-      : code(code), errorMsg(errorMsg) {}
+  Result(std::string code, std::string errorMsg) : code(code), errorMsg(errorMsg) {}
 };
 
 struct ResultVO : public crow::returnable {
-  std::string code;
-  std::string errorMsg;
-  crow::json::wvalue data;
+  std::string code{"00000"};
+  std::string errorMsg{""};
+  crow::json::wvalue data{nullptr};
 
   ResultVO() : crow::returnable("application/json") {}
 
-  ResultVO(std::string code, std::string errorMsg)
-      : ResultVO(code, errorMsg, nullptr) {}
+  ResultVO(std::string code, std::string errorMsg) : ResultVO(code, errorMsg, nullptr) {}
 
   ResultVO(std::string code, std::string errorMsg, crow::json::wvalue data)
       : code(code),
@@ -40,11 +37,9 @@ struct ResultVO : public crow::returnable {
         crow::returnable("application/json") {}
 
   std::string dump() const override {
-    // TODO(hwa): refactor to utils/format.h
     auto buf = fmt::memory_buffer();
-    fmt::format_to(std::back_inserter(buf),
-                   u8R"({{"code": "{}", "errorMsg": "{}", "data": {}}})", code,
-                   errorMsg, data.dump());
+    fmt::format_to(std::back_inserter(buf), u8R"({{"code": "{}", "errorMsg": "{}", "data": {}}})",
+                   code, errorMsg, data.dump());
     return to_string(buf);
   }
 };

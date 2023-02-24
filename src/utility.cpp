@@ -6,8 +6,8 @@
 #include <memory>
 #include <stdexcept>
 
-#include "result_vo_utils.h"
 #include "mergebot/utils/format.h"
+#include "result_vo_utils.h"
 
 namespace mergebot {
 namespace util {
@@ -25,21 +25,42 @@ std::string ExecCommand(const char* cmd) {
   return result;
 }
 }  // namespace util
-
+namespace server {
 namespace ResultVOUtil {
-server::ResultVO success(const crow::json::wvalue& data = nullptr) {
+void __regularizeRes(crow::response& res, crow::status code, const std::string& body) {
+  res.code = code;
+  res.body = body;
+  res.set_header("Content-Type", "application/json");
+  res.end();
+}
+
+void return_success(crow::response& res, const crow::json::wvalue& data = nullptr) {
   server::ResultVO rv("00000", "", data);
-  return rv;
+  __regularizeRes(res, crow::status::OK, rv.dump());
 }
 
-server::ResultVO error(const server::ResultEnum& result) {
+void return_error(crow::response& res, const server::Result& result) {
   server::ResultVO rv(result.code, result.errorMsg, nullptr);
-  return rv;
+  const auto code = result.code;
+  auto status = crow::status::INTERNAL_SERVER_ERROR;
+  if (code.length() && code[0] == 'C') {
+    status = crow::status::BAD_REQUEST;
+  } else if (code.length() && code[0] == 'S') {
+    status = crow::status::INTERNAL_SERVER_ERROR;
+  }
+  __regularizeRes(res, status, rv.dump());
 }
 
-server::ResultVO error(const std::string& code, const std::string& errorMsg) {
+void return_error(crow::response& res, const std::string& code, const std::string& errorMsg) {
   server::ResultVO rv(code, errorMsg, nullptr);
-  return rv;
+  auto status = crow::status::INTERNAL_SERVER_ERROR;
+  if (code.length() && code[0] == 'C') {
+    status = crow::status::BAD_REQUEST;
+  } else if (errorMsg.length() && errorMsg[0] == 'S') {
+    status = crow::status::INTERNAL_SERVER_ERROR;
+  }
+  __regularizeRes(res, status, rv.dump());
 }
 }  // namespace ResultVOUtil
+}  // namespace server
 }  // namespace mergebot
