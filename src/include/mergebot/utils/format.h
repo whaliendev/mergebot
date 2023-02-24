@@ -6,6 +6,7 @@
 #define MB_FORMAT_H
 
 #include <algorithm>
+#include <cassert>
 #include <sstream>
 #include <string>
 
@@ -14,7 +15,7 @@
 namespace mergebot {
 
 template <int curr, class Os, class It, class... Args>
-bool __format(Os &os, It fb, It fe, std::tuple<Args const &...> const &args) {
+bool __format(Os& os, It fb, It fe, std::tuple<Args const&...> const& args) {
   if constexpr (curr >= sizeof...(Args)) {
     if (fb != fe) {
       os << std::string_view(fb, fe - fb);
@@ -39,13 +40,12 @@ bool __format(Os &os, It fb, It fe, std::tuple<Args const &...> const &args) {
 }
 
 template <class Os, class... Args>
-bool format_to(Os &os, std::string_view fmt, Args const &...args) {
-  return __format<0>(os, fmt.data(), fmt.data() + fmt.size(),
-                     std::tuple<Args const &...>(args...));
+bool format_to(Os& os, std::string_view fmt, Args const&... args) {
+  return __format<0>(os, fmt.data(), fmt.data() + fmt.size(), std::tuple<Args const&...>(args...));
 }
 
 template <class... Args>
-std::string format(std::string_view fmt, Args const &...args) {
+std::string format(std::string_view fmt, Args const&... args) {
   std::stringstream ss;
   format_to(ss, fmt, args...);
   return ss.str();

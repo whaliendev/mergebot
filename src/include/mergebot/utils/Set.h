@@ -167,8 +167,7 @@ class Set : public std::set<T> {
       return 1;
     }
     typename Set<K>::const_iterator bit = other.begin();
-    for (typename Set<T>::const_iterator it = Base::begin(); it != Base::end();
-         ++it) {
+    for (typename Set<T>::const_iterator it = Base::begin(); it != Base::end(); ++it) {
       const size_t cmp = it->compare(*bit);
       if (cmp) return cmp;
       ++bit;

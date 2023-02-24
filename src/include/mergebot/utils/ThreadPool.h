@@ -48,8 +48,7 @@ class ThreadPool {
   static int threadpool_create(int _thread_count, int _queue_size);
   static int threadpool_add(std::shared_ptr<void> args,
                             std::function<void(std::shared_ptr<void>)> fun);
-  static int threadpool_destroy(
-      ShutDownOption shutdown_option = graceful_shutdown);
+  static int threadpool_destroy(ShutDownOption shutdown_option = graceful_shutdown);
   static int threadpool_free();
   static void *threadpool_thread(void *args);
 };
