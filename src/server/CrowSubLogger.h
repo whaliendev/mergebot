@@ -2,7 +2,30 @@
 // Created by whalien on 25/02/23.
 //
 
-#ifndef MB_CROWSUBLOGGER_H
-#define MB_CROWSUBLOGGER_H
+#ifndef MB_CROW_SUB_LOGGER_H
+#define MB_CROW_SUB_LOGGER_H
+#include <crow.h>
+#include <spdlog/spdlog.h>
 
-#endif  // MB_CROWSUBLOGGER_H
+namespace mergebot {
+class CrowSubLogger : public crow::ILogHandler {
+ public:
+  CrowSubLogger() {}
+  void log(std::string message, crow::LogLevel level) {
+    if (level == crow::LogLevel::Debug)
+      spdlog::debug(message);
+    else if (level == crow::LogLevel::Info)
+      spdlog::info(message);
+    else if (level == crow::LogLevel::Warning)
+      spdlog::warn(message);
+    else if (level == crow::LogLevel::Error)
+      spdlog::error(message);
+    else if (level == crow::LogLevel::CRITICAL)
+      spdlog::critical(message);
+    else {
+    }
+  }
+};
+}  // namespace mergebot
+
+#endif  // MB_CROW_SUB_LOGGER_H

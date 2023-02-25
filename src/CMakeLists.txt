@@ -1,5 +1,6 @@
 find_package(fmt)
 find_package(Crow REQUIRED)
+find_package(spdlog REQUIRED)
 
 #find_package(Clang REQUIRED)
 
@@ -36,7 +37,7 @@ target_link_libraries(
         ${PROJECT_NAME}
         PUBLIC
         fmt::fmt
-#        ${llvm_libs}
-#        clang-cpp
+        #        ${llvm_libs}
+        #        clang-cpp
 )
 
