@@ -19,16 +19,19 @@ namespace ResultEnum {
 // TODO(hwa): every static var is independent, not global var
 const static server::Result NO_ROUTE_MATCH("U0001", "不存在匹配的路由记录");
 const static server::Result NOT_A_GIT_REPO("U0002", "所传入项目路径非git仓库");
-const static server::Result NO_CONFLICTS_FOUND("U0003", "当前项目路径下无冲突文件");
+const static server::Result NO_CONFLICTS_FOUND("U0003",
+                                               "当前项目路径下无冲突文件");
 const static server::Result BAD_REQUEST("C0001", "请求格式异常或参数错误");
 }  // namespace ResultEnum
 
 namespace ResultVOUtil {
-void return_success(crow::response& res, const crow::json::wvalue& data = nullptr);
+void return_success(crow::response& res,
+                    const crow::json::wvalue& data = nullptr);
 
 void return_error(crow::response& res, const server::Result& result);
 
-void return_error(crow::response& res, const std::string& code, const std::string& errorMsg);
+void return_error(crow::response& res, const std::string& code,
+                  const std::string& errorMsg);
 }  // namespace ResultVOUtil
 }  // namespace server
 }  // namespace mergebot

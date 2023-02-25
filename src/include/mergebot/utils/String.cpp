@@ -111,7 +111,8 @@ String String::toHex(const void *pAddressIn, size_t lSize) {
   } buf;
   const unsigned char *pTmp;
   unsigned char ucTmp;
-  const unsigned char *pAddress = static_cast<const unsigned char *>(pAddressIn);
+  const unsigned char *pAddress =
+      static_cast<const unsigned char *>(pAddressIn);
 
   buf.pData = pAddress;
   buf.lSize = lSize;
@@ -131,8 +132,8 @@ String String::toHex(const void *pAddressIn, size_t lSize) {
              static_cast<long unsigned int>(pTmp - pAddress));
     lOutLen2 = lOutLen;
 
-    for (lIndex = 1 + lIndent, lIndex2 = 53 - 15 + lIndent, lRelPos = 0; lOutLen2;
-         lOutLen2--, lIndex += 2, lIndex2++) {
+    for (lIndex = 1 + lIndent, lIndex2 = 53 - 15 + lIndent, lRelPos = 0;
+         lOutLen2; lOutLen2--, lIndex += 2, lIndex2++) {
       ucTmp = *pTmp++;
 
       sprintf(szBuf + lIndex, "%02X ", static_cast<unsigned short>(ucTmp));

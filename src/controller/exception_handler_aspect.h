@@ -15,7 +15,8 @@
 namespace mergebot {
 namespace server {
 
-using CReqMResFuncType = std::function<crow::json::wvalue(const crow::request&, crow::response&)>;
+using CReqMResFuncType =
+    std::function<crow::json::wvalue(const crow::request&, crow::response&)>;
 
 template <typename Func, typename Response = crow::response>
 class ExceptionHandlerAspect {
@@ -28,9 +29,10 @@ class ExceptionHandlerAspect {
 
   template <typename... Args>
   auto operator()(Args&&... args) -> decltype(func_(args...)) {
-    static_assert(std::is_default_constructible<decltype(func_(args...))>::value,
-                  "the call result's type of function passed in must be default "
-                  "constructible");
+    static_assert(
+        std::is_default_constructible<decltype(func_(args...))>::value,
+        "the call result's type of function passed in must be default "
+        "constructible");
     decltype(func_(args...)) res;
     try {
       res = func_(args...);
@@ -38,7 +40,8 @@ class ExceptionHandlerAspect {
       ex.handle(res_);
     } catch (const std::exception& ex) {
       auto buf = fmt::memory_buffer();
-      fmt::format_to(std::back_inserter(buf), u8R"({{"code": "{}", "errorMsg": "{}", "data": {}}})",
+      fmt::format_to(std::back_inserter(buf),
+                     u8R"({{"code": "{}", "errorMsg": "{}", "data": {}}})",
                      "S0000", ex.what(), nullptr);
       auto body = to_string(buf);
       res_.code = crow::status::INTERNAL_SERVER_ERROR;

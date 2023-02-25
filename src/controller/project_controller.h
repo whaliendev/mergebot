@@ -8,7 +8,7 @@
 #include <crow/http_request.h>
 #include <crow/http_response.h>
 
-#include "../result_vo_utils.h"
+#include "../server/result_vo_utils.h"
 
 namespace mergebot {
 namespace server {
