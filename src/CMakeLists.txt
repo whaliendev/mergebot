@@ -1,5 +1,7 @@
-find_package(fmt)
+# Note Crow is different, Crow on conan is outdated
 find_package(Crow REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 
 #find_package(Clang REQUIRED)
