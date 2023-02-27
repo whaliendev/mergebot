@@ -16,16 +16,14 @@ class Hash : public std::unordered_map<Key, Value> {
   Hash() : std::unordered_map<Key, Value>() {}
 
   bool contains(const Key &t) const {
-    return std::unordered_map<Key, Value>::find(t) !=
-           std::unordered_map<Key, Value>::end();
+    return std::unordered_map<Key, Value>::find(t) != std::unordered_map<Key, Value>::end();
   }
 
   bool isEmpty() const { return !std::unordered_map<Key, Value>::size(); }
 
   using std::unordered_map<Key, Value>::empty;
 
-  Value value(const Key &key, const Value &defaultValue,
-              bool *ok = nullptr) const {
+  Value value(const Key &key, const Value &defaultValue, bool *ok = nullptr) const {
     typename std::unordered_map<Key, Value>::const_iterator it =
         std::unordered_map<Key, Value>::find(key);
     if (it == std::unordered_map<Key, Value>::end()) {
@@ -41,8 +39,7 @@ class Hash : public std::unordered_map<Key, Value> {
   Value value(const Key &key) const { return value(key, Value()); }
 
   void deleteAll() {
-    typename std::unordered_map<Key, Value>::iterator it =
-        std::unordered_map<Key, Value>::begin();
+    typename std::unordered_map<Key, Value>::iterator it = std::unordered_map<Key, Value>::begin();
     while (it != std::unordered_map<Key, Value>::end()) {
       delete it->second;
       ++it;
@@ -61,8 +58,7 @@ class Hash : public std::unordered_map<Key, Value> {
   }
 
   bool remove(const Key &t, Value *val = nullptr) {
-    typename std::unordered_map<Key, Value>::iterator it =
-        std::unordered_map<Key, Value>::find(t);
+    typename std::unordered_map<Key, Value>::iterator it = std::unordered_map<Key, Value>::find(t);
     if (it != std::unordered_map<Key, Value>::end()) {
       if (val) *val = it->second;
       std::unordered_map<Key, Value>::erase(it);
@@ -74,8 +70,7 @@ class Hash : public std::unordered_map<Key, Value> {
 
   size_t remove(std::function<bool(const Key &key)> match) {
     size_t ret = 0;
-    typename std::unordered_map<Key, Value>::iterator it =
-        std::unordered_map<Key, Value>::begin();
+    typename std::unordered_map<Key, Value>::iterator it = std::unordered_map<Key, Value>::begin();
     while (it != std::unordered_map<Key, Value>::end()) {
       if (match(it->first)) {
         std::unordered_map<Key, Value>::erase(it++);
@@ -88,15 +83,12 @@ class Hash : public std::unordered_map<Key, Value> {
   }
 
   bool insert(const Key &key, const Value &val) {
-    return std::unordered_map<Key, Value>::insert(std::make_pair(key, val))
-        .second;
+    return std::unordered_map<Key, Value>::insert(std::make_pair(key, val)).second;
   }
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "HidingNonVirtualFunction"
-  Value &operator[](const Key &key) {
-    return std::unordered_map<Key, Value>::operator[](key);
-  }
+  Value &operator[](const Key &key) { return std::unordered_map<Key, Value>::operator[](key); }
 #pragma clang diagnostic pop
 
   const Value &operator[](const Key &key) const {
@@ -104,8 +96,7 @@ class Hash : public std::unordered_map<Key, Value> {
     return std::unordered_map<Key, Value>::find(key)->second;
   }
 
-  Hash<Key, Value> &unite(const Hash<Key, Value> &other,
-                          size_t *count = nullptr) {
+  Hash<Key, Value> &unite(const Hash<Key, Value> &other, size_t *count = nullptr) {
     typename std::unordered_map<Key, Value>::const_iterator it = other.begin();
     const auto end = other.end();
     while (it != end) {
@@ -134,13 +125,9 @@ class Hash : public std::unordered_map<Key, Value> {
     return *this;
   }
 
-  Hash<Key, Value> &operator+=(const Hash<Key, Value> &other) {
-    return unite(other);
-  }
+  Hash<Key, Value> &operator+=(const Hash<Key, Value> &other) { return unite(other); }
 
-  Hash<Key, Value> &operator-=(const Hash<Key, Value> &other) {
-    return subtract(other);
-  }
+  Hash<Key, Value> &operator-=(const Hash<Key, Value> &other) { return subtract(other); }
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "HidingNonVirtualFunction"
@@ -192,16 +179,14 @@ class Hash : public std::unordered_map<Key, Value> {
 };
 
 template <typename Key, typename Value>
-inline Hash<Key, Value> operator+(const Hash<Key, Value> &l,
-                                  const Hash<Key, Value> &r) {
+inline Hash<Key, Value> operator+(const Hash<Key, Value> &l, const Hash<Key, Value> &r) {
   Hash<Key, Value> ret = l;
   ret += r;
   return ret;
 }
 
 template <typename Key, typename Value>
-inline Hash<Key, Value> operator-(const Hash<Key, Value> &l,
-                                  const Hash<Key, Value> &r) {
+inline Hash<Key, Value> operator-(const Hash<Key, Value> &l, const Hash<Key, Value> &r) {
   Hash<Key, Value> ret = l;
   ret -= r;
   return ret;

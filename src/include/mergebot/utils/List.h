@@ -22,14 +22,12 @@ class List : public std::vector<T> {
 
  public:
   static constexpr size_t npos = std::numeric_limits<size_t>::max();
-  explicit List(size_t count, T &&defaultValue = T())
-      : Base(count, std::move(defaultValue)) {}
+  explicit List(size_t count, T &&defaultValue = T()) : Base(count, std::move(defaultValue)) {}
 
   List() : Base() {}
 
   template <typename CompatibleType>
-  explicit List(const std::vector<CompatibleType> &other)
-      : Base(other.size(), T()) {
+  explicit List(const std::vector<CompatibleType> &other) : Base(other.size(), T()) {
     const size_t len = other.size();
     for (size_t i = 0; i < len; ++i) {
       std::vector<T>::operator[](i) = other.at(i);
@@ -46,8 +44,7 @@ class List : public std::vector<T> {
 
   List(std::initializer_list<T> list) : Base(list) {}
 
-  List(typename Base::const_iterator f, typename Base::const_iterator l)
-      : Base(f, l) {}
+  List(typename Base::const_iterator f, typename Base::const_iterator l) : Base(f, l) {}
 
   using Base::empty;
   using Base::insert;
@@ -91,9 +88,7 @@ class List : public std::vector<T> {
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "HidingNonVirtualFunction"
-  void insert(size_t idx, const T &val) {
-    Base::insert(Base::begin() + idx, val);
-  }
+  void insert(size_t idx, const T &val) { Base::insert(Base::begin() + idx, val); }
 #pragma clang diagnostic pop
 
   void sort() { std::sort(Base::begin(), Base::end()); }
@@ -260,8 +255,7 @@ class List : public std::vector<T> {
       return 1;
     }
     typename List<K>::const_iterator bit = other.begin();
-    for (typename List<T>::const_iterator it = Base::begin(); it != Base::end();
-         ++it) {
+    for (typename List<T>::const_iterator it = Base::begin(); it != Base::end(); ++it) {
       const int cmp = it->compare(*bit);
       if (cmp) return cmp;
       ++bit;
@@ -283,13 +277,9 @@ class List : public std::vector<T> {
     return ret;
   }
 
-  typename std::vector<T>::const_iterator constBegin() const {
-    return std::vector<T>::begin();
-  }
+  typename std::vector<T>::const_iterator constBegin() const { return std::vector<T>::begin(); }
 
-  typename std::vector<T>::const_iterator constEnd() const {
-    return std::vector<T>::end();
-  }
+  typename std::vector<T>::const_iterator constEnd() const { return std::vector<T>::end(); }
 
   template <typename K>
   bool operator==(const List<K> &other) const {
