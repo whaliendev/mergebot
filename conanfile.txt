@@ -5,7 +5,8 @@ zlib/1.2.13
 fmt/9.1.0
 
 [generators]
-cmake
+CMakeDeps
+CMakeToolchain
 
 [options]
 # note that we can make all the above dependencies to dynamic linked lib
