@@ -16,16 +16,16 @@ namespace mergebot {
 namespace server {
 class AppBaseException : public std::exception {
  public:
-  explicit AppBaseException(mergebot::server::Result err)
-      : code_(err.code), msg_(err.errorMsg) {}
+  explicit AppBaseException(mergebot::server::Result err) : code_(err.code), msg_(err.errorMsg) {}
+
+  AppBaseException(std::string code, std::string msg) : code_(code), msg_(msg) {}
 
   const char* what() const noexcept override { return msg_.c_str(); }
 
   void handle(crow::response& res) const {
     auto buf = fmt::memory_buffer();
-    fmt::format_to(std::back_inserter(buf),
-                   u8R"({{"code": "{}", "errorMsg": "{}", "data": {}}})", code_,
-                   msg_, nullptr);
+    fmt::format_to(std::back_inserter(buf), u8R"({{"code": "{}", "errorMsg": "{}", "data": {}}})",
+                   code_, msg_, nullptr);
     auto body = to_string(buf);
     auto status = crow::status::INTERNAL_SERVER_ERROR;
     if (code_.length() && code_[0] == 'C') {

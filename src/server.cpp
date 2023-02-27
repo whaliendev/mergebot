@@ -9,6 +9,7 @@
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/spdlog.h>
 
+#include <filesystem>
 #include <memory>
 
 #include "controller/project_controller.h"
@@ -22,16 +23,14 @@ constexpr int M = 1024 * 1024;
 
 void ConfigBPRoutes(crow::Blueprint& bp);
 void InitLogger();
+void InitMergebot();
 
-int main() {
-  try {
-    InitLogger();
-  } catch (const spdlog::spdlog_ex& ex) {
-    std::cout << "spdlog initialization failed: " << ex.what() << std::endl;
-    spdlog::shutdown();
-    exit(1);
-  }
+[[noreturn]] int main() {
+  InitLogger();
 
+  InitMergebot();
+
+  // Init Server
   // substitute default logger of crow
   mergebot::CrowSubLogger subLogger;
   crow::logger::setHandler(&subLogger);
@@ -49,6 +48,7 @@ int main() {
 
   ConfigBPRoutes(subApiBP);
 
+  // handler for no route matching
   CROW_CATCHALL_ROUTE(app)
   ([](const crow::request& req, crow::response& res) {
     server::ResultVOUtil::return_error(res, server::ResultEnum::NO_ROUTE_MATCH);
@@ -60,28 +60,50 @@ int main() {
 }
 
 void InitLogger() {
-  // output to console for debugging purpose
-  auto consoleSink =
-      std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>(spdlog::color_mode::always);
-  consoleSink->set_level(spdlog::level::debug);
-  consoleSink->set_pattern("%^[%Y-%H-%M %T] [%t] [%l] %@: %v%$");
+  try {
+    // output to console for debugging purpose
+    auto consoleSink =
+        std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>(spdlog::color_mode::always);
+    consoleSink->set_level(spdlog::level::debug);
+    consoleSink->set_pattern("%^[%Y-%H-%M %T] [%t] [%l] %@:%$ %v");
 
-  // output to file for analysis purpose, there are at most 3 rotating log
-  // files, with a file size limit of 1024M
-  // TODO: refactor log file destination to ~/.local/logs/mergebot/<file>.log
-  auto rotateFileSink =
-      std::make_shared<spdlog::sinks::rotating_file_sink_mt>("logs/mergebot", 1024 * M, 3);
-  rotateFileSink->set_level(spdlog::level::info);
-  rotateFileSink->set_pattern("[%Y-%H-%M %T.%e] [%t] [%l] %@: %v");
+    // output to file for analysis purpose, there are at most 3 rotating log
+    // files, with a file size limit of 1024M
+    // TODO: refactor log file destination to ~/.local/logs/mergebot/<file>.log
+    auto rotateFileSink =
+        std::make_shared<spdlog::sinks::rotating_file_sink_mt>("logs/mergebot", 1024 * M, 3);
+    rotateFileSink->set_level(spdlog::level::info);
+    rotateFileSink->set_pattern("[%Y-%H-%M %T.%e] [%t] [%l] %@: %v");
 
-  spdlog::sinks_init_list sinkList = {consoleSink, rotateFileSink};
-  spdlog::init_thread_pool(4096, 1);
-  auto defaultLogger =
-      std::make_shared<spdlog::async_logger>("async_logger", sinkList, spdlog::thread_pool(),
-                                             spdlog::async_overflow_policy::overrun_oldest);
+    spdlog::sinks_init_list sinkList = {consoleSink, rotateFileSink};
+    spdlog::init_thread_pool(4096, 1);
+    auto defaultLogger =
+        std::make_shared<spdlog::async_logger>("async_logger", sinkList, spdlog::thread_pool(),
+                                               spdlog::async_overflow_policy::overrun_oldest);
 
-  spdlog::register_logger(defaultLogger);
-  spdlog::set_default_logger(defaultLogger);
+    spdlog::register_logger(defaultLogger);
+    spdlog::set_default_logger(defaultLogger);
+  } catch (const spdlog::spdlog_ex& ex) {
+    std::cout << "spdlog initialization failed: " << ex.what() << std::endl;
+    spdlog::shutdown();
+    exit(1);
+  }
+}
+
+void InitMergebot() {
+  namespace fs = std::filesystem;
+  // create dir .mergebot.
+  // we may need to generate default configuration at boot in the near future.
+  // Note that "Home" is Unix based OS specific, on windows, use `getenv("USERPROFILE")`
+  fs::path homeDirPath = fs::path(getenv("HOME"));
+  fs::path mergebotDirPath = homeDirPath / ".mergebot";
+  if (fs::exists(mergebotDirPath)) return;
+  try {
+    fs::create_directory(mergebotDirPath);
+  } catch (const std::exception& ex) {
+    spdlog::error("failed to init mergebot, reason: {}", ex.what());
+    exit(1);
+  }
 }
 
 void ConfigBPRoutes(crow::Blueprint& bp) {
