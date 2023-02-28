@@ -1,6 +1,8 @@
 //
 // Created by whalien on 21/02/23.
 //
+#include "utility.h"
+
 #include <array>
 #include <cstdio>
 #include <memory>
@@ -25,6 +27,15 @@ std::string ExecCommand(const char* cmd) {
   return result;
 }
 }  // namespace util
+
+namespace server {
+namespace ResultEnum {
+// in C++, const vars at file scope is static linked unlike that in C.
+const server::Result NO_ROUTE_MATCH("C0001", "不存在匹配的路由记录，请检查请求路径或请求方法");
+const server::Result BAD_REQUEST("C0002", "请求格式异常或参数错误");
+}  // namespace ResultEnum
+}  // namespace server
+
 namespace server {
 namespace ResultVOUtil {
 void __regularizeRes(crow::response& res, crow::status code, const std::string& body) {

@@ -15,8 +15,8 @@
 namespace mergebot {
 namespace server {
 struct Result {
-  std::string code;
-  std::string errorMsg;
+  std::string code{"00000"};
+  std::string errorMsg{""};
 
   Result(std::string code, std::string errorMsg) : code(code), errorMsg(errorMsg) {}
 };

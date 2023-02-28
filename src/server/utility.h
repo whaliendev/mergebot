@@ -22,17 +22,16 @@ inline bool noerr(crow::json::wvalue& rv) {
 }
 
 namespace ResultEnum {
-// TODO(hwa): every static var is independent, not global var
 // return code:
 //  U: user side error. U0xxx, static constructed, U1, dynamic constructed.
 //  C: client error.
 //  S: server side error
-const static server::Result NO_ROUTE_MATCH("U0001", "不存在匹配的路由记录");
-const static server::Result BAD_REQUEST("C0001", "请求格式异常或参数错误");
+extern const server::Result NO_ROUTE_MATCH;
+extern const server::Result BAD_REQUEST;
 }  // namespace ResultEnum
 
 namespace ResultVOUtil {
-void return_success(crow::response& res, const crow::json::wvalue& data = nullptr);
+void return_success(crow::response& res, const crow::json::wvalue& data);
 
 void return_error(crow::response& res, const server::Result& result);
 
