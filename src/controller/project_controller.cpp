@@ -7,38 +7,43 @@
 #include <crow/json.h>
 #include <spdlog/spdlog.h>
 
+#include <nlohmann/json.hpp>
 #include <vector>
 
+#include "../consts.h"
+#include "../core/model/Project.h"
 #include "../server/utility.h"
 #include "exception_handler_aspect.h"
 #include "mergebot/filesystem.h"
+#include "mergebot/utils/fileio.h"
 #include "mergebot/utils/format.h"
+#include "mergebot/utils/pathop.h"
+#include "mergebot/utils/sha1.h"
 
 namespace mergebot {
 namespace server {
 namespace internal {
+using json = nlohmann::json;
 void __checkPath(std::string const& pathStr) {
-  namespace fs = std::filesystem;
   const fs::path dirPath = pathStr;
   const auto rwPerms = static_cast<int>(
       (fs::status(dirPath).permissions() & (fs::perms::owner_read | fs::perms::owner_write)));
   if (fs::exists(dirPath)) {
     if (!fs::is_directory(dirPath) || !rwPerms) {
-      spdlog::warn(format("no permission to access path [{}]", pathStr));
-      throw AppBaseException("U1000", format("no permission to access path [{}]", pathStr));
+      spdlog::warn(util::format("no permission to access path [{}]", pathStr));
+      throw AppBaseException("U1000", util::format("no permission to access path [{}]", pathStr));
     }
   } else {
-    spdlog::warn(format("project path [{}] doesn't exist", pathStr));
-    throw AppBaseException("U1000", format("project path [{}] doesn't exist", pathStr));
+    spdlog::warn(util::format("project path [{}] doesn't exist", pathStr));
+    throw AppBaseException("U1000", util::format("project path [{}] doesn't exist", pathStr));
   }
 }
 
 void __checkGitDir(std::string const& path) {
-  namespace fs = std::filesystem;
   const fs::path gitDirPath = fs::path(path) / ".git";
   if (!(fs::exists(gitDirPath) && fs::is_directory(gitDirPath))) {
-    spdlog::warn(format("project path[{}] is not a valid git repo", path));
-    throw AppBaseException("U1000", format("project path[{}] is not a valid git repo", path));
+    spdlog::warn(util::format("project path[{}] is not a valid git repo", path));
+    throw AppBaseException("U1000", util::format("project path[{}] is not a valid git repo", path));
   }
 }
 
@@ -51,10 +56,65 @@ bool __containKeys(const crow::json::rvalue& bodyJson, const std::vector<std::st
   return true;
 }
 
-void __initProject(std::string const& project, std::string const& path) {}
+void __initProject(std::string const& project, std::string const& path) {
+  const fs::path homePath = fs::path(util::toabs(MBDIR));
+  if (!fs::exists(homePath)) fs::create_directories(homePath);
+
+  util::SHA1 checksum;
+  checksum.update(util::format("{}-{}", project, path));
+  const std::string cacheDirStr = checksum.final();
+  const fs::path projCheckSumDir = homePath / cacheDirStr;
+  sa::Project proj;
+  proj.project = project;
+  proj.path = path;
+  proj.cacheDir = projCheckSumDir;
+  assert(proj.project.size() && proj.path.size() && proj.cacheDir.size());
+  std::vector<sa::Project> projVec{proj};
+
+  // optimize: if we put all the projs into one manifest.json file, when we read from the file,
+  // it's pretty heavy for the machine. Here we imitate Git's practice of packaging objects to
+  // disperse the project mapping into different files
+  const fs::path manifestPath = homePath / util::format("{}.json", cacheDirStr.substr(0, 2));
+  if (fs::exists(manifestPath)) {
+    // exists, do patch
+    std::ifstream manifestFile(manifestPath.string());
+    if (!json::accept(manifestFile)) {  // not valid, it's an error
+      spdlog::error(
+          "the content of file {} is not valid json, which means it's broken, something pretty"
+          "bad happened, please check the log",
+          manifestPath.string());
+      throw AppBaseException("S1000", "MBSA目录下映射文件格式非法，请检查日志");
+    } else {
+      // Note that json::accept has seeked to the end of outer manifestFile,
+      // so here we need to open a new file descriptor
+      std::ifstream localManifestFile(manifestPath.string());
+      json cachedProjs = json::parse(localManifestFile);
+      std::vector<sa::Project> cachedProjsVec = cachedProjs;
+      auto theSame = [&](const sa::Project& cachedProj) {
+        return cachedProj.cacheDir == proj.cacheDir;
+      };
+      auto it = std::find_if(cachedProjsVec.begin(), cachedProjsVec.end(), theSame);
+      if (it != std::end(cachedProjsVec)) {
+        spdlog::info("proj[{}] is already in manifest.json, we'll do nothing", proj.project);
+      } else {
+        cachedProjsVec.push_back(std::move(proj));
+      }
+      json projsToWrite = cachedProjsVec;
+      util::file_overwrite_content(manifestPath, projsToWrite.dump(2));
+    }
+  } else {  // not exist
+    const json projVecJson = projVec;
+    util::file_overwrite_content(manifestPath, projVecJson.dump(2));
+  }
+
+  if (!fs::exists(projCheckSumDir)) {
+    fs::create_directory(projCheckSumDir);
+    spdlog::info("proj[{}] cache dir[{}] created", project, projCheckSumDir.string());
+  }
+}
 
 crow::json::wvalue __doPostProject(const crow::request& req, crow::response& res) {
-  // 检查目录是否有效，检查是否为git仓库，检查是否为初次运行，生成唯一目录，映射文件
+  // args check
   const auto body = crow::json::load(req.body);
   if (body.error() || !__containKeys(body, {"project", "path"})) {
     spdlog::warn("wrong request format");

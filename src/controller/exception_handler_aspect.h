@@ -32,8 +32,8 @@ class ExceptionHandlerAspect {
   /// \return Most of the time, the return value's type is `crow::json::wvalue`. Default constructed
   /// wvalue and wvalue initialized with nullptr or {} has the same internal type
   /// `crow::json::type::Object`. However, nullptr or {} is a valid response, while default
-  /// constructed wvalue is not in our project. Thus, the default constructed wvalue should be
-  /// modified in which case we can distinguish these two situations.
+  /// constructed wvalue is not. Thus, the default constructed wvalue should be
+  /// modified to a form we can distinguish these two situations.
   /// @see{src/server/utility.h}
   template <typename... Args>
   auto operator()(Args&&... args) -> decltype(func_(std::forward<Args>(args)...)) {

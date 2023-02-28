@@ -12,7 +12,7 @@
 #include <vector>
 
 namespace mergebot {
-
+namespace util {
 static std::string file_get_content(std::string const &path) {
   std::ifstream fin(path);
   std::string content;
@@ -22,9 +22,14 @@ static std::string file_get_content(std::string const &path) {
   return content;
 }
 
-static void file_put_content(std::string const &path, std::string const &content) {
-  std::ofstream fout(path);
+static void file_put_content(std::string const &path, std::string const &content,
+                             std::ios_base::openmode mode) {
+  std::ofstream fout(path, mode);
   fout << content;
+}
+
+static void file_overwrite_content(std::string const &path, std::string const &content) {
+  file_put_content(path, content, std::ios_base::out | std::ios_base::trunc);
 }
 
 static bool file_exists(std::string const &path) {
@@ -93,7 +98,7 @@ template <class Arr = std::vector<char>>
 static bool file_put_binary(Arr const &arr, std::string const &path) {
   return file_put_binary(std::data(arr), std::size(arr), path);
 }
-
+}  // namespace util
 }  // namespace mergebot
 
 #endif  // MB_FILEIO_H

@@ -12,8 +12,10 @@
 #include <filesystem>
 #include <memory>
 
+#include "consts.h"
 #include "controller/project_controller.h"
 #include "controller/resolve_controller.h"
+#include "mergebot/utils/pathop.h"
 #include "server/CrowSubLogger.h"
 #include "server/utility.h"
 
@@ -64,8 +66,13 @@ void InitLogger() {
     // output to console for debugging purpose
     auto consoleSink =
         std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>(spdlog::color_mode::always);
+#ifdef NDEBUG
+    consoleSink->set_level(spdlog::level::info);
+#else
+    // FIX(hwa): there is something wrong, use spd::info instead.
     consoleSink->set_level(spdlog::level::debug);
-    consoleSink->set_pattern("%^[%Y-%H-%M %T] [%t] [%l] %@:%$ %v");
+#endif
+    consoleSink->set_pattern("[%Y-%H-%M %T] [%t] %^[%l]%$ %@: %v");
 
     // output to file for analysis purpose, there are at most 3 rotating log
     // files, with a file size limit of 1024M
@@ -95,8 +102,7 @@ void InitMergebot() {
   // create dir .mergebot.
   // we may need to generate default configuration at boot in the near future.
   // Note that "Home" is Unix based OS specific, on windows, use `getenv("USERPROFILE")`
-  fs::path homeDirPath = fs::path(getenv("HOME"));
-  fs::path mergebotDirPath = homeDirPath / ".mergebot";
+  fs::path mergebotDirPath = mergebot::util::toabs(mergebot::MBDIR);
   if (fs::exists(mergebotDirPath)) return;
   try {
     fs::create_directory(mergebotDirPath);
