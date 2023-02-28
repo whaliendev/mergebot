@@ -16,7 +16,7 @@
 #endif
 
 namespace mergebot {
-
+namespace util {
 namespace _to_stream_details {
 
 template <class T0, class T1, class = void>
@@ -174,7 +174,7 @@ std::string to_string(T const &t) {
     return ss.str();
   }
 }
-
+}  // namespace util
 }  // namespace mergebot
 
 #endif  // MB_TO_STRING_H

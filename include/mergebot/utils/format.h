@@ -13,7 +13,9 @@
 #include "to_string.h"
 
 namespace mergebot {
+namespace util {
 
+namespace _details {
 template <int curr, class Os, class It, class... Args>
 bool __format(Os& os, It fb, It fe, std::tuple<Args const&...> const& args) {
   if constexpr (curr >= sizeof...(Args)) {
@@ -38,10 +40,12 @@ bool __format(Os& os, It fb, It fe, std::tuple<Args const&...> const& args) {
     return __format<curr + 1>(os, ie, fe, args);
   }
 }
+}  // namespace _details
 
 template <class Os, class... Args>
 bool format_to(Os& os, std::string_view fmt, Args const&... args) {
-  return __format<0>(os, fmt.data(), fmt.data() + fmt.size(), std::tuple<Args const&...>(args...));
+  return _details::__format<0>(os, fmt.data(), fmt.data() + fmt.size(),
+                               std::tuple<Args const&...>(args...));
 }
 
 template <class... Args>
@@ -50,6 +54,7 @@ std::string format(std::string_view fmt, Args const&... args) {
   format_to(ss, fmt, args...);
   return ss.str();
 }
+}  // namespace util
 
 }  // namespace mergebot
 
