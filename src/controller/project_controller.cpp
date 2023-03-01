@@ -10,8 +10,8 @@
 #include <nlohmann/json.hpp>
 #include <vector>
 
-#include "../consts.h"
 #include "../core/model/Project.h"
+#include "../globals.h"
 #include "../server/utility.h"
 #include "exception_handler_aspect.h"
 #include "mergebot/filesystem.h"
@@ -71,10 +71,12 @@ void __initProject(std::string const& project, std::string const& path) {
   assert(proj.project.size() && proj.path.size() && proj.cacheDir.size());
   std::vector<sa::Project> projVec{proj};
 
-  // optimize: if we put all the projs into one manifest.json file, when we read from the file,
-  // it's pretty heavy for the machine. Here we imitate Git's practice of packaging objects to
-  // disperse the project mapping into different files
+  // optimize: we distribute all the projects to 256 manifest.json and 16 mutex to reduce lock
+  // contention and critical section
   const fs::path manifestPath = homePath / util::format("{}.json", cacheDirStr.substr(0, 2));
+
+  std::lock_guard<std::mutex> manifestLock(
+      MANIFEST_LOCKS[std::stoi(cacheDirStr.substr(0, 2)) % MANIFEST_LOCKS.size()]);
   if (fs::exists(manifestPath)) {
     // exists, do patch
     std::ifstream manifestFile(manifestPath.string());

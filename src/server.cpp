@@ -12,9 +12,9 @@
 #include <filesystem>
 #include <memory>
 
-#include "consts.h"
 #include "controller/project_controller.h"
 #include "controller/resolve_controller.h"
+#include "globals.h"
 #include "mergebot/utils/pathop.h"
 #include "server/CrowSubLogger.h"
 #include "server/utility.h"
