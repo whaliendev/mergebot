@@ -21,7 +21,7 @@ std::string ExecCommand(const char* cmd) {
   if (!pipe) {
     throw std::runtime_error(format("execute {} failed", cmd));
   }
-  while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+  while (fread(buffer.data(), 1, buffer.size(), pipe.get())) {
     result += buffer.data();
   }
   return result;

@@ -13,7 +13,7 @@
 
 namespace mergebot {
 namespace util {
-static std::string file_get_content(std::string const &path) {
+[[nodiscard]] static std::string file_get_content(std::string const &path) {
   std::ifstream fin(path);
   std::string content;
   std::istreambuf_iterator<char> iit(fin), eiit;

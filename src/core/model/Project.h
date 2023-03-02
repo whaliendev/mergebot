@@ -22,7 +22,8 @@ struct Project {
   Project() = default;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Project, project, path, cacheDir, mss);
-}  // namespace sa
-}  // namespace mergebot
-#endif  // MB_PROJECT_H
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Project, project, path,
+                                                cacheDir, mss);
+} // namespace sa
+} // namespace mergebot
+#endif // MB_PROJECT_H

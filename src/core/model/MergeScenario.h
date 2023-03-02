@@ -19,9 +19,10 @@ struct MergeScenario {
   MergeScenario() = default;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MergeScenario, name, ours, theirs, base);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MergeScenario, name, ours,
+                                                theirs, base);
 
-}  // namespace sa
-}  // namespace mergebot
+} // namespace sa
+} // namespace mergebot
 
-#endif  // MB_MERGESCENARIO_H
+#endif // MB_MERGESCENARIO_H
