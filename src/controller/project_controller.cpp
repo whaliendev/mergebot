@@ -146,12 +146,15 @@ void _checkMSValidity(crow::json::rvalue const& ms, std::string const& path) {
     throw AppBaseException("C1000", "commit hash is not valid");
   }
   if (!_isValidCommitHash(oursHash, path)) {
-    spdlog::error(util::format("there is no commit obj corresponding to hash[{}]", oursHash));
-    throw AppBaseException("C1000", "the hash is not a valid commit object id in this project");
+    spdlog::error(util::format("there is no commit obj corresponding to hash[{}] in git repo[{}]",
+                               oursHash, path));
+    throw AppBaseException("C1000",
+                           util::format("the hash is not a valid commit object id in {}", path));
   }
   if (!_isValidCommitHash(theirsHash, path)) {
     spdlog::error(util::format("there is no commit obj corresponding to hash[{}]", theirsHash));
-    throw AppBaseException("C1000", "the hash is not a valid commit object id in this project");
+    throw AppBaseException("C1000",
+                           util::format("the hash is not a valid commit object id in {}", path));
   }
 }
 
@@ -165,7 +168,6 @@ void _handleMergeScenario(std::string const& project, std::string const& path,
   std::mutex& manifestLock = MANIFEST_LOCKS[lockIdx];
   fs::path manifestPath = fs::path(util::toabs(MBDIR)) /
                           util::format("manifest-{}.json", cacheDirCheckSum.substr(0, 2));
-  std::lock_guard<std::mutex> manifestGuard(manifestLock);
   std::ifstream manifestFS(manifestPath.string());
   if (!json::accept(manifestFS, true)) {
     spdlog::error(
@@ -179,15 +181,15 @@ void _handleMergeScenario(std::string const& project, std::string const& path,
     json manifestJson = json::parse(localManifestFS);
     std::vector<sa::Project> projList = manifestJson;
     auto theSame = [&](const sa::Project& cachedProj) {
-      return cachedProj.cacheDir == cacheDirCheckSum;
+      return fs::path(cachedProj.cacheDir).filename() == cacheDirCheckSum;
     };
     std::vector<sa::Project>::iterator it = std::find_if(projList.begin(), projList.end(), theSame);
     if (projList.end() != it) {
       // find it!
       std::string ours = static_cast<std::string>(ms["ours"]);
       std::string theirs = static_cast<std::string>(ms["theirs"]);
-      std::string base =
-          util::ExecCommand(util::format("git merge-base {} {}", ours, theirs).c_str());
+      std::string base = util::ExecCommand(
+          util::format("(cd {} && git merge-base {} {})", path, ours, theirs).c_str());
       if (base.length() != 40) base = "";
       std::string name = util::format("{}-{}", ours.substr(0, 6), theirs.substr(0, 6));
       sa::MergeScenario msCrafted = {.name = name, .ours = ours, .theirs = theirs, .base = base};

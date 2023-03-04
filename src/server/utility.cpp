@@ -3,6 +3,8 @@
 //
 #include "utility.h"
 
+#include <spdlog/spdlog.h>
+
 #include <array>
 #include <cstdio>
 #include <memory>
@@ -24,6 +26,7 @@ std::string ExecCommand(const char* cmd) {
   while (fread(buffer.data(), 1, buffer.size(), pipe.get())) {
     result += buffer.data();
   }
+  if (result.length() && result[result.length() - 1]) result.pop_back();
   return result;
 }
 }  // namespace util
