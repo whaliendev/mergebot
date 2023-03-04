@@ -17,6 +17,7 @@ namespace mergebot {
 namespace util {
 // git diff --name-only --diff-filter=U
 std::string ExecCommand(const char* cmd) {
+  // TODO(hwa): change return type to ErrorOr<>
   std::array<char, 128> buffer;
   std::string result;
   std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);

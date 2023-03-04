@@ -159,13 +159,28 @@ void _checkMSValidity(crow::json::rvalue const& ms, std::string const& path) {
 }
 
 void _goResolve(std::string const& project, std::string const& path, std::string const& ours,
-                std::string const& theirs) {}
+                std::string const& theirs, std::string const& base) {
+
+}
+
+/// \brief set merge scenario resolution algorithm running sign in projDir/msName dir. Note that this
+/// method should be called in a thread-safe env.
+/// \param projDir project cache dir
+/// \param msName merge scenario name
+void _setRunningSign(std::string const& projDir, std::string const& msName) {
+  fs::path msPath = fs::path(projDir) / msName;
+  // clang-format off
+  assert(fs::exists(msPath) &&
+         util::format(
+             "the merge scenario path[{}] should be created before setting running sign", msPath
+         ).c_str());
+  // clang-format on
+  util::file_overwrite_content(msPath / "running", std::to_string(1));
+}
 
 void _handleMergeScenario(std::string const& project, std::string const& path,
                           crow::json::rvalue const& ms) {
   const std::string cacheDirCheckSum = _calcProjChecksum(project, path);
-  const int lockIdx = std::stoi(cacheDirCheckSum.substr(0, 2), nullptr, 16) % MANIFEST_LOCKS.size();
-  std::mutex& manifestLock = MANIFEST_LOCKS[lockIdx];
   fs::path manifestPath = fs::path(util::toabs(MBDIR)) /
                           util::format("manifest-{}.json", cacheDirCheckSum.substr(0, 2));
   std::ifstream manifestFS(manifestPath.string());
@@ -176,45 +191,52 @@ void _handleMergeScenario(std::string const& project, std::string const& path,
     throw AppBaseException(
         "S1000", util::format("MBSA目录下映射文件{}格式非法，可能是一个读者写者同步bug，请检查日志",
                               manifestPath.string()));
-  } else {
-    std::ifstream localManifestFS(manifestPath.string());
-    json manifestJson = json::parse(localManifestFS);
-    std::vector<sa::Project> projList = manifestJson;
-    auto theSame = [&](const sa::Project& cachedProj) {
-      return fs::path(cachedProj.cacheDir).filename() == cacheDirCheckSum;
-    };
-    std::vector<sa::Project>::iterator it = std::find_if(projList.begin(), projList.end(), theSame);
-    if (projList.end() != it) {
-      // find it!
-      std::string ours = static_cast<std::string>(ms["ours"]);
-      std::string theirs = static_cast<std::string>(ms["theirs"]);
-      std::string base = util::ExecCommand(
-          util::format("(cd {} && git merge-base {} {})", path, ours, theirs).c_str());
-      if (base.length() != 40) base = "";
-      std::string name = util::format("{}-{}", ours.substr(0, 6), theirs.substr(0, 6));
-      sa::MergeScenario msCrafted = {.name = name, .ours = ours, .theirs = theirs, .base = base};
-      auto msIt = std::find_if(it->mss.begin(), it->mss.end(),
-                               [&](sa::MergeScenario const& ms) { return ms.name == name; });
-      {
-        std::lock_guard<std::mutex> manifestLockGuard(manifestLock);
-        if (msIt == it->mss.end()) {  // not exists before
-          it->mss.push_back(std::move(msCrafted));
-          json jsonToDump = projList;
-          util::file_overwrite_content(manifestPath, jsonToDump.dump(2));
-          _goResolve(project, path, ours, theirs);
-        } else {  // check if the algorithm is running
-          // not running, go resolve
-          // running, return
-          // TODO(hwa): add check logic
-        }
-      }
-    } else {
-      // something wrong
-      spdlog::warn(util::format(
-          "use /project api to post project to mergebot first before post merge scenario"));
-      throw AppBaseException("C1000", "请先调用/project api将项目信息添加到mergebot中再调用此api");
+  }
+  std::ifstream localManifestFS(manifestPath.string());
+  json manifestJson = json::parse(localManifestFS);
+  std::vector<sa::Project> projList = manifestJson;
+  auto theSame = [&](const sa::Project& cachedProj) {
+    return fs::path(cachedProj.cacheDir).filename() == cacheDirCheckSum;
+  };
+  std::vector<sa::Project>::iterator it = std::find_if(projList.begin(), projList.end(), theSame);
+  if (projList.end() == it) {
+    // didn't find it, something wrong
+    spdlog::warn(util::format(
+        "use /project api to post project to mergebot first before post merge scenario"));
+    throw AppBaseException("C1000", "请先调用/project api将项目信息添加到mergebot中再调用此api");
+  }
+
+  // find it
+  std::string ours = static_cast<std::string>(ms["ours"]);
+  std::string theirs = static_cast<std::string>(ms["theirs"]);
+  std::string base = util::ExecCommand(
+      util::format("(cd {} && git merge-base {} {})", path, ours, theirs).c_str());
+  if (base.length() != 40) base = "";
+  std::string name = util::format("{}-{}", ours.substr(0, 6), theirs.substr(0, 6));
+  sa::MergeScenario msCrafted = {.name = name, .ours = ours, .theirs = theirs, .base = base};
+  auto msIt = std::find_if(it->mss.begin(), it->mss.end(),
+                           [&](sa::MergeScenario const& ms) { return ms.name == name; });
+
+  const int lockIdx = std::stoi(cacheDirCheckSum.substr(0, 2), nullptr, 16) % MANIFEST_LOCKS.size();
+  std::mutex& manifestLock = MANIFEST_LOCKS[lockIdx];
+  {
+    std::lock_guard<std::mutex> manifestLockGuard(manifestLock);
+    if (msIt == it->mss.end()) {  // not exists before
+      it->mss.push_back(std::move(msCrafted));
+      json jsonToDump = projList;
+      util::file_overwrite_content(manifestPath, jsonToDump.dump(2));
+      fs::path msPath = fs::path(it->cacheDir) / msIt->name;
+      fs::create_directories(msPath);
+      // note that after all the conflicts files are resolved by mergebot, we need to clear the
+      // running sign manually
+      _setRunningSign(it->cacheDir, msIt->name);
+    } else {  // check if the algorithm is running
+      // if it's running, return
+      fs::path runningSignFile = fs::path(it->cacheDir) / msIt->name / "running";
+      if(!fs::exists(runningSignFile) || util::file_get_content(runningSignFile) == "1") return;
     }
   }
+  _goResolve(project, path, ours, theirs, base);
 }
 
 crow::json::wvalue _doPostMergeScenario(const crow::request& req,
