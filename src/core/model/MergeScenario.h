@@ -11,6 +11,8 @@
 namespace mergebot {
 namespace sa {
 struct MergeScenario {
+  // Note that these public members need to violate LLVM's coding standard as it
+  // will be used as json key when performing serialization and deserialization
   std::string name;
   std::string ours;
   std::string theirs;

@@ -14,6 +14,7 @@
 #include "../globals.h"
 #include "../server/utility.h"
 #include "exception_handler_aspect.h"
+#include "llvm/Support/ErrorOr.h"
 #include "mergebot/filesystem.h"
 #include "mergebot/utils/fileio.h"
 #include "mergebot/utils/format.h"
@@ -63,7 +64,7 @@ std::string _calcProjChecksum(std::string const& project, std::string const& pat
 }
 
 void _initProject(std::string const& project, std::string const& path) {
-  const fs::path homePath = fs::path(util::toabs(MBDIR));
+  const fs::path homePath = fs::path(mergebot::util::toabs(MBDIR));
   if (!fs::exists(homePath)) fs::create_directories(homePath);
 
   const std::string cacheDirStr = _calcProjChecksum(project, path);
@@ -135,8 +136,10 @@ crow::json::wvalue _doPostProject(const crow::request& req, [[maybe_unused]] cro
 }
 
 bool _isValidCommitHash(std::string const& hash, std::string const& path) {
-  return util::ExecCommand(util::format("(cd {} && git cat-file -t {})", path, hash).c_str()) ==
-         "commit";
+  std::string command = util::format("(cd {} && git cat-file -t {})", path, hash);
+  llvm::ErrorOr<std::string> resultOrErr = util::ExecCommand(command);
+  if (!resultOrErr) util::handleServerExecError(resultOrErr.getError(), command);
+  return resultOrErr.get() == "commit";
 }
 
 void _checkMSValidity(crow::json::rvalue const& ms, std::string const& path) {
@@ -159,14 +162,11 @@ void _checkMSValidity(crow::json::rvalue const& ms, std::string const& path) {
 }
 
 void _goResolve(std::string const& project, std::string const& path, std::string const& ours,
-                std::string const& theirs, std::string const& base) {
+                std::string const& theirs, std::string const& base) {}
 
-}
-
-/// \brief set merge scenario resolution algorithm running sign in projDir/msName dir. Note that this
-/// method should be called in a thread-safe env.
-/// \param projDir project cache dir
-/// \param msName merge scenario name
+/// \brief set merge scenario resolution algorithm running sign in projDir/msName dir. Note that
+/// this method should be called in a thread-safe env. \param projDir project cache dir \param
+/// msName merge scenario name
 void _setRunningSign(std::string const& projDir, std::string const& msName) {
   fs::path msPath = fs::path(projDir) / msName;
   // clang-format off
@@ -179,7 +179,7 @@ void _setRunningSign(std::string const& projDir, std::string const& msName) {
 }
 
 void _handleMergeScenario(std::string const& project, std::string const& path,
-                          crow::json::rvalue const& ms) {
+                          crow::json::rvalue const& ms, crow::response& res) {
   const std::string cacheDirCheckSum = _calcProjChecksum(project, path);
   fs::path manifestPath = fs::path(util::toabs(MBDIR)) /
                           util::format("manifest-{}.json", cacheDirCheckSum.substr(0, 2));
@@ -209,8 +209,10 @@ void _handleMergeScenario(std::string const& project, std::string const& path,
   // find it
   std::string ours = static_cast<std::string>(ms["ours"]);
   std::string theirs = static_cast<std::string>(ms["theirs"]);
-  std::string base = util::ExecCommand(
-      util::format("(cd {} && git merge-base {} {})", path, ours, theirs).c_str());
+  std::string cmd = mergebot::util::format("(cd {} && git merge-base {} {})", path, ours, theirs);
+  llvm::ErrorOr<std::string> resultOrErr = mergebot::util::ExecCommand(cmd);
+  if (!resultOrErr) util::handleServerExecError(resultOrErr.getError(), cmd);
+  std::string base = resultOrErr.get();
   if (base.length() != 40) base = "";
   std::string name = util::format("{}-{}", ours.substr(0, 6), theirs.substr(0, 6));
   sa::MergeScenario msCrafted = {.name = name, .ours = ours, .theirs = theirs, .base = base};
@@ -233,14 +235,15 @@ void _handleMergeScenario(std::string const& project, std::string const& path,
     } else {  // check if the algorithm is running
       // if it's running, return
       fs::path runningSignFile = fs::path(it->cacheDir) / msIt->name / "running";
-      if(!fs::exists(runningSignFile) || util::file_get_content(runningSignFile) == "1") return;
+      if (!fs::exists(runningSignFile) || util::file_get_content(runningSignFile) == "1") {
+        ResultVOUtil::return_error(res, "C1000", "当前项目当前合并场景的冲突解决算法在运行中");
+      }
     }
   }
   _goResolve(project, path, ours, theirs, base);
 }
 
-crow::json::wvalue _doPostMergeScenario(const crow::request& req,
-                                        [[maybe_unused]] crow::response& res) {
+crow::json::wvalue _doPostMergeScenario(const crow::request& req, crow::response& res) {
   const auto body = crow::json::load(req.body);
   if (body.error() || !_containKeys(body, {"project", "path", "ms"})) {
     spdlog::error("the format of request body data is illegal");
@@ -251,7 +254,7 @@ crow::json::wvalue _doPostMergeScenario(const crow::request& req,
   _checkPath(path);
   _checkGitDir(path);
   _checkMSValidity(body["ms"], path);
-  _handleMergeScenario(project, path, body["ms"]);
+  _handleMergeScenario(project, path, body["ms"], res);
   return {};
 }
 }  // namespace internal
@@ -260,14 +263,14 @@ void PostProject(const crow::request& req, crow::response& res) {
   auto internalPostProject =
       ExceptionHandlerAspect<CReqMResFuncType>(internal::_doPostProject, res);
   auto rv = internalPostProject(req, res);
-  if (noerr(rv)) ResultVOUtil::return_success(res, rv);
+  if (noerr(rv, res)) ResultVOUtil::return_success(res, rv);
 }
 
 void PostMergeScenario(const crow::request& req, crow::response& res) {
   auto internalPostMergeScenario =
       ExceptionHandlerAspect<CReqMResFuncType>(internal::_doPostMergeScenario, res);
   auto rv = internalPostMergeScenario(req, res);
-  if (noerr(rv)) ResultVOUtil::return_success(res, rv);
+  if (noerr(rv, res)) ResultVOUtil::return_success(res, rv);
 }
 }  // namespace server
 }  // namespace mergebot

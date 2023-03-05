@@ -4,6 +4,8 @@
 
 #ifndef MB_UTILITY_H
 #define MB_UTILITY_H
+#include <llvm/Support/ErrorOr.h>
+
 #include <string>
 
 #include "result_vo_utils.h"
@@ -11,11 +13,13 @@
 namespace mergebot {
 namespace util {
 // git diff --name-only --diff-filter=U
-std::string ExecCommand(const char* cmd);
+llvm::ErrorOr<std::string> ExecCommand(std::string_view sv, int timeout = 10);
+void handleServerExecError(std::error_code err, std::string_view cmd);
 }  // namespace util
 
 namespace server {
-inline bool noerr(crow::json::wvalue& rv) {
+inline bool noerr(crow::json::wvalue& rv, crow::response& res) {
+  if (res.code != crow::status::OK) return false;
   return !(rv.t() == crow::json::type::Object &&
            std::find(rv.keys().begin(), rv.keys().end(), "error") != rv.keys().end() &&
            rv["error"].dump() == "true");

@@ -14,6 +14,8 @@
 namespace mergebot {
 namespace sa {
 struct Project {
+  // Note that these public members need to violate LLVM's coding standard as it
+  // will be used as json key when performing serialization and deserialization
   std::string project;
   std::string path;
   std::string cacheDir;
