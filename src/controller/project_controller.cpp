@@ -162,11 +162,21 @@ void _checkMSValidity(crow::json::rvalue const& ms, std::string const& path) {
 }
 
 void _goResolve(std::string const& project, std::string const& path, std::string const& ours,
-                std::string const& theirs, std::string const& base) {}
+                std::string const& theirs, std::string const& base) {
+  // collect conflict files in path of project
+  std::string command = util::format("(cd {} && git diff --name-only --diff-filter=U)", path);
+  llvm::ErrorOr<std::string> resultOrErr = util::ExecCommand(command);
+  if (!resultOrErr) util::handleServerExecError(resultOrErr.getError(), command);
+  std::string result = resultOrErr.get();
+  spdlog::info(result);
+  // construct ResolutionManager
+  // call its async doResolution method to do resolution
+}
 
 /// \brief set merge scenario resolution algorithm running sign in projDir/msName dir. Note that
-/// this method should be called in a thread-safe env. \param projDir project cache dir \param
-/// msName merge scenario name
+/// this method should be called in a thread-safe context.
+/// \param projDir project cache dir
+/// \param msName merge scenario name
 void _setRunningSign(std::string const& projDir, std::string const& msName) {
   fs::path msPath = fs::path(projDir) / msName;
   // clang-format off
@@ -216,22 +226,26 @@ void _handleMergeScenario(std::string const& project, std::string const& path,
   if (base.length() != 40) base = "";
   std::string name = util::format("{}-{}", ours.substr(0, 6), theirs.substr(0, 6));
   sa::MergeScenario msCrafted = {.name = name, .ours = ours, .theirs = theirs, .base = base};
-  auto msIt = std::find_if(it->mss.begin(), it->mss.end(),
+  auto msIt = std::find_if((it->mss).begin(), (it->mss).end(),
                            [&](sa::MergeScenario const& ms) { return ms.name == name; });
 
   const int lockIdx = std::stoi(cacheDirCheckSum.substr(0, 2), nullptr, 16) % MANIFEST_LOCKS.size();
   std::mutex& manifestLock = MANIFEST_LOCKS[lockIdx];
   {
     std::lock_guard<std::mutex> manifestLockGuard(manifestLock);
-    if (msIt == it->mss.end()) {  // not exists before
+    if (msIt == (it->mss).end()) {  // not exists before
+      // note that in the following code, projList will be moved to basic_json and msCrafted will
+      // be moved to projList, so we need to back up them here.
+      std::string projFoundCacheDir = it->cacheDir;
+      std::string msName = msCrafted.name;
+
       it->mss.push_back(std::move(msCrafted));
       json jsonToDump = projList;
       util::file_overwrite_content(manifestPath, jsonToDump.dump(2));
-      fs::path msPath = fs::path(it->cacheDir) / msIt->name;
+      fs::path msPath = fs::path(projFoundCacheDir) / msName;
       fs::create_directories(msPath);
-      // note that after all the conflicts files are resolved by mergebot, we need to clear the
-      // running sign manually
-      _setRunningSign(it->cacheDir, msIt->name);
+      _setRunningSign(projFoundCacheDir, msName);
+      // Remember to clear running sign manually after we resolved all the conflicts.
     } else {  // check if the algorithm is running
       // if it's running, return
       fs::path runningSignFile = fs::path(it->cacheDir) / msIt->name / "running";
