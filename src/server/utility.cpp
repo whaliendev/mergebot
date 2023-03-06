@@ -46,17 +46,17 @@ llvm::ErrorOr<std::string> ExecCommand(std::string_view sv, int timeout) {
     int res = waitpid(0, &status, WNOHANG);
     if (res == -1) {  // exit accidentally
       return std::make_error_code(std::errc::io_error);
-    } else if (res > 0) {                // exit normally
-      if (WIFEXITED(status)) {           // subprocess exit
-        if (WEXITSTATUS(status) == 0) {  // successfully
-          while (fread(buffer.data(), 1, buffer.size(), pipe.get())) {
-            result += buffer.data();
-            if (result.length() && result[result.length() - 1]) result.pop_back();
-            return result;
-          }
-        } else {  // exit ungracefully, with an error code stored in status
+    } else if (res > 0) {              // exit normally
+      if (WIFEXITED(status)) {         // subprocess exit
+        if (WEXITSTATUS(status) != 0)  // exit accidentally
           return std::error_code(status, std::generic_category());
+
+        // exit successfully
+        while (fgets(buffer.data(), buffer.size(), pipe.get())) {
+          result += buffer.data();
         }
+        if (result.length() && result[result.length() - 1]) result.pop_back();
+        return result;
       } else if (WIFEXITED(status)) {  // interrupted
         return std::make_error_code(std::errc::interrupted);
       }

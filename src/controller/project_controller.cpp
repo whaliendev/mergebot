@@ -168,7 +168,6 @@ void _goResolve(std::string const& project, std::string const& path, std::string
   llvm::ErrorOr<std::string> resultOrErr = util::ExecCommand(command);
   if (!resultOrErr) util::handleServerExecError(resultOrErr.getError(), command);
   std::string result = resultOrErr.get();
-  spdlog::info(result);
   // construct ResolutionManager
   // call its async doResolution method to do resolution
 }
