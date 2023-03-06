@@ -10,6 +10,7 @@
 #include <nlohmann/json.hpp>
 #include <vector>
 
+#include "../core/ResolutionManager.h"
 #include "../core/model/Project.h"
 #include "../globals.h"
 #include "../server/utility.h"
@@ -20,6 +21,7 @@
 #include "mergebot/utils/format.h"
 #include "mergebot/utils/pathop.h"
 #include "mergebot/utils/sha1.h"
+#include "mergebot/utils/stringop.h"
 
 namespace mergebot {
 namespace server {
@@ -82,6 +84,7 @@ void _initProject(std::string const& project, std::string const& path) {
       MANIFEST_LOCKS[std::stoi(cacheDirStr.substr(0, 2), nullptr, 16) % MANIFEST_LOCKS.size()]);
   if (fs::exists(manifestPath)) {
     // exists, do patch
+    spdlog::info("manifest file [{}] already exits, we'll do a patch to it", manifestPath.string());
     std::ifstream manifestFile(manifestPath.string());
     if (!json::accept(manifestFile)) {  // not valid, it's an reader-writer parallel error
       spdlog::error(
@@ -108,6 +111,7 @@ void _initProject(std::string const& project, std::string const& path) {
       util::file_overwrite_content(manifestPath, projsToWrite.dump(2));
     }
   } else {  // not exist
+    spdlog::info("manifest file [{}] doesn't exist, we'll create one", manifestPath.string());
     const json projVecJson = projVec;
     util::file_overwrite_content(manifestPath, projVecJson.dump(2));
   }
@@ -161,15 +165,28 @@ void _checkMSValidity(crow::json::rvalue const& ms, std::string const& path) {
   }
 }
 
-void _goResolve(std::string const& project, std::string const& path, std::string const& ours,
-                std::string const& theirs, std::string const& base) {
+void _goResolve(std::string project, std::string path, std::string ours, std::string theirs,
+                std::string base) {
   // collect conflict files in path of project
   std::string command = util::format("(cd {} && git diff --name-only --diff-filter=U)", path);
   llvm::ErrorOr<std::string> resultOrErr = util::ExecCommand(command);
   if (!resultOrErr) util::handleServerExecError(resultOrErr.getError(), command);
   std::string result = resultOrErr.get();
+  std::vector<std::string_view> fileNames = util::string_split(result, "\n");
+  if (fileNames.size() == 0) {
+    throw AppBaseException(
+        "U1000",
+        util::format("there is no conflict files in project[{}] with path[{}]", project, path));
+  }
+  std::unique_ptr<std::string[]> conflictFiles = std::make_unique<std::string[]>(fileNames.size());
+  std::transform(fileNames.begin(), fileNames.end(), conflictFiles.get(),
+                 [](const std::string_view& fileName) { return std::string(fileName); });
+  sa::MergeScenario ms(ours, theirs, base);
   // construct ResolutionManager
+  sa::ResolutionManager resolutionManager(std::move(project), std::move(path), std::move(ms),
+                                          std::move(conflictFiles), fileNames.size());
   // call its async doResolution method to do resolution
+  resolutionManager.doResolution();
 }
 
 /// \brief set merge scenario resolution algorithm running sign in projDir/msName dir. Note that
@@ -222,9 +239,12 @@ void _handleMergeScenario(std::string const& project, std::string const& path,
   llvm::ErrorOr<std::string> resultOrErr = mergebot::util::ExecCommand(cmd);
   if (!resultOrErr) util::handleServerExecError(resultOrErr.getError(), cmd);
   std::string base = resultOrErr.get();
-  if (base.length() != 40) base = "";
+  if (base.length() != 40) {
+    base = "";
+    spdlog::warn("base commit of ours[{}] and theirs[{}] branches doesn't exist", ours, theirs);
+  }
   std::string name = util::format("{}-{}", ours.substr(0, 6), theirs.substr(0, 6));
-  sa::MergeScenario msCrafted = {.name = name, .ours = ours, .theirs = theirs, .base = base};
+  sa::MergeScenario msCrafted(ours, theirs, base);
   auto msIt = std::find_if((it->mss).begin(), (it->mss).end(),
                            [&](sa::MergeScenario const& ms) { return ms.name == name; });
 
@@ -235,6 +255,10 @@ void _handleMergeScenario(std::string const& project, std::string const& path,
     if (msIt == (it->mss).end()) {  // not exists before
       // note that in the following code, projList will be moved to basic_json and msCrafted will
       // be moved to projList, so we need to back up them here.
+      spdlog::info(
+          "this merge scenario[{}] of current project[{}] doesn't exist before, we'll add it and "
+          "start the resolution algorithm",
+          msCrafted, project);
       std::string projFoundCacheDir = it->cacheDir;
       std::string msName = msCrafted.name;
 
@@ -247,6 +271,10 @@ void _handleMergeScenario(std::string const& project, std::string const& path,
       // Remember to clear running sign manually after we resolved all the conflicts.
     } else {  // check if the algorithm is running
       // if it's running, return
+      spdlog::info(
+          "this merge scenario[{}] of project[{}] already exist in the resolution set, we'll check "
+          "if the algorithm is running",
+          msCrafted, project);
       fs::path runningSignFile = fs::path(it->cacheDir) / msIt->name / "running";
       if (!fs::exists(runningSignFile) || util::file_get_content(runningSignFile) == "1") {
         ResultVOUtil::return_error(res, "C1000", "当前项目当前合并场景的冲突解决算法在运行中");

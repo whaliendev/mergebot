@@ -21,6 +21,16 @@ struct Project {
   std::string cacheDir;
   std::vector<MergeScenario> mss;
 
+  explicit operator std::string() const {
+    // clang-format off
+    return fmt::format(R"(Project(
+        project = {},
+        path = {},
+        cacheDir = {},
+        mss = [{}]
+    ))", project, path, cacheDir, fmt::join(mss, ", "));
+    // clang-format on
+  }
   Project() = default;
 };
 
