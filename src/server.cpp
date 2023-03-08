@@ -17,7 +17,7 @@
 #include "globals.h"
 #include "mergebot/utils/pathop.h"
 #include "server/CrowSubLogger.h"
-#include "server/utility.h"
+#include "utility.h"
 
 namespace server = mergebot::server;
 
@@ -42,9 +42,11 @@ void InitMergebot();
   crow::Blueprint subApiBP("api/sa");
 
   cors.global()
-      .headers("X-Custom-Header", "Upgrade-Insecure-Requests", "X-Requested-With")
+      .headers("X-Custom-Header", "Upgrade-Insecure-Requests",
+               "X-Requested-With")
       .origin("http://127.0.0.1:80")
-      .methods(crow::HTTPMethod::GET, crow::HTTPMethod::POST, crow::HTTPMethod::PUT)
+      .methods(crow::HTTPMethod::GET, crow::HTTPMethod::POST,
+               crow::HTTPMethod::PUT)
       .max_age(10000)
       .allow_credentials();
 
@@ -65,7 +67,8 @@ void InitLogger() {
   try {
     // output to console for debugging purpose
     auto consoleSink =
-        std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>(spdlog::color_mode::always);
+        std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>(
+            spdlog::color_mode::always);
 #ifdef NDEBUG
     consoleSink->set_level(spdlog::level::info);
 #else
@@ -78,15 +81,16 @@ void InitLogger() {
     // files, with a file size limit of 1024M
     // TODO: refactor log file destination to ~/.local/logs/mergebot/<file>.log
     auto rotateFileSink =
-        std::make_shared<spdlog::sinks::rotating_file_sink_mt>("logs/mergebot", 1024 * M, 3);
+        std::make_shared<spdlog::sinks::rotating_file_sink_mt>("logs/mergebot",
+                                                               1024 * M, 3);
     rotateFileSink->set_level(spdlog::level::info);
     rotateFileSink->set_pattern("[%Y-%H-%M %T.%e] [%t] [%l] %@: %v");
 
     spdlog::sinks_init_list sinkList = {consoleSink, rotateFileSink};
     spdlog::init_thread_pool(4096, 1);
-    auto defaultLogger =
-        std::make_shared<spdlog::async_logger>("async_logger", sinkList, spdlog::thread_pool(),
-                                               spdlog::async_overflow_policy::overrun_oldest);
+    auto defaultLogger = std::make_shared<spdlog::async_logger>(
+        "async_logger", sinkList, spdlog::thread_pool(),
+        spdlog::async_overflow_policy::overrun_oldest);
 
     spdlog::register_logger(defaultLogger);
     spdlog::set_default_logger(defaultLogger);
@@ -101,7 +105,8 @@ void InitMergebot() {
   namespace fs = std::filesystem;
   // create dir .mergebot.
   // we may need to generate default configuration at boot in the near future.
-  // Note that "Home" is Unix based OS specific, on windows, use `getenv("USERPROFILE")`
+  // Note that "Home" is Unix based OS specific, on windows, use
+  // `getenv("USERPROFILE")`
   fs::path mergebotDirPath = mergebot::util::toabs(mergebot::MBDIR);
   if (fs::exists(mergebotDirPath)) return;
   try {
@@ -114,29 +119,34 @@ void InitMergebot() {
 
 void ConfigBPRoutes(crow::Blueprint& bp) {
   // initially, post configuration
-  CROW_BP_ROUTE(bp, "/config/add").methods(crow::HTTPMethod::POST)([](const crow::request& req) {
-    return "add initial configuration";
-  });
+  CROW_BP_ROUTE(bp, "/config/add")
+      .methods(crow::HTTPMethod::POST)(
+          [](const crow::request& req) { return "add initial configuration"; });
   // change the default configuration
-  CROW_BP_ROUTE(bp, "/config/patch").methods(crow::HTTPMethod::PUT)([](const crow::request& req) {
-    return "patch configuration";
-  });
+  CROW_BP_ROUTE(bp, "/config/patch")
+      .methods(crow::HTTPMethod::PUT)(
+          [](const crow::request& req) { return "patch configuration"; });
   // get the current configuration
-  CROW_BP_ROUTE(bp, "/config/list").methods(crow::HTTPMethod::GET)([](const crow::request& req) {
-    return "list configuration";
-  });
+  CROW_BP_ROUTE(bp, "/config/list")
+      .methods(crow::HTTPMethod::GET)(
+          [](const crow::request& req) { return "list configuration"; });
 
   // project specific
   CROW_BP_ROUTE(bp, "/project")
       .methods(crow::HTTPMethod::POST)(
-          [](const crow::request& req, crow::response& res) { server::PostProject(req, res); });
+          [](const crow::request& req, crow::response& res) {
+            server::PostProject(req, res);
+          });
 
   // post merge scenario information
   CROW_BP_ROUTE(bp, "/ms").methods(crow::HTTPMethod::POST)(
-      [](const crow::request& req, crow::response& res) { server::PostMergeScenario(req, res); });
+      [](const crow::request& req, crow::response& res) {
+        server::PostMergeScenario(req, res);
+      });
 
   // resolution result of specified file
-  CROW_BP_ROUTE(bp, "/resolve").methods(crow::HTTPMethod::POST)([](const crow::request& req) {
-    return server::DoFileResolution(req);
-  });
+  CROW_BP_ROUTE(bp, "/resolve")
+      .methods(crow::HTTPMethod::POST)([](const crow::request& req) {
+        return server::DoFileResolution(req);
+      });
 }
