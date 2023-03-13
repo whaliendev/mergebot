@@ -28,7 +28,7 @@ class AppBaseException : public std::exception {
     auto buf = fmt::memory_buffer();
     fmt::format_to(std::back_inserter(buf),
                    u8R"({{"code": "{}", "errorMsg": "{}", "data": {}}})", code_,
-                   msg_, nullptr);
+                   msg_, "null");
     auto body = to_string(buf);
     auto status = crow::status::INTERNAL_SERVER_ERROR;
     if (code_.length() && code_[0] == 'C') {

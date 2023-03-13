@@ -200,10 +200,11 @@ void _goResolve(std::string project, std::string path, std::string ours,
   // get c/cpp related source files
   std::vector<std::string_view> fileNames = util::string_split(result, "\n");
   if (fileNames.size() == 0) {
-    throw AppBaseException("U1000",
-                           util::format("there is no conflict C/C++ source "
-                                        "file in project[{}] with path[{}]",
-                                        project, path));
+    throw AppBaseException(
+        "U1000",
+        util::format(
+            "在路径[{}]下的项目[{}]中无冲突的C/C++文件，MBSA暂时无法处理该项目",
+            path, project));
   }
   // clang-format off
   std::unordered_set<std::string_view> cppExtensions = {".h", ".hpp",
@@ -269,6 +270,16 @@ void _handleMergeScenario(std::string const& project, std::string const& path,
       fs::path(util::toabs(MBDIR)) /
       util::format("manifest-{}.json", cacheDirCheckSum.substr(0, 2));
   std::ifstream manifestFS(manifestPath.string());
+  if (!fs::exists(manifestPath)) {
+    spdlog::info(util::format(
+        "manifest file [{}] doesn't exist, please post project first.",
+        manifestPath));
+    throw AppBaseException(
+        "C1000",
+        util::format(
+            "配置文件 [{}] 不存在, 请先使用post project api添加项目配置信息",
+            manifestPath));
+  }
   if (!json::accept(manifestFS, true)) {
     spdlog::error(
         "the content of file {} is not valid json, which means it's broken. "

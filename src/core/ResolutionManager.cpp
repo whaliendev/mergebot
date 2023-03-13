@@ -6,7 +6,11 @@
 
 #include "../utility.h"
 
+#include "mergebot/utils/ThreadPool.h"
+#include <cstdlib>
+#include <ctime>
 #include <fmt/format.h>
+#include <limits>
 #include <memory>
 #include <spdlog/spdlog.h>
 #include <thread>
@@ -14,15 +18,17 @@
 namespace mergebot {
 namespace sa {
 void ResolutionManager::doResolution() {
-  // remember to set running sign
+  // remember to clear running sign
   // clang-format off
   spdlog::info(R"(begin resolving conflicts...
+  {{
     project: {},
     project path: {},
     merge scenario: {},
     conflict files: [
         {}
     ]
+  }}
   )", Project_, ProjectPath_, MS_,
   fmt::join(ConflictFiles_.get(), ConflictFiles_.get() + FileNum_, ",\n\t\t"));
   // clang-format on
@@ -77,7 +83,10 @@ void ResolutionManager::_doResolutionAsync(
   //         fs::exists(OursPath / "compile_commands.json") &&
   //         fs::exists(TheirsPath / "compile_commands.json") &&
   //         "CompDB generation failed");
+  assert(fs::exists(OursPath) && fs::exists(TheirsPath) &&
+         "copy two version sources failed");
 }
+
 void ResolutionManager::_generateCompDB(
     const std::shared_ptr<ResolutionManager> &Self,
     const std::string &CommitHash, std::string const &SourceDest) {

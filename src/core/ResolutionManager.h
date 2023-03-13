@@ -28,7 +28,7 @@ public:
                     int FileNum)
       : Project_(std::move(Project_)), ProjectPath_(std::move(ProjectPath_)),
         MS_(std::move(MS_)), ConflictFiles_(std::move(ConflictFiles_)),
-        FileNum_(FileNum), CurrIdx_(0), CompDBCount_(0) {}
+        FileNum_(FileNum), CurrIdx_(0) {}
 
   std::string mergeScenarioPath() const {
     const fs::path homePath = fs::path(mergebot::util::toabs(MBDIR));
@@ -69,11 +69,6 @@ private:
   // resolved files set and mutex. Do we really need it?
   llvm::StringSet<> ResolvedFiles_;
   std::mutex ResolvedMutex_;
-
-  // CompDB generation related
-  std::mutex CompDBMtx_;
-  std::condition_variable CompDBCV_;
-  int CompDBCount_;
 };
 
 } // namespace sa
