@@ -7,10 +7,7 @@
 #include "../utility.h"
 
 #include "mergebot/utils/ThreadPool.h"
-#include <cstdlib>
-#include <ctime>
 #include <fmt/format.h>
-#include <limits>
 #include <memory>
 #include <spdlog/spdlog.h>
 #include <thread>

@@ -9,12 +9,16 @@
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/spdlog.h>
 
+#include <csignal>
+#include <cstdlib>
 #include <filesystem>
 #include <memory>
+#include <thread>
 
 #include "controller/project_controller.h"
 #include "controller/resolve_controller.h"
 #include "globals.h"
+#include "mergebot/utils/ThreadPool.h"
 #include "mergebot/utils/pathop.h"
 #include "server/CrowSubLogger.h"
 #include "utility.h"
@@ -22,16 +26,21 @@
 namespace server = mergebot::server;
 
 constexpr int M = 1024 * 1024;
+constexpr int WORKLOAD = 0.75;
+constexpr int TASK_QUEUE_SIZE = 1024;
+static int DESTROYED = 0;
 
 void ConfigBPRoutes(crow::Blueprint& bp);
 void InitLogger();
 void InitMergebot();
+void InitThreadPool();
 
 [[noreturn]] int main() {
   InitLogger();
 
   InitMergebot();
 
+  InitThreadPool();
   // Init Server
   // substitute default logger of crow
   mergebot::CrowSubLogger subLogger;
@@ -61,6 +70,51 @@ void InitMergebot();
   app.register_blueprint(subApiBP);
 
   app.loglevel(crow::LogLevel::INFO).bindaddr("127.0.0.1").port(18080).run();
+}
+
+void InitThreadPool() {
+  uint coreNum = std::thread::hardware_concurrency();
+  if (!coreNum) coreNum = 6;
+  int createRes =
+      ThreadPool::threadpool_create(coreNum * WORKLOAD, TASK_QUEUE_SIZE);
+  if (createRes != 0) {
+    spdlog::error("failed to create global thread pool");
+    exit(1);
+  }
+
+  auto poolSigDestroyer = [](int status) {
+    if (!DESTROYED) {
+      SPDLOG_INFO("destroying thread pool...");
+      int err = ThreadPool::threadpool_destroy();
+      if (!err)
+        SPDLOG_ERROR(
+            "fail to destroy thread pool, some resources may has not been "
+            "released");
+      DESTROYED = 1;
+    }
+    exit(status);
+  };
+  auto poolNorDestroyer = []() {
+    if (!DESTROYED) {
+      SPDLOG_INFO("destroying thread pool...");
+      int err = ThreadPool::threadpool_destroy();
+      if (!err)
+        SPDLOG_ERROR(
+            "fail to destroy thread pool, some resources may has not been "
+            "released");
+      DESTROYED = 1;
+    }
+  };
+  // ^C
+  signal(SIGINT, poolSigDestroyer);
+  // abort
+  signal(SIGABRT, poolSigDestroyer);
+  // sent by kill command
+  signal(SIGTERM, poolSigDestroyer);
+  // ^Z
+  signal(SIGTSTP, poolSigDestroyer);
+  // return from main, or exit by exit function
+  std::atexit(poolNorDestroyer);
 }
 
 void InitLogger() {
