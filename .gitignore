@@ -19,3 +19,4 @@ Release/
 out/
 
 compile_commands.json
+logs
