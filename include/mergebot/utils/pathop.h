@@ -26,9 +26,6 @@ static std::string toabs(std::string const& pathStr) {
   } else {
     ret = path.string();
   }
-#ifndef NDEBUG
-  spdlog::debug("return absolute path: {}", ret);
-#endif
   return ret;
 }
 }  // namespace util

@@ -2,6 +2,10 @@
 // Created by whalien on 09/02/23.
 //
 
+#ifndef NDEBUG
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#endif
+
 #include <crow/app.h>
 #include <crow/middlewares/cors.h>
 #include <spdlog/async.h>
@@ -26,7 +30,7 @@
 namespace server = mergebot::server;
 
 constexpr int M = 1024 * 1024;
-constexpr int WORKLOAD = 0.75;
+constexpr double WORKLOAD = 0.75;
 constexpr int TASK_QUEUE_SIZE = 1024;
 static int DESTROYED = 0;
 
@@ -86,10 +90,11 @@ void InitThreadPool() {
     if (!DESTROYED) {
       SPDLOG_INFO("destroying thread pool...");
       int err = ThreadPool::threadpool_destroy();
-      if (!err)
+      if (err)
         SPDLOG_ERROR(
             "fail to destroy thread pool, some resources may has not been "
-            "released");
+            "released, err code: {}",
+            err);
       DESTROYED = 1;
     }
     exit(status);
@@ -98,10 +103,11 @@ void InitThreadPool() {
     if (!DESTROYED) {
       SPDLOG_INFO("destroying thread pool...");
       int err = ThreadPool::threadpool_destroy();
-      if (!err)
+      if (err)
         SPDLOG_ERROR(
             "fail to destroy thread pool, some resources may has not been "
-            "released");
+            "released, err code: {}",
+            err);
       DESTROYED = 1;
     }
   };
@@ -126,7 +132,6 @@ void InitLogger() {
 #ifdef NDEBUG
     consoleSink->set_level(spdlog::level::info);
 #else
-    // FIX(hwa): there is something wrong, use spd::info instead.
     consoleSink->set_level(spdlog::level::debug);
 #endif
     consoleSink->set_pattern("[%Y-%H-%M %T] [%t] %^[%l]%$ %@: %v");
@@ -145,6 +150,13 @@ void InitLogger() {
     auto defaultLogger = std::make_shared<spdlog::async_logger>(
         "async_logger", sinkList, spdlog::thread_pool(),
         spdlog::async_overflow_policy::overrun_oldest);
+
+    // global logger level should be lower than two sinks
+#ifndef NDEBUG
+    defaultLogger->set_level(spdlog::level::debug);
+#else
+    defaultLogger->set_level(spdlog::level::info);
+#endif
 
     spdlog::register_logger(defaultLogger);
     spdlog::set_default_logger(defaultLogger);

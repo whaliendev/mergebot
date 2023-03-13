@@ -98,7 +98,7 @@ int ThreadPool::threadpool_add(std::shared_ptr<void> args,
 /// \param shutdown_option gracefully or immediate
 /// \return err code
 int ThreadPool::threadpool_destroy(ShutDownOption shutdown_option) {
-  SPDLOG_INFO("Thread pool destroy !\n");
+  SPDLOG_INFO("begin destroy thread pool");
   int i, err = 0;
 
   if (pthread_mutex_lock(&lock) != 0) {
@@ -131,6 +131,7 @@ int ThreadPool::threadpool_destroy(ShutDownOption shutdown_option) {
 
   if (!err) {
     threadpool_free();
+    SPDLOG_INFO("destroy thread pool successfully");
   }
   return err;
 }
@@ -175,6 +176,6 @@ void *ThreadPool::threadpool_thread(void *args) {
   }
   --started;
   pthread_mutex_unlock(&lock);
-  SPDLOG_INFO("This threadpool thread finishes!\n");
+  SPDLOG_DEBUG("This threadpool thread finishes!");
   pthread_exit(nullptr);
 }

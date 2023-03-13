@@ -1,0 +1,8 @@
+[2023-17-29 17:29:37.041] [111723] [info] : Crow/master server is running at http://127.0.0.1:18080 using 2 threads
+[2023-17-29 17:29:37.041] [111723] [info] : Call `app.loglevel(crow::LogLevel::Warning)` to hide Info level logs.
+[2023-17-29 17:29:42.476] [111735] [info] : Closing IO service 0x55c12d611b40
+[2023-17-29 17:29:42.476] [111735] [info] : Closing main IO service (0x55c12d611170)
+[2023-17-29 17:29:42.476] [111735] [info] : Exiting.
+[2023-17-29 17:29:42.476] [111723] [info] /home/whalien/codebase/cpp/mergebot/src/server.cpp:100: destroying thread pool...
+[2023-17-29 17:29:42.476] [111723] [info] /home/whalien/codebase/cpp/mergebot/src/utils/ThreadPool.cpp:101: begin destroy thread pool
+[2023-17-29 17:29:42.477] [111723] [error] /home/whalien/codebase/cpp/mergebot/src/server.cpp:105: fail to destroy thread pool, some resources may has not been released
