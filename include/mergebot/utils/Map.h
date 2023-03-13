@@ -20,7 +20,8 @@ class Map : public std::map<Key, Value, Compare> {
 
   Map(Map<Key, Value, Compare> &&other) noexcept : Base(std::move(other)) {}
 
-  Map(std::initializer_list<typename Base::value_type> init, const Compare &comp = Compare())
+  Map(std::initializer_list<typename Base::value_type> init,
+      const Compare &comp = Compare())
       : Base(init, comp) {}
 
   Map<Key, Value, Compare> &operator=(const Map<Key, Value, Compare> &other) {
@@ -28,14 +29,16 @@ class Map : public std::map<Key, Value, Compare> {
     return *this;
   }
 
-  Map<Key, Value, Compare> &operator=(Map<Key, Value, Compare> &&other) noexcept {
+  Map<Key, Value, Compare> &operator=(
+      Map<Key, Value, Compare> &&other) noexcept {
     Base::operator=(std::move(other));
     return *this;
   }
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "HidingNonVirtualFunction"
-  Map<Key, Value, Compare> &operator=(std::initializer_list<typename Base::value_type> init) {
+  Map<Key, Value, Compare> &operator=(
+      std::initializer_list<typename Base::value_type> init) {
     Base::operator=(init);
     return *this;
   }
@@ -47,7 +50,8 @@ class Map : public std::map<Key, Value, Compare> {
 
   bool isEmpty() const { return !Base::size(); }
 
-  Value value(const Key &key, const Value &defaultValue, bool *ok = nullptr) const {
+  Value value(const Key &key, const Value &defaultValue,
+              bool *ok = nullptr) const {
     typename Base::const_iterator it = Base::find(key);
     if (it == Base::end()) {
       if (ok) *ok = false;
@@ -118,7 +122,8 @@ class Map : public std::map<Key, Value, Compare> {
     return Base::find(key)->second;
   }
 
-  Map<Key, Value, Compare> &unite(const Map<Key, Value, Compare> &other, size_t *count = nullptr) {
+  Map<Key, Value, Compare> &unite(const Map<Key, Value, Compare> &other,
+                                  size_t *count = nullptr) {
     typename Base::const_iterator it = other.begin();
     const auto end = other.end();
     while (it != end) {
@@ -217,11 +222,13 @@ template <typename Key, typename Value, typename Compare = std::less<Key> >
 class MultiMap : public std::multimap<Key, Value, Compare> {
  public:
   MultiMap() {}
-  MultiMap(std::initializer_list<typename std::multimap<Key, Value>::value_type> init,
+  MultiMap(std::initializer_list<typename std::multimap<Key, Value>::value_type>
+               init,
            const Compare &comp = Compare())
       : std::multimap<Key, Value, Compare>(init, comp) {}
 
-  MultiMap<Key, Value, Compare> &operator=(const MultiMap<Key, Value, Compare> &other) {
+  MultiMap<Key, Value, Compare> &operator=(
+      const MultiMap<Key, Value, Compare> &other) {
     std::multimap<Key, Value, Compare>::operator=(other);
     return *this;
   }
@@ -229,20 +236,23 @@ class MultiMap : public std::multimap<Key, Value, Compare> {
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "HidingNonVirtualFunction"
   MultiMap<Key, Value, Compare> &operator=(
-      std::initializer_list<typename std::multimap<Key, Value>::value_type> init) {
+      std::initializer_list<typename std::multimap<Key, Value>::value_type>
+          init) {
     std::multimap<Key, Value, Compare>::operator=(init);
     return *this;
   }
 #pragma clang diagnostic pop
 
   bool contains(const Key &t) const {
-    return std::multimap<Key, Value, Compare>::find(t) != std::multimap<Key, Value, Compare>::end();
+    return std::multimap<Key, Value, Compare>::find(t) !=
+           std::multimap<Key, Value, Compare>::end();
   }
 
   using std::multimap<Key, Value, Compare>::empty;
   bool isEmpty() const { return std::multimap<Key, Value, Compare>::empty(); }
 
-  Value value(const Key &key, const Value &defaultValue = Value(), bool *ok = nullptr) const {
+  Value value(const Key &key, const Value &defaultValue = Value(),
+              bool *ok = nullptr) const {
     typename std::multimap<Key, Value, Compare>::const_iterator it =
         std::multimap<Key, Value, Compare>::find(key);
     if (it == std::multimap<Key, Value, Compare>::end()) {
@@ -302,19 +312,23 @@ class MultiMap : public std::multimap<Key, Value, Compare> {
 
   using std::multimap<Key, Value>::insert;
   void insert(const Key &key, const Value &val) {
-    std::multimap<Key, Value, Compare>::insert(std::make_pair<Key, Value>(key, val));
+    std::multimap<Key, Value, Compare>::insert(
+        std::make_pair<Key, Value>(key, val));
   }
 
-  Value &operator[](const Key &key) { return std::multimap<Key, Value, Compare>::operator[](key); }
+  Value &operator[](const Key &key) {
+    return std::multimap<Key, Value, Compare>::operator[](key);
+  }
 
   const Value &operator[](const Key &key) const {
     assert(contains(key));
     return std::multimap<Key, Value, Compare>::find(key)->second;
   }
 
-  MultiMap<Key, Value, Compare> &unite(const MultiMap<Key, Value, Compare> &other,
-                                       size_t *count = nullptr) {
-    typename std::multimap<Key, Value, Compare>::const_iterator it = other.begin();
+  MultiMap<Key, Value, Compare> &unite(
+      const MultiMap<Key, Value, Compare> &other, size_t *count = nullptr) {
+    typename std::multimap<Key, Value, Compare>::const_iterator it =
+        other.begin();
     const auto end = other.end();
     while (it != end) {
       const Key &key = it->first;
@@ -333,7 +347,8 @@ class MultiMap : public std::multimap<Key, Value, Compare> {
     return *this;
   }
 
-  MultiMap<Key, Value, Compare> &subtract(const MultiMap<Key, Value, Compare> &other) {
+  MultiMap<Key, Value, Compare> &subtract(
+      const MultiMap<Key, Value, Compare> &other) {
     typename std::multimap<Key, Value, Compare>::iterator it = other.begin();
     while (it != other.end()) {
       std::multimap<Key, Value, Compare>::erase(*it);
@@ -342,11 +357,13 @@ class MultiMap : public std::multimap<Key, Value, Compare> {
     return *this;
   }
 
-  MultiMap<Key, Value, Compare> &operator+=(const MultiMap<Key, Value, Compare> &other) {
+  MultiMap<Key, Value, Compare> &operator+=(
+      const MultiMap<Key, Value, Compare> &other) {
     return unite(other);
   }
 
-  MultiMap<Key, Value, Compare> &operator-=(const MultiMap<Key, Value, Compare> &other) {
+  MultiMap<Key, Value, Compare> &operator-=(
+      const MultiMap<Key, Value, Compare> &other) {
     return subtract(other);
   }
 
@@ -355,7 +372,8 @@ class MultiMap : public std::multimap<Key, Value, Compare> {
   size_t size() const { return std::multimap<Key, Value, Compare>::size(); }
 #pragma clang diagnostic pop
 
-  typename std::multimap<Key, Value, Compare>::const_iterator constBegin() const {
+  typename std::multimap<Key, Value, Compare>::const_iterator constBegin()
+      const {
     return std::multimap<Key, Value, Compare>::begin();
   }
 
@@ -400,16 +418,18 @@ class MultiMap : public std::multimap<Key, Value, Compare> {
 };
 
 template <typename Key, typename Value, typename Compare>
-inline MultiMap<Key, Value, Compare> operator+(const MultiMap<Key, Value, Compare> &l,
-                                               const MultiMap<Key, Value, Compare> &r) {
+inline MultiMap<Key, Value, Compare> operator+(
+    const MultiMap<Key, Value, Compare> &l,
+    const MultiMap<Key, Value, Compare> &r) {
   MultiMap<Key, Value, Compare> ret = l;
   ret += r;
   return ret;
 }
 
 template <typename Key, typename Value, typename Compare>
-inline MultiMap<Key, Value, Compare> operator-(const MultiMap<Key, Value, Compare> &l,
-                                               const MultiMap<Key, Value, Compare> &r) {
+inline MultiMap<Key, Value, Compare> operator-(
+    const MultiMap<Key, Value, Compare> &l,
+    const MultiMap<Key, Value, Compare> &r) {
   MultiMap<Key, Value, Compare> ret = l;
   ret -= r;
   return ret;

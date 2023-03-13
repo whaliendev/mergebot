@@ -14,6 +14,7 @@
 
 #include "../core/ResolutionManager.h"
 #include "../core/model/Project.h"
+#include "../core/model/ResolutionResultVO.h"
 #include "../globals.h"
 #include "../utility.h"
 #include "exception_handler_aspect.h"

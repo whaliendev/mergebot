@@ -26,7 +26,8 @@
 
 #include "List.h"
 
-#define RCT_PRINTF_WARNING(fmt, firstarg) __attribute__((__format__(__printf__, fmt, firstarg)))
+#define RCT_PRINTF_WARNING(fmt, firstarg) \
+  __attribute__((__format__(__printf__, fmt, firstarg)))
 class String {
  public:
   static const size_t npos = std::string::npos;
@@ -90,7 +91,8 @@ class String {
   iterator begin() { return mString.begin(); }
   iterator end() { return mString.end(); }
 
-  size_t lastIndexOf(char ch, size_t from = npos, CaseSensitivity cs = CaseSensitive) const {
+  size_t lastIndexOf(char ch, size_t from = npos,
+                     CaseSensitivity cs = CaseSensitive) const {
     if (cs == CaseSensitive) {
       return mString.rfind(ch, from == npos ? std::string::npos : from);
     }
@@ -105,7 +107,8 @@ class String {
     return npos;
   }
 
-  size_t indexOf(char ch, size_t from = 0, CaseSensitivity cs = CaseSensitive) const {
+  size_t indexOf(char ch, size_t from = 0,
+                 CaseSensitivity cs = CaseSensitive) const {
     if (cs == CaseSensitive) return mString.find(ch, from);
     const char *data = mString.c_str();
     ch = tolower(ch);
@@ -149,7 +152,8 @@ class String {
     return npos;
   }
 
-  size_t indexOf(const char *ch, size_t from = 0, size_t len = std::numeric_limits<size_t>::max(),
+  size_t indexOf(const char *ch, size_t from = 0,
+                 size_t len = std::numeric_limits<size_t>::max(),
                  CaseSensitivity cs = CaseSensitive) const {
     if (len == std::numeric_limits<size_t>::max()) len = strlen(ch);
     switch (len) {
@@ -207,7 +211,8 @@ class String {
     return lastIndexOf(ba.c_str(), from, ba.size(), cs);
   }
 
-  size_t indexOf(const String &ba, size_t from = 0, CaseSensitivity cs = CaseSensitive) const {
+  size_t indexOf(const String &ba, size_t from = 0,
+                 CaseSensitivity cs = CaseSensitive) const {
     return indexOf(ba.c_str(), from, ba.size(), cs);
   }
 
@@ -239,7 +244,9 @@ class String {
     return operator[](size() - 1);
   }
 
-  void lowerCase() { std::transform(mString.begin(), mString.end(), mString.begin(), ::tolower); }
+  void lowerCase() {
+    std::transform(mString.begin(), mString.end(), mString.begin(), ::tolower);
+  }
 
   String toLower() const {
     std::string ret = mString;
@@ -253,7 +260,9 @@ class String {
     return ret;
   }
 
-  void upperCase() { std::transform(mString.begin(), mString.end(), mString.begin(), ::toupper); }
+  void upperCase() {
+    std::transform(mString.begin(), mString.end(), mString.begin(), ::toupper);
+  }
 
   String trimmed(const String &trim = " \f\n\r\t\v") const {
     const size_t start = mString.find_first_not_of(trim);
@@ -265,7 +274,8 @@ class String {
   }
 
   enum Pad { Beginning, End };
-  String padded(Pad pad, size_t len, char fillChar = ' ', bool trunc = false) const {
+  String padded(Pad pad, size_t len, char fillChar = ' ',
+                bool trunc = false) const {
     const size_t l = length();
     if (l == len) {
       return *this;
@@ -324,7 +334,9 @@ class String {
 
   void prepend(char ch) { mString.insert(0, &ch, 1); }
 
-  void insert(size_t pos, const String &text) { mString.insert(pos, text.c_str(), text.size()); }
+  void insert(size_t pos, const String &text) {
+    mString.insert(pos, text.c_str(), text.size());
+  }
 
   void insert(size_t pos, const char *str, size_t len = npos) {
     if (str) {
@@ -416,18 +428,25 @@ class String {
     return *this;
   }
 
-  size_t compare(const String &other, CaseSensitivity cs = CaseSensitive) const {
+  size_t compare(const String &other,
+                 CaseSensitivity cs = CaseSensitive) const {
     if (cs == CaseSensitive) return mString.compare(other.mString);
     return strcasecmp(mString.c_str(), other.mString.c_str());
   }
 
-  bool operator==(const String &other) const { return mString == other.mString; }
+  bool operator==(const String &other) const {
+    return mString == other.mString;
+  }
 
   bool operator==(const char *other) const { return other && mString == other; }
 
-  bool operator!=(const String &other) const { return mString != other.mString; }
+  bool operator!=(const String &other) const {
+    return mString != other.mString;
+  }
 
-  bool operator!=(const char *other) const { return !other || mString == other; }
+  bool operator!=(const char *other) const {
+    return !other || mString == other;
+  }
 
   bool operator<(const String &other) const { return mString < other.mString; }
 
@@ -436,14 +455,16 @@ class String {
   bool endsWith(char ch, CaseSensitivity c = CaseSensitive) const {
     const size_t s = mString.size();
     if (s) {
-      return (c == CaseInsensitive ? tolower(at(s - 1)) == tolower(ch) : at(s - 1) == ch);
+      return (c == CaseInsensitive ? tolower(at(s - 1)) == tolower(ch)
+                                   : at(s - 1) == ch);
     }
     return false;
   }
 
   bool startsWith(char ch, CaseSensitivity c = CaseSensitive) const {
     if (!empty()) {
-      return (c == CaseInsensitive ? tolower(at(0)) == tolower(ch) : at(0) == ch);
+      return (c == CaseInsensitive ? tolower(at(0)) == tolower(ch)
+                                   : at(0) == ch);
     }
     return false;
   }
@@ -452,7 +473,8 @@ class String {
     return endsWith(str.c_str(), str.size(), cs);
   }
 
-  bool endsWith(const char *str, size_t len = npos, CaseSensitivity cs = CaseSensitive) const {
+  bool endsWith(const char *str, size_t len = npos,
+                CaseSensitivity cs = CaseSensitive) const {
     if (len == npos) len = strlen(str);
     const size_t s = mString.size();
     if (s >= len) {
@@ -466,7 +488,8 @@ class String {
     return startsWith(str.c_str(), str.size(), cs);
   }
 
-  bool startsWith(const char *str, size_t len = npos, CaseSensitivity cs = CaseSensitive) const {
+  bool startsWith(const char *str, size_t len = npos,
+                  CaseSensitivity cs = CaseSensitive) const {
     const size_t s = mString.size();
     if (len == npos) len = strlen(str);
     if (s >= len) {
@@ -480,7 +503,8 @@ class String {
     mString.replace(idx, len, with.mString);
   }
 
-  size_t replace(const String &from, const String &to, CaseSensitivity cs = CaseSensitive) {
+  size_t replace(const String &from, const String &to,
+                 CaseSensitivity cs = CaseSensitive) {
     size_t idx = 0;
     size_t ret = 0;
     while (true) {
@@ -557,11 +581,13 @@ class String {
     return ret;
   }
 
-  static List<String> split(const String &str, char ch, unsigned int flags = NoSplitFlag) {
+  static List<String> split(const String &str, char ch,
+                            unsigned int flags = NoSplitFlag) {
     return str.split(ch, flags);
   }
 
-  List<String> split(const String &str, unsigned int flags = NoSplitFlag) const {
+  List<String> split(const String &str,
+                     unsigned int flags = NoSplitFlag) const {
     List<String> ret;
     size_t prev = 0;
     while (true) {
@@ -576,7 +602,8 @@ class String {
     return ret;
   }
 
-  static List<String> split(const String &str, const String &by, unsigned int flags = NoSplitFlag) {
+  static List<String> split(const String &str, const String &by,
+                            unsigned int flags = NoSplitFlag) {
     return str.split(by, flags);
   }
 
@@ -638,7 +665,9 @@ class String {
   }
 
   String toHex() const { return toHex(*this); }
-  static String toHex(const String &hex) { return toHex(hex.c_str(), hex.size()); }
+  static String toHex(const String &hex) {
+    return toHex(hex.c_str(), hex.size());
+  }
   static String toHex(const void *data, size_t len);
 
   static String number(char num, size_t base = 10) {
@@ -785,9 +814,13 @@ String String::format(const char *format, ...) {
   return ret;
 }
 
-inline bool operator==(const char *l, const String &r) { return r.operator==(l); }
+inline bool operator==(const char *l, const String &r) {
+  return r.operator==(l);
+}
 
-inline bool operator!=(const char *l, const String &r) { return r.operator!=(l); }
+inline bool operator!=(const char *l, const String &r) {
+  return r.operator!=(l);
+}
 
 inline String operator+(const String &l, const char *r) {
   String ret = l;

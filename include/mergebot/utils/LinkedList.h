@@ -61,7 +61,8 @@ class LinkedList : public std::list<T> {
   }
 
   bool contains(const T &t) const {
-    return std::find(std::list<T>::begin(), std::list<T>::end(), t) != std::list<T>::end();
+    return std::find(std::list<T>::begin(), std::list<T>::end(), t) !=
+           std::list<T>::end();
   }
 
   typename std::list<T>::iterator find(const T &t) {

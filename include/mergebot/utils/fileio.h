@@ -1,6 +1,6 @@
 //
-// Created by whalien on 27/02/23. This file is taken from [zeno](https://github.com/zenustech/zeno)
-// no change made to it.
+// Created by whalien on 27/02/23. This file is taken from
+// [zeno](https://github.com/zenustech/zeno) no change made to it.
 //
 
 #ifndef MB_FILEIO_H
@@ -22,13 +22,15 @@ namespace util {
   return content;
 }
 
-static void file_put_content(std::string const &path, std::string const &content,
+static void file_put_content(std::string const &path,
+                             std::string const &content,
                              std::ios_base::openmode mode) {
   std::ofstream fout(path, mode);
   fout << content;
 }
 
-static void file_overwrite_content(std::string const &path, std::string const &content) {
+static void file_overwrite_content(std::string const &path,
+                                   std::string const &content) {
   file_put_content(path, content, std::ios_base::out | std::ios_base::trunc);
 }
 
@@ -67,7 +69,8 @@ static Arr file_get_binary(std::string const &path) {
   return res;
 }
 
-static bool file_put_binary(char const *arr_data, size_t arr_size, std::string const &path) {
+static bool file_put_binary(char const *arr_data, size_t arr_size,
+                            std::string const &path) {
   char const *filename = path.c_str();
   FILE *fp = fopen(filename, "wb");
   if (!fp) {

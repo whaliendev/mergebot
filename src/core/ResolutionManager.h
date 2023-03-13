@@ -6,6 +6,7 @@
 #define MB_RESOLUTIONMANAGER_H
 
 #include "../globals.h"
+#include "HandlerChain.h"
 #include "mergebot/filesystem.h"
 #include "mergebot/utils/pathop.h"
 #include "mergebot/utils/sha1.h"
@@ -22,6 +23,7 @@ namespace sa {
 class ResolutionManager
     : public std::enable_shared_from_this<ResolutionManager> {
 public:
+  friend class HandlerChain;
   ResolutionManager(std::string &&Project_, std::string &&ProjectPath_,
                     sa::MergeScenario &&MS_,
                     std::unique_ptr<std::string[]> &&ConflictFiles_,

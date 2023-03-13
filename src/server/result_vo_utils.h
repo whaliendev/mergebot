@@ -18,7 +18,8 @@ struct Result {
   std::string code{"00000"};
   std::string errorMsg{""};
 
-  Result(std::string code, std::string errorMsg) : code(code), errorMsg(errorMsg) {}
+  Result(std::string code, std::string errorMsg)
+      : code(code), errorMsg(errorMsg) {}
 };
 
 struct ResultVO : public crow::returnable {
@@ -28,7 +29,8 @@ struct ResultVO : public crow::returnable {
 
   ResultVO() : crow::returnable("application/json") {}
 
-  ResultVO(std::string code, std::string errorMsg) : ResultVO(code, errorMsg, nullptr) {}
+  ResultVO(std::string code, std::string errorMsg)
+      : ResultVO(code, errorMsg, nullptr) {}
 
   ResultVO(std::string code, std::string errorMsg, crow::json::wvalue data)
       : code(code),
@@ -38,8 +40,9 @@ struct ResultVO : public crow::returnable {
 
   std::string dump() const override {
     auto buf = fmt::memory_buffer();
-    fmt::format_to(std::back_inserter(buf), u8R"({{"code": "{}", "errorMsg": "{}", "data": {}}})",
-                   code, errorMsg, data.dump());
+    fmt::format_to(std::back_inserter(buf),
+                   u8R"({{"code": "{}", "errorMsg": "{}", "data": {}}})", code,
+                   errorMsg, data.dump());
     return to_string(buf);
   }
 };
