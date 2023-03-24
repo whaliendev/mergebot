@@ -10,8 +10,12 @@
 
 namespace mergebot {
 namespace util {
-std::vector<std::string_view> string_split(std::string_view str,
-                                           std::string_view delims = " ") {
+/// split string_view str by any of the elements in [ std::cbegin(delims),
+/// std::cend(delims) ) \param str string_view to split \param delims delimiters
+/// used to split \return a vector of string_view with split string_view
+/// segments filled
+static std::vector<std::string_view> string_split(
+    std::string_view str, std::string_view delims = " ") {
   std::vector<std::string_view> output;
   // output.reserve(str.size() / 2);
 
