@@ -28,9 +28,15 @@ public:
                     sa::MergeScenario &&MS_,
                     std::unique_ptr<std::string[]> &&ConflictFiles_,
                     int FileNum)
-      : Project_(std::move(Project_)), ProjectPath_(std::move(ProjectPath_)),
-        MS_(std::move(MS_)), ConflictFiles_(std::move(ConflictFiles_)),
-        FileNum_(FileNum), CurrIdx_(0) {}
+      : Project_(std::move(Project_)), MS_(std::move(MS_)),
+        ConflictFiles_(std::move(ConflictFiles_)), FileNum_(FileNum),
+        CurrIdx_(0) {
+    if (!ProjectPath_.empty() && ProjectPath_[ProjectPath_.size() - 1] !=
+                                     fs::path::preferred_separator) {
+      ProjectPath_ += fs::path::preferred_separator;
+    }
+    this->ProjectPath_ = std::move(ProjectPath_);
+  }
 
   std::string mergeScenarioPath() const {
     const fs::path homePath = fs::path(mergebot::util::toabs(MBDIR));
@@ -38,7 +44,11 @@ public:
   }
   std::string projectCheckSum() const {
     util::SHA1 checksum;
-    checksum.update(fmt::format("{}-{}", Project_, ProjectPath_));
+    std::string Path = ProjectPath_;
+    if (Path.back() == fs::path::preferred_separator) {
+      Path.pop_back();
+    }
+    checksum.update(fmt::format("{}-{}", Project_, Path));
     return checksum.final();
   }
   std::string_view projectPath() const noexcept { return ProjectPath_; }
@@ -56,6 +66,8 @@ private:
   static void _generateCompDB(std::shared_ptr<ResolutionManager> const &Self,
                               std::string const &CommitHash,
                               std::string const &SourceDest);
+
+  std::vector<std::string> _extractCppSources();
 
   // basic information
   std::string Project_;

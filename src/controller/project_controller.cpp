@@ -14,9 +14,6 @@
 
 #include "../core/ResolutionManager.h"
 #include "../core/model/Project.h"
-#include "../core/model/ResolutionResultVO.h"
-#include "../globals.h"
-#include "../utility.h"
 #include "exception_handler_aspect.h"
 #include "llvm/Support/ErrorOr.h"
 #include "mergebot/filesystem.h"
@@ -72,7 +69,11 @@ bool _containKeys(const crow::json::rvalue& bodyJson,
 std::string _calcProjChecksum(std::string const& project,
                               std::string const& path) {
   util::SHA1 checksum;
-  checksum.update(util::format("{}-{}", project, path));
+  std::string pathMut = path;
+  if (pathMut.back() == fs::path::preferred_separator) {
+    pathMut.pop_back();
+  }
+  checksum.update(util::format("{}-{}", project, pathMut));
   return checksum.final();
 }
 
