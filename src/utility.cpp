@@ -50,7 +50,7 @@ namespace util {
 
     int res = waitpid(0, &status, WNOHANG);
     if (res == -1) {  // exit accidentally
-      return std::error_code(status, std::generic_category());
+      return std::error_code(errno, std::generic_category());
     } else {                    // exit intentionally
       if (WIFEXITED(status)) {  // subprocess exit
         if (WEXITSTATUS(status) != 0 &&
