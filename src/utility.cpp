@@ -8,6 +8,7 @@
 #include <sys/wait.h>
 
 #include <array>
+#include <cerrno>
 #include <cstdio>
 #include <memory>
 #include <stdexcept>
@@ -21,7 +22,7 @@ namespace util {
 // git diff --name-only --diff-filter=U
 /// Linux specific command execution encapsulation
 /// \param cmd command to execute
-/// \param timeout timout to execute the command, unit is second.
+/// \param timeout timout to execute the command, the unit is second.
 /// \return `llvm::Error<std::string>`, an wrapper for std::error_code or the
 /// output of `popen` returned stream, with the last new line removed
 [[nodiscard]] llvm::ErrorOr<std::string> ExecCommand(std::string_view sv,
@@ -49,11 +50,12 @@ namespace util {
 
     int res = waitpid(0, &status, WNOHANG);
     if (res == -1) {  // exit accidentally
-      return std::make_error_code(std::errc::io_error);
-    } else if (res > 0) {       // exit normally
+      return std::error_code(status, std::generic_category());
+    } else {                    // exit intentionally
       if (WIFEXITED(status)) {  // subprocess exit
         if (WEXITSTATUS(status) != 0 &&
-            status != exitCode) {  // exit accidentally
+            WEXITSTATUS(status) != exitCode) {  // exit accidentally
+          spdlog::info("exit status: {}", WEXITSTATUS(status));
           return std::error_code(status, std::generic_category());
         }
 
@@ -63,8 +65,9 @@ namespace util {
         }
         if (result.length() && result[result.length() - 1]) result.pop_back();
         return result;
-      } else if (WIFEXITED(status)) {  // interrupted
+      } else if (WIFSIGNALED(status)) {  // interrupted by signal
         return std::make_error_code(std::errc::interrupted);
+      } else {  // res equals to pid id
       }
     }
     // sleep for a second to prevent high cpu occupation
@@ -87,6 +90,11 @@ void handleSAExecError(std::error_code err, std::string_view cmd) {
     spdlog::error(mergebot::util::format(
         "cmd [{}] accidentally exited with exit code {}", cmd, err.value()));
   }
+}
+
+std::vector<ConflictFile> extractConflictBlocks(
+    std::vector<std::string>& ConflictFiles) {
+  return {};
 }
 }  // namespace sa
 

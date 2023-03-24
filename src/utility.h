@@ -8,7 +8,9 @@
 #include <spdlog/spdlog.h>
 
 #include <string>
+#include <string_view>
 
+#include "core/model/ConflictFile.h"
 #include "server/result_vo_utils.h"
 
 namespace mergebot {
@@ -20,7 +22,10 @@ llvm::ErrorOr<std::string> ExecCommand(std::string_view sv, int timeout = 10,
 
 namespace sa {
 void handleSAExecError(std::error_code err, std::string_view cmd);
-}
+
+std::vector<ConflictFile> extractConflictBlocks(
+    std::vector<std::string>& ConflictFiles);
+}  // namespace sa
 
 namespace server {
 void handleServerExecError(std::error_code err, std::string_view cmd);
