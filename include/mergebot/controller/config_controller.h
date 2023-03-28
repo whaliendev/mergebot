@@ -5,8 +5,9 @@
 #ifndef MB_CONFIG_CONTROLLER_H
 #define MB_CONFIG_CONTROLLER_H
 
-#include "../server/result_vo_utils.h"
-#include "crow.h"
+#include <crow.h>
+
+#include "mergebot/server/result_vo_utils.h"
 
 namespace mergebot {
 namespace server {

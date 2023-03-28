@@ -5,12 +5,12 @@
 #ifndef MB_RESOLUTIONMANAGER_H
 #define MB_RESOLUTIONMANAGER_H
 
-#include "../globals.h"
 #include "HandlerChain.h"
+#include "mergebot/core/model/MergeScenario.h"
 #include "mergebot/filesystem.h"
+#include "mergebot/globals.h"
 #include "mergebot/utils/pathop.h"
 #include "mergebot/utils/sha1.h"
-#include "model/MergeScenario.h"
 
 #include <llvm/ADT/StringSet.h>
 #include <llvm/Support/Error.h>

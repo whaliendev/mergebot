@@ -5,8 +5,8 @@
 #ifndef MB_HANDLERCHAIN_H
 #define MB_HANDLERCHAIN_H
 
-#include "handler/SAHandler.h"
-#include "src/utility.h"
+#include "mergebot/core/handler/SAHandler.h"
+#include "mergebot/utility.h"
 
 namespace mergebot {
 namespace sa {

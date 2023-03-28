@@ -5,7 +5,7 @@
 #ifndef MB_STYLEBASEDHANDLER_H
 #define MB_STYLEBASEDHANDLER_H
 
-#include "SAHandler.h"
+#include "mergebot/core/handler/SAHandler.h"
 
 namespace mergebot {
 namespace sa {

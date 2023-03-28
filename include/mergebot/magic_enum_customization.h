@@ -7,7 +7,7 @@
 
 #include <magic_enum.hpp>
 
-#include "utility.h"
+#include "mergebot/utility.h"
 
 namespace magic_enum {
 namespace customize {

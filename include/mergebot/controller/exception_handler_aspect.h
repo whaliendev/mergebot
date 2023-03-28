@@ -10,7 +10,7 @@
 
 #include <exception>
 
-#include "app_exception.h"
+#include "mergebot/controller/app_exception.h"
 
 namespace mergebot {
 namespace server {

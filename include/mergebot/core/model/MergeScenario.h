@@ -5,10 +5,10 @@
 #ifndef MB_MERGESCENARIO_H
 #define MB_MERGESCENARIO_H
 
+#include <fmt/format.h>
+
 #include <nlohmann/json.hpp>
 #include <string>
-
-#include <fmt/format.h>
 
 namespace mergebot {
 namespace sa {

@@ -5,8 +5,8 @@
 #ifndef MB_SAHANDLER_H
 #define MB_SAHANDLER_H
 
-#include "../model/ConflictFile.h"
-#include "../model/MergeScenario.h"
+#include "mergebot/core/model/ConflictFile.h"
+#include "mergebot/core/model/MergeScenario.h"
 
 #include <string>
 #include <vector>

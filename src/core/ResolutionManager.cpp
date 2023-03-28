@@ -2,7 +2,7 @@
 // Created by whalien on 04/03/23.
 //
 
-#include "ResolutionManager.h"
+#include "mergebot/core/ResolutionManager.h"
 
 #include <fmt/format.h>
 #include <memory>
@@ -10,10 +10,10 @@
 #include <thread>
 #include <unordered_set>
 
-#include "handler/ASTBasedHandler.h"
-#include "handler/LLVMBasedHandler.h"
-#include "handler/StyleBasedHandler.h"
-#include "handler/TextBasedHandler.h"
+#include "mergebot/core/handler/ASTBasedHandler.h"
+#include "mergebot/core/handler/LLVMBasedHandler.h"
+#include "mergebot/core/handler/StyleBasedHandler.h"
+#include "mergebot/core/handler/TextBasedHandler.h"
 #include "mergebot/utils/ThreadPool.h"
 #include "mergebot/utils/stringop.h"
 

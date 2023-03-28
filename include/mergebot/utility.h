@@ -4,12 +4,12 @@
 
 #ifndef MB_UTILITY_H
 #define MB_UTILITY_H
-#include "../../../../../../usr/include/c++/12.2.1/string"
-#include "../../../../../../usr/include/c++/12.2.1/string_view"
-#include "../../../../../../usr/include/llvm/Support/ErrorOr.h"
-#include "../../../../../../usr/include/spdlog/spdlog.h"
-#include "core/model/ConflictFile.h"
-#include "server/result_vo_utils.h"
+#include "llvm/Support/ErrorOr.h"
+#include "mergebot/core/model/ConflictFile.h"
+#include "mergebot/server/result_vo_utils.h"
+#include "spdlog/spdlog.h"
+#include "string"
+#include "string_view"
 
 namespace mergebot {
 namespace util {

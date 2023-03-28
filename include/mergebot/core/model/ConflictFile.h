@@ -12,7 +12,6 @@
 namespace mergebot {
 namespace sa {
 struct ConflictFile {
-
   /// canonical filename with project path stripped
   /// e.g.:
   /// canonical filename:

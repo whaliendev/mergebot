@@ -19,13 +19,13 @@
 #include <memory>
 #include <thread>
 
-#include "controller/project_controller.h"
-#include "controller/resolve_controller.h"
-#include "globals.h"
+#include "mergebot/controller/project_controller.h"
+#include "mergebot/controller/resolve_controller.h"
+#include "mergebot/globals.h"
+#include "mergebot/server/CrowSubLogger.h"
+#include "mergebot/utility.h"
 #include "mergebot/utils/ThreadPool.h"
 #include "mergebot/utils/pathop.h"
-#include "server/CrowSubLogger.h"
-#include "utility.h"
 
 namespace server = mergebot::server;
 

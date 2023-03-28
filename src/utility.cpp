@@ -1,7 +1,7 @@
 //
 // Created by whalien on 21/02/23.
 //
-#include "utility.h"
+#include "mergebot/utility.h"
 
 #include <llvm/Support/ErrorOr.h>
 #include <llvm/Support/FileSystem.h>
@@ -16,9 +16,9 @@
 #include <memory>
 #include <stdexcept>
 
-#include "controller/app_exception.h"
+#include "mergebot/controller/app_exception.h"
+#include "mergebot/server/result_vo_utils.h"
 #include "mergebot/utils/format.h"
-#include "server/result_vo_utils.h"
 
 namespace mergebot {
 namespace util {

@@ -4,7 +4,8 @@
 
 #ifndef MB_CONFLICTBLOCK_H
 #define MB_CONFLICTBLOCK_H
-#include "fmt/format.h"
+#include <fmt/format.h>
+
 #include <string>
 namespace mergebot {
 namespace sa {

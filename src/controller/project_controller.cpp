@@ -1,7 +1,7 @@
 //
 // Created by whalien on 09/02/23.
 //
-#include "project_controller.h"
+#include "mergebot/controller/project_controller.h"
 
 #include <crow/http_response.h>
 #include <crow/json.h>
@@ -12,10 +12,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include "../core/ResolutionManager.h"
-#include "../core/model/Project.h"
-#include "exception_handler_aspect.h"
 #include "llvm/Support/ErrorOr.h"
+#include "mergebot/controller/exception_handler_aspect.h"
+#include "mergebot/core/ResolutionManager.h"
+#include "mergebot/core/model/Project.h"
 #include "mergebot/filesystem.h"
 #include "mergebot/utils/fileio.h"
 #include "mergebot/utils/format.h"
