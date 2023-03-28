@@ -4,12 +4,10 @@
 
 #ifndef MB_UTILITY_H
 #define MB_UTILITY_H
-#include <llvm/Support/ErrorOr.h>
-#include <spdlog/spdlog.h>
-
-#include <string>
-#include <string_view>
-
+#include "../../../../../../usr/include/c++/12.2.1/string"
+#include "../../../../../../usr/include/c++/12.2.1/string_view"
+#include "../../../../../../usr/include/llvm/Support/ErrorOr.h"
+#include "../../../../../../usr/include/spdlog/spdlog.h"
 #include "core/model/ConflictFile.h"
 #include "server/result_vo_utils.h"
 
@@ -25,6 +23,13 @@ void handleSAExecError(std::error_code err, std::string_view cmd);
 
 std::vector<ConflictFile> extractConflictBlocks(
     std::vector<std::string>& ConflictFiles);
+
+enum class ConflictMark : int {
+  OURS,    // <<<<<<<
+  BASE,    // |||||||
+  THEIRS,  // =======
+  END      // >>>>>>>
+};
 }  // namespace sa
 
 namespace server {

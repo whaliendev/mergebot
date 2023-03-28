@@ -10,7 +10,7 @@
 #include <exception>
 #include <string>
 
-#include "../utility.h"
+#include "src/utility.h"
 
 namespace mergebot {
 namespace server {

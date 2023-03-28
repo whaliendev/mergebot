@@ -1,6 +1,6 @@
 [requires]
 nlohmann_json/3.11.2
-magic_enum/0.8.1
+magic_enum/0.8.2
 zlib/1.2.13
 fmt/9.1.0
 spdlog/1.11.0
