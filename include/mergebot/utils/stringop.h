@@ -34,6 +34,11 @@ static std::vector<std::string_view> string_split(
   return output;
 }
 
+/// join Container of string by separator
+/// \tparam Container the string container which supports random access
+/// iterator. Specifically, `std::begin()` and `std::end()` \param cont the
+/// string container \param separator separator to join string \return a concat
+/// string joined by separator
 template <typename Container>
 typename std::enable_if<
     std::is_same<typename std::decay<
