@@ -5,6 +5,7 @@
 #ifndef MB_CONFLICTFILE_H
 #define MB_CONFLICTFILE_H
 
+#include "mergebot/utils/stringop.h"
 #include <string>
 #include <vector>
 
@@ -12,16 +13,29 @@
 namespace mergebot {
 namespace sa {
 struct ConflictFile {
-  /// canonical filename with project path stripped
-  /// e.g.:
-  /// canonical filename:
-  /// /home/whalien/codebase/aosp/frameworks/av/camera/cameraserver/main_cameraserver.cpp
-  /// Filename: camera/cameraserver/main_cameraserver.cpp
+  ConflictFile(std::string &&Filename,
+               std::vector<ConflictBlock> &&ConflictBlocks)
+      : Filename(Filename), ConflictBlocks(ConflictBlocks) {}
+
+  ConflictFile(std::string const &Filename,
+               std::vector<ConflictBlock> const &ConflictBlocks)
+      : Filename(Filename), ConflictBlocks(ConflictBlocks) {}
+
+  /// absolute file path
   std::string Filename;
 
   /// conflict blocks of a conflict file
-  // TODO: consider using SmallVector to optimize
   std::vector<ConflictBlock> ConflictBlocks;
+  explicit operator std::string() {
+    return fmt::format("ConflictFile(Filename = {}, ConflictBlocks = {})",
+                       Filename,
+                       mergebot::util::string_join(ConflictBlocks, ", "));
+  }
+
+  friend bool operator==(ConflictFile const &Lhs, ConflictFile const &Rhs) {
+    return Lhs.Filename == Rhs.Filename &&
+           Lhs.ConflictBlocks == Rhs.ConflictBlocks;
+  }
 };
 } // namespace sa
 } // namespace mergebot

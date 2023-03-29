@@ -21,8 +21,11 @@ llvm::ErrorOr<std::string> ExecCommand(std::string_view sv, int timeout = 10,
 namespace sa {
 void handleSAExecError(std::error_code err, std::string_view cmd);
 
-std::vector<ConflictFile> extractConflictBlocks(
-    std::vector<std::string>& ConflictFiles);
+[[deprecated(
+    "Use constructConflictFiles() instead.")]] std::vector<ConflictFile>
+extractConflictBlocks(std::vector<std::string>& ConflictFiles);
+std::vector<ConflictFile> constructConflictFiles(
+    std::vector<std::string>& ConflictFilePaths);
 
 enum class ConflictMark : int {
   OURS,    // <<<<<<<

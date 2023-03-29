@@ -21,7 +21,7 @@ static std::string toabs(std::string const& pathStr) {
       fs::path homePath = fs::path(getenv("HOME"));
       ret = fs::path(homePath.string() + path.string().substr(1)).string();
     } else {
-      ret = fs::absolute(path).string();
+      ret = fs::canonical(path).string();
     }
   } else {
     ret = path.string();

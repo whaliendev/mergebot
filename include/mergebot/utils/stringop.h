@@ -5,7 +5,11 @@
 #ifndef MB_STRINGOP_H
 #define MB_STRINGOP_H
 
+#include <algorithm>
+#include <iterator>
+#include <sstream>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 namespace mergebot {
@@ -29,6 +33,19 @@ static std::vector<std::string_view> string_split(
 
   return output;
 }
+
+template <typename Container>
+typename std::enable_if<
+    std::is_same<typename std::decay<
+                     decltype(*std::begin(std::declval<Container>()))>::type,
+                 typename std::decay<decltype(*std::end(
+                     std::declval<Container>()))>::type>::value,
+    std::string>::type
+string_join(const Container& cont, const std::string_view separator);
+
+template <typename InputIt>
+std::string string_join(InputIt begin, InputIt end,
+                        const std::string_view separator);
 }  // namespace util
 }  // namespace mergebot
 #endif  // MB_STRINGOP_H

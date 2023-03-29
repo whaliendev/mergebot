@@ -23,22 +23,16 @@ struct ConflictLines {
 
 struct ConflictBlock {
   int Index = 0;
-  /// our commit
-  ConflictLines Ours;
-  /// their commit
-  ConflictLines Theirs;
-  /// base commit
-  ConflictLines Base;
+  /// Conflict Range content, starts with "<<<<<<<", ends with ">>>>>>>"
+  std::string ConflictRange;
 
-  std::string string() {
-    // clang-format off
-    return fmt::format(R"(ConflictBlock(
-        Index = {},
-        Ours = {},
-        Base = {},
-        Theirs = {},
-    ))", Index, Ours.string(), Base.string(), Theirs.string());
-    // clang-format on
+  operator std::string() {
+    return fmt::format("ConflictBlock(Index = {}, ConflictRange = {},)", Index,
+                       ConflictRange);
+  }
+
+  friend bool operator==(ConflictBlock const &Lhs, ConflictBlock const &Rhs) {
+    return Lhs.Index == Rhs.Index && Lhs.ConflictRange == Rhs.ConflictRange;
   }
 };
 } // namespace sa

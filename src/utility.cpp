@@ -17,8 +17,10 @@
 #include <stdexcept>
 
 #include "mergebot/controller/app_exception.h"
+#include "mergebot/magic_enum_customization.h"
 #include "mergebot/server/result_vo_utils.h"
 #include "mergebot/utils/format.h"
+#include "mergebot/utils/pathop.h"
 
 namespace mergebot {
 namespace util {
@@ -81,48 +83,83 @@ namespace util {
 
 namespace sa {
 namespace details {
+// std::vector<ConflictBlock> constructConflictFile(
+//     std::unique_ptr<llvm::MemoryBuffer>& File) {
+//   int Index = 0, LineNum = 0;
+//   std::vector<ConflictBlock> ConflictBlocks;
+//   const char* Start = File->getBufferStart();
+//   const char* End = File->getBufferEnd();
+//   for (const char *Pos = Start, *LineStart = Start; Pos != End;
+//        LineStart = ++Pos) {
+//     Pos = std::find(Pos, End, '\n');
+//     std::string_view Line(LineStart, Pos - LineStart);
+//     LineNum++;
+//     if (Line.size() < 7) continue;
+//     std::string_view LineMark = Line.substr(0, 7);
+//     if (LineMark == magic_enum::enum_name(ConflictMark::OURS)) {
+//       ConflictBlock Block;
+//       Block.Index = ++Index;
+//       Block.Ours.Start = LineNum;
+//       while (Pos != End) {
+//         Pos = std::find(Pos, End, '\n');
+//         Line = std::string_view(LineStart, Pos - LineStart);
+//         LineNum++;
+//         if (Line.size() < 7) continue;
+//         LineMark = Line.substr(0, 7);
+//         if (LineMark == magic_enum::enum_name(ConflictMark::BASE)) {
+//           Block.Ours.Offset = LineNum - Block.Ours.Start - 1;
+//           Block.Base.Start = Block.Ours.Start;
+//         } else if (LineMark == magic_enum::enum_name(ConflictMark::THEIRS)) {
+//           if (Block.Base.Start == 0) {  // if there is no base block
+//             Block.Base = {.Start = Block.Ours.Start, .Offset = 0};
+//           }
+//           Block.Base.Offset =
+//               LineNum - (Block.Ours.Start + Block.Ours.Offset + 1) - 1;
+//           Block.Theirs.Start = Block.Ours.Start;
+//         } else if (LineMark == magic_enum::enum_name(ConflictMark::END)) {
+//           Block.Theirs.Offset =
+//               LineNum - (Block.Base.Start + Block.Base.Offset + 1) - 1;
+//           spdlog::debug(Block.string());
+//           ConflictBlocks.push_back(Block);
+//           break;
+//         }
+//       }
+//     }  // end of a conflict block
+//   }
+//   return ConflictBlocks;
+// }
 std::vector<ConflictBlock> constructConflictFile(
     std::unique_ptr<llvm::MemoryBuffer>& File) {
-  int Index = 0, LineNum = 0;
+  int Index = 0;
   std::vector<ConflictBlock> ConflictBlocks;
   const char* Start = File->getBufferStart();
   const char* End = File->getBufferEnd();
-  for (const char *Pos = Start, *LineStart = Start; Pos != End;
-       LineStart = ++Pos) {
+  for (const char *Pos = Start, *LineStart = Start, *BlockStart = Start;
+       Pos != End; LineStart = ++Pos) {
     Pos = std::find(Pos, End, '\n');
     std::string_view Line(LineStart, Pos - LineStart);
-    LineNum++;
     if (Line.size() < 7) continue;
     std::string_view LineMark = Line.substr(0, 7);
     if (LineMark == magic_enum::enum_name(ConflictMark::OURS)) {
+      BlockStart = LineStart;
       ConflictBlock Block;
       Block.Index = ++Index;
-      Block.Ours.Start = LineNum;
       while (Pos != End) {
         Pos = std::find(Pos, End, '\n');
         Line = std::string_view(LineStart, Pos - LineStart);
-        LineNum++;
-        if (Line.size() < 7) continue;
+        if (Line.size() < 7) {
+          LineStart = ++Pos;
+          continue;
+        }
         LineMark = Line.substr(0, 7);
-        if (LineMark == magic_enum::enum_name(ConflictMark::BASE)) {
-          Block.Ours.Offset = LineNum - Block.Ours.Start - 1;
-          Block.Base.Start = Block.Ours.Start;
-        } else if (LineMark == magic_enum::enum_name(ConflictMark::THEIRS)) {
-          if (Block.Base.Start == 0) {  // if there is no base block
-            Block.Base = {.Start = Block.Ours.Start, .Offset = 0};
-          }
-          Block.Base.Offset =
-              LineNum - (Block.Ours.Start + Block.Ours.Offset + 1) - 1;
-          Block.Theirs.Start = Block.Ours.Start;
-        } else if (LineMark == magic_enum::enum_name(ConflictMark::END)) {
-          Block.Theirs.Offset =
-              LineNum - (Block.Base.Start + Block.Base.Offset + 1) - 1;
-          spdlog::debug(Block.string());
-          ConflictBlocks.push_back(Block);
+        if (LineMark == magic_enum::enum_name(ConflictMark::END)) {
+          Block.ConflictRange = std::string(BlockStart, Pos - BlockStart);
+          ConflictBlocks.push_back(std::move(Block));
           break;
         }
+        LineStart = ++Pos;
       }
-    }  // end of a conflict block
+    }
   }
   return ConflictBlocks;
 }
@@ -143,47 +180,71 @@ void handleSAExecError(std::error_code err, std::string_view cmd) {
   }
 }
 
-/// construct `ConflictFile` vector from vector of conflict files path
-/// ConflictFile
-///      |
-///      |- FileName
-///      |
-///      ConflictBlocks-std::vector<ConflictBlock>
-///                                 |
-///                                 |- Index
-///                                 |
-///                                 ConflictLines
-/// \param ConflictFiles conflict file paths, absolute path
-/// \return vector of ConflictFile
-std::vector<ConflictFile> extractConflictBlocks(
-    std::vector<std::string>& ConflictFileNames) {
-  // clang-format off
-  spdlog::debug(R"(extracting conflict blocks for [
-    {}
-  ])", fmt::join(ConflictFileNames, ", "));
-  // clang-format on
+std::vector<ConflictFile> constructConflictFiles(
+    std::vector<std::string>& ConflictFilePaths) {
   using namespace llvm;
   std::vector<ConflictFile> ConflictFiles;
-  ConflictFiles.reserve(ConflictFileNames.size());
-  for (const auto& ConflictFileName : ConflictFileNames) {
+  ConflictFiles.reserve(ConflictFilePaths.size());
+  for (const auto& ConflictFilePath : ConflictFilePaths) {
+    std::string AbsoluteFilePath = util::toabs(ConflictFilePath);
     ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
-        MemoryBuffer::getFile(ConflictFileName);
+        MemoryBuffer::getFile(AbsoluteFilePath);
     if (auto Err = FileOrErr.getError()) {
       spdlog::error(
           "failed to extract conflict blocks for source file [{}], err "
-          "message: ",
-          ConflictFileName, Err.message());
-      continue;
+          "message: {}",
+          AbsoluteFilePath, Err.message());
     }
     std::unique_ptr<MemoryBuffer> File = std::move(FileOrErr.get());
     std::vector<ConflictBlock> ConflictBlocks =
         details::constructConflictFile(File);
-    ConflictFile CF = {.Filename = ConflictFileName,
-                       .ConflictBlocks = std::move(ConflictBlocks)};
-    ConflictFiles.push_back(std::move(CF));
-  }  // end of file name loop
+    ConflictFiles.emplace_back(std::move(AbsoluteFilePath),
+                               std::move(ConflictBlocks));
+  }
   return ConflictFiles;
 }
+
+///// construct `ConflictFile` vector from vector of conflict files path
+///// ConflictFile
+/////      |
+/////      |- FileName
+/////      |
+/////      ConflictBlocks-std::vector<ConflictBlock>
+/////                                 |
+/////                                 |- Index
+/////                                 |
+/////                                 ConflictLines
+///// \param ConflictFiles conflict file paths, absolute path
+///// \return vector of ConflictFile
+// std::vector<ConflictFile> extractConflictBlocks(
+//     std::vector<std::string>& ConflictFileNames) {
+//   // clang-format off
+//   spdlog::debug(R"(extracting conflict blocks for [
+//     {}
+//   ])", fmt::join(ConflictFileNames, ", "));
+//   // clang-format on
+//   using namespace llvm;
+//   std::vector<ConflictFile> ConflictFiles;
+//   ConflictFiles.reserve(ConflictFileNames.size());
+//   for (const auto& ConflictFileName : ConflictFileNames) {
+//     ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
+//         MemoryBuffer::getFile(ConflictFileName);
+//     if (auto Err = FileOrErr.getError()) {
+//       spdlog::error(
+//           "failed to extract conflict blocks for source file [{}], err "
+//           "message: ",
+//           ConflictFileName, Err.message());
+//       continue;
+//     }
+//     std::unique_ptr<MemoryBuffer> File = std::move(FileOrErr.get());
+//     std::vector<ConflictBlock> ConflictBlocks =
+//         details::constructConflictFile(File);
+//     ConflictFile CF = {.Filename = ConflictFileName,
+//                        .ConflictBlocks = std::move(ConflictBlocks)};
+//     ConflictFiles.push_back(std::move(CF));
+//   }  // end of file name loop
+//   return ConflictFiles;
+// }
 
 }  // namespace sa
 

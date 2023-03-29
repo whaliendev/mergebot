@@ -13,11 +13,11 @@ namespace sa {
 class HandlerChain {
 public:
   HandlerChain(std::vector<std::unique_ptr<SAHandler>> &&Handlers,
-               std::vector<std::string> ConflictFiles)
+               std::vector<std::string> ConflictFilePaths)
       : Handlers_(std::move(Handlers)) {
     // construct handler chain
     chain();
-    ConflictFiles_ = extractConflictBlocks(ConflictFiles);
+    ConflictFiles_ = constructConflictFiles(ConflictFilePaths);
   }
 
   void handle() { Handlers_[0]->handle(ConflictFiles_); }

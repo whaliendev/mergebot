@@ -6,6 +6,7 @@
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 #endif
 
+#define FMT_HEADER_ONLY
 #include <crow/app.h>
 #include <crow/middlewares/cors.h>
 #include <spdlog/async.h>
