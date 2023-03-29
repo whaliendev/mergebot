@@ -25,15 +25,7 @@ public:
     if (Skip_ && NextHandler_) {
       spdlog::info("skip sa handler {} to next handler {}", Name_,
                    NextHandler_->name());
-    } else if (Skip_ && !NextHandler_) {
-      spdlog::info("skip sa handler {} to next handler. However, we reached "
-                   "the end of handler chain");
-      if (ConflictFiles.size() > 0) {
-        reportResolutionResult(ConflictFiles);
-      } else {
-        spdlog::info("Incredible! All the conflicts are resolved");
-      }
-    } else {
+    } else if (!Skip_) {
       resolveConflictFiles(ConflictFiles);
       if (ConflictFiles.size() && NextHandler_) {
         NextHandler_->handle(ConflictFiles);
@@ -41,6 +33,14 @@ public:
         spdlog::info("in project {}, we have reached the final sa handler. "
                      "However, there are still some conflicts. ",
                      Project);
+        reportResolutionResult(ConflictFiles);
+      } else {
+        spdlog::info("Incredible! All the conflicts are resolved");
+      }
+    } else {
+      spdlog::info("skip sa handler {} to next handler. However, we reached "
+                   "the end of handler chain");
+      if (ConflictFiles.size() > 0) {
         reportResolutionResult(ConflictFiles);
       } else {
         spdlog::info("Incredible! All the conflicts are resolved");

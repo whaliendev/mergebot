@@ -171,7 +171,6 @@ add_subdirectory(src)
 
 
 ### test target goes here
-# TODO(hwa): enable google testing
 if (MB_BUILD_TESTS)
   message(STATUS "Tests enabled for Mergebot")
   enable_testing()
