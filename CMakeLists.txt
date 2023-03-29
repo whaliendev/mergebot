@@ -24,7 +24,7 @@ project(
 option(MB_OUT_TO_BIN "Output all target files to build/bin" ON)
 option(MB_BUILD_SHARED "Build shared library for mergebot" OFF)
 if (PROJECT_NAME STREQUAL CMAKE_PROJECT_NAME)
-  option(MB_BUILD_TESTs "Build mergebot's unit tests" ON)
+  option(MB_BUILD_TESTS "Build mergebot's unit tests" ON)
 endif (PROJECT_NAME STREQUAL CMAKE_PROJECT_NAME)
 option(MB_USE_CCACHE "Use ccache to accelerate compilation if ccache found in path" ON)
 option(MB_INSTALL_TARGET "Enable installation targets" OFF)
@@ -100,6 +100,10 @@ if (MB_OUT_TO_BIN)
   set(CMAKE_DEBUG_POSTFIX "")  # No more annoying MB_d.dll
 endif ()
 
+# global include directories
+include_directories(${PROJECT_NAME} PUBLIC
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
+
 ### our preferences
 # make compiler be a grudge in debug mode
 # speed up compilation by cache(https://ccache.dev)
@@ -169,16 +173,13 @@ add_subdirectory(src)
 ### test target goes here
 # TODO(hwa): enable google testing
 if (MB_BUILD_TESTS)
+  message(STATUS "Tests enabled for Mergebot")
   enable_testing()
-
-  # prevent overriding the parent project's compiler/linker settings on Windows.
-  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-  set(install_gtest OFF)
-  set(install_gmock OFF)
-  set(build_gmock ON)
 
   # This project is tested using GoogleTest.
   add_subdirectory("third_party/googletest")
+  include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+  add_subdirectory(tests)
 endif (MB_BUILD_TESTS)
 
 
