@@ -6,8 +6,6 @@
 
 #include <gtest/gtest.h>
 
-#include "mergebot/utils/pathop.h"
-
 TEST(UtilityTest, ExtractOneConflictFile) {
   std::vector<mergebot::sa::ConflictBlock> ExpectedConflictBlocks = {
       {.Index = 1,
@@ -114,12 +112,12 @@ TEST(UtilityTest, ExtractOneConflictFile) {
            "AAudioServiceEndpoint.cpp/theirs.cpp"}};
 
   std::string MockFilePath =
-      "/home/whalien/codebase/cpp/mergebot/build/bin/mock/conflict.txt";
+      "/home/whalien/codebase/cpp/mergebot/build/bin/mock/conflict.cpp";
   mergebot::sa::ConflictFile ExpectedConflictFile(MockFilePath,
                                                   ExpectedConflictBlocks);
   std::vector<mergebot::sa::ConflictFile> ExpectedConflictFiles = {
       ExpectedConflictFile};
-  std::vector<std::string> ConflictFilePaths = {"./mock/conflict.txt"};
+  std::vector<std::string> ConflictFilePaths = {"./mock/conflict.cpp"};
   std::vector<mergebot::sa::ConflictFile> ConflictFiles =
       mergebot::sa::constructConflictFiles(ConflictFilePaths);
 
