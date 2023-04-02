@@ -17,6 +17,7 @@
 #include <stdexcept>
 
 #include "mergebot/controller/app_exception.h"
+#include "mergebot/core/model/ConflictMark.h"
 #include "mergebot/magic_enum_customization.h"
 #include "mergebot/server/result_vo_utils.h"
 #include "mergebot/utils/format.h"
@@ -82,7 +83,7 @@ namespace util {
 }  // namespace util
 
 namespace sa {
-namespace details {
+namespace _details {
 std::vector<ConflictBlock> constructConflictFile(
     std::unique_ptr<llvm::MemoryBuffer>& File) {
   int Index = 0;
@@ -118,7 +119,7 @@ std::vector<ConflictBlock> constructConflictFile(
   }
   return ConflictBlocks;
 }
-}  // namespace details
+}  // namespace _details
 
 void handleSAExecError(std::error_code err, std::string_view cmd) {
   if (err == std::errc::timed_out) {
@@ -152,7 +153,7 @@ std::vector<ConflictFile> constructConflictFiles(
     }
     std::unique_ptr<MemoryBuffer> File = std::move(FileOrErr.get());
     std::vector<ConflictBlock> ConflictBlocks =
-        details::constructConflictFile(File);
+        _details::constructConflictFile(File);
     ConflictFiles.emplace_back(std::move(AbsoluteFilePath),
                                std::move(ConflictBlocks));
   }

@@ -19,9 +19,7 @@ endforeach ()
 
 # build all tests
 file(GLOB_RECURSE TEST_SRC_FILES
-        CONFIGURE_DEPENDS ./*.cpp
-        EXCLUDE
-        mock/*)
+        CONFIGURE_DEPENDS ./*.cpp)
 
 add_executable(runUnitTests ${TEST_SRC_FILES})
 

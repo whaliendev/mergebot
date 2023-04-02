@@ -7,7 +7,7 @@
 
 #include <magic_enum.hpp>
 
-#include "mergebot/utility.h"
+#include "mergebot/core/model/ConflictMark.h"
 
 namespace magic_enum {
 namespace customize {

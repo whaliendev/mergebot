@@ -112,12 +112,12 @@ TEST(UtilityTest, ExtractOneConflictFile) {
            "AAudioServiceEndpoint.cpp/theirs.cpp"}};
 
   std::string MockFilePath =
-      "/home/whalien/codebase/cpp/mergebot/build/bin/mock/conflict.cpp";
+      "/home/whalien/codebase/cpp/mergebot/build/bin/mock/conflict.txt";
   mergebot::sa::ConflictFile ExpectedConflictFile(MockFilePath,
                                                   ExpectedConflictBlocks);
   std::vector<mergebot::sa::ConflictFile> ExpectedConflictFiles = {
       ExpectedConflictFile};
-  std::vector<std::string> ConflictFilePaths = {"./mock/conflict.cpp"};
+  std::vector<std::string> ConflictFilePaths = {"./mock/conflict.txt"};
   std::vector<mergebot::sa::ConflictFile> ConflictFiles =
       mergebot::sa::constructConflictFiles(ConflictFilePaths);
 

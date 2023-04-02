@@ -26,13 +26,6 @@ void handleSAExecError(std::error_code err, std::string_view cmd);
 extractConflictBlocks(std::vector<std::string>& ConflictFiles);
 std::vector<ConflictFile> constructConflictFiles(
     std::vector<std::string>& ConflictFilePaths);
-
-enum class ConflictMark : int {
-  OURS,    // <<<<<<<
-  BASE,    // |||||||
-  THEIRS,  // =======
-  END      // >>>>>>>
-};
 }  // namespace sa
 
 namespace server {
