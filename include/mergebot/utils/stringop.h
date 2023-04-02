@@ -51,6 +51,13 @@ string_join(const Container& cont, const std::string_view separator);
 template <typename InputIt>
 std::string string_join(InputIt begin, InputIt end,
                         const std::string_view separator);
+
+static std::string removeSpaces(std::string_view sv) {
+  std::string result;
+  std::remove_copy_if(sv.begin(), sv.end(), std::back_inserter(result),
+                      [](char c) { return std::isspace(c); });
+  return result;
+}
 }  // namespace util
 }  // namespace mergebot
 #endif  // MB_STRINGOP_H

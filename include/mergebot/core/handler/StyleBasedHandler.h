@@ -15,8 +15,8 @@ public:
   StyleBasedHandler(std::string Name = __FILE_NAME__) : SAHandler(Name) {}
 
 private:
-  void resolveConflictFiles(
-      std::vector<ConflictFile> &ConflictFiles) const override {}
+  void
+  resolveConflictFiles(std::vector<ConflictFile> &ConflictFiles) const override;
 };
 
 } // namespace sa
