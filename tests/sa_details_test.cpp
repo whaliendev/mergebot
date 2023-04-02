@@ -47,3 +47,29 @@ I'm in sa_details_test)"
       magic_enum::enum_name(ConflictMark::END));
   EXPECT_EQ(ExpectedTwoSideCodes, std::make_pair(OurCode, TheirCode));
 }
+
+TEST(SADetailsTest, ExtractCodeFromConflictRangeDeathTest) {
+  // clang-format off
+  std::string OurSideDeathCF = R"(
+this is a line of code, of course our side's code
+and this is another line of code
+=======
+hello, world from whu
+I'm in sa_details_test
+>>>>>>> /another/dummy/filepath)";
+  // clang-format on
+  using namespace mergebot::sa;
+  //  std::string_view OurCode = _details::extractCodeFromConflictRange(
+  //      OurSideDeathCF, magic_enum::enum_name(ConflictMark::OURS),
+  //      magic_enum::enum_name(ConflictMark::THEIRS));
+  //  std::string_view TheirCode = _details::extractCodeFromConflictRange(
+  //      OurSideDeathCF, magic_enum::enum_name(ConflictMark::THEIRS),
+  //      magic_enum::enum_name(ConflictMark::END));
+  ASSERT_DEATH(
+      {
+        _details::extractCodeFromConflictRange(
+            OurSideDeathCF, magic_enum::enum_name(ConflictMark::OURS),
+            magic_enum::enum_name(ConflictMark::THEIRS));
+      },
+      "illegal conflict range, start marker line is in bad format");
+}

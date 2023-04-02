@@ -20,7 +20,8 @@ std::string_view extractCodeFromConflictRange(std::string_view Source,
                                               std::string_view StartMark,
                                               std::string_view EndMarker) {
   size_t StartPos = Source.find(StartMark);
-  while (StartPos != Source.length() && Source[StartPos++] != '\n')
+  while (StartPos != std::string_view::npos && StartPos != Source.length() &&
+         Source[StartPos++] != '\n')
     ;
   assert(StartPos != std::string_view::npos && StartPos != Source.length() &&
          "illegal conflict range, start marker line is in bad format");
