@@ -13,7 +13,8 @@ namespace mergebot {
 namespace sa {
 class ASTBasedHandler : public SAHandler {
 public:
-  ASTBasedHandler(std::string Name = __FILE_NAME__) : SAHandler(Name) {}
+  ASTBasedHandler(ProjectMeta Meta, std::string Name = __FILE_NAME__)
+      : SAHandler(Meta, Name) {}
 
 private:
   void resolveConflictFiles(

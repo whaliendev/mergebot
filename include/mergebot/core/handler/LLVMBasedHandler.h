@@ -12,7 +12,8 @@ namespace sa {
 
 class LLVMBasedHandler : public SAHandler {
 public:
-  LLVMBasedHandler(std::string Name = __FILE_NAME__) : SAHandler(Name) {}
+  LLVMBasedHandler(ProjectMeta Meta, std::string Name = __FILE_NAME__)
+      : SAHandler(Meta, Name) {}
 
 private:
   void resolveConflictFiles(

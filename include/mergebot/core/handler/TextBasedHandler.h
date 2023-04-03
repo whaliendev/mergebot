@@ -12,7 +12,8 @@ namespace sa {
 
 class TextBasedHandler : public SAHandler {
 public:
-  TextBasedHandler(std::string Name = __FILE_NAME__) : SAHandler(Name) {}
+  TextBasedHandler(ProjectMeta Meta, std::string Name = __FILE_NAME__)
+      : SAHandler(Meta, Name) {}
 
 private:
   void resolveConflictFiles(

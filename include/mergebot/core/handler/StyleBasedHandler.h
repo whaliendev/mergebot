@@ -12,7 +12,8 @@ namespace sa {
 
 class StyleBasedHandler : public SAHandler {
 public:
-  StyleBasedHandler(std::string Name = __FILE_NAME__) : SAHandler(Name) {}
+  StyleBasedHandler(ProjectMeta Meta, std::string Name = __FILE_NAME__)
+      : SAHandler(Meta, Name) {}
 
 private:
   void

@@ -15,10 +15,22 @@
 
 namespace mergebot {
 namespace sa {
+struct ProjectMeta {
+  std::string Project;
+  std::string ProjectCheckSum;
+  std::string ProjectCacheDir;
+  MergeScenario MS;
+  std::string MSCacheDir;
+};
+
+/// virtual base handler in HandlerChain, class extends it should declare a ctor
+/// which accepts a `ProjectMeta` in copy manner and Handler's name. As
+/// SAHandler's ctor will take the ownership of ProjectMeta
 class SAHandler {
 public:
-  explicit SAHandler(std::string Name = __FILE_NAME__)
-      : Skip_(false), Name_(Name), NextHandler_(nullptr) {}
+  explicit SAHandler(ProjectMeta Meta, std::string Name = __FILE_NAME__)
+      : Meta(std::move(Meta)), Skip_(false), Name_(Name),
+        NextHandler_(nullptr) {}
   virtual ~SAHandler() {}
 
   void handle(std::vector<ConflictFile> &ConflictFiles) const {
@@ -32,7 +44,7 @@ public:
       } else if (ConflictFiles.size() && !NextHandler_) {
         spdlog::info("in project {}, we have reached the final sa handler. "
                      "However, there are still some conflicts. ",
-                     Project);
+                     Meta.Project);
         reportResolutionResult(ConflictFiles);
       } else {
         spdlog::info("Incredible! All the conflicts are resolved");
@@ -55,9 +67,11 @@ public:
   void clearSkip() noexcept { Skip_ = false; }
 
 protected:
+  ProjectMeta Meta;
+
   void reportResolutionResult(std::vector<ConflictFile> &ConflictFiles) const {
     spdlog::info("there are still {} conflict files in project {}: ",
-                 ConflictFiles.size(), Project);
+                 ConflictFiles.size(), Meta.Project);
 
     std::vector<std::string_view> Filenames;
     std::for_each(
@@ -69,12 +83,6 @@ protected:
     ])", fmt::join(Filenames, ",\n")));
     // clang-format on
   }
-
-  std::string Project;
-  std::string ProjectCheckSum;
-  std::string ProjectCacheDir;
-  MergeScenario MS;
-  std::string MSCacheDir;
 
 private:
   virtual void

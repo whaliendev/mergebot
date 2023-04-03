@@ -12,6 +12,7 @@
 
 #include "mergebot/core/handler/ASTBasedHandler.h"
 #include "mergebot/core/handler/LLVMBasedHandler.h"
+#include "mergebot/core/handler/SAHandler.h"
 #include "mergebot/core/handler/StyleBasedHandler.h"
 #include "mergebot/core/handler/TextBasedHandler.h"
 #include "mergebot/utils/ThreadPool.h"
@@ -107,11 +108,18 @@ void ResolutionManager::_doResolutionAsync(
   //         "CompDB generation failed");
   assert(fs::exists(OursPath) && fs::exists(TheirsPath) &&
          "copy two version sources failed");
+  ProjectMeta Meta{
+      .Project = Self->Project_,
+      .ProjectCheckSum = Self->projectCheckSum(),
+      .ProjectCacheDir = Self->projectCacheDir(),
+      .MS = Self->MS_,
+      .MSCacheDir = Self->mergeScenarioPath(),
+  };
   std::vector<std::unique_ptr<SAHandler>> Handlers;
-  Handlers.push_back(std::make_unique<StyleBasedHandler>());
-  Handlers.push_back(std::make_unique<ASTBasedHandler>());
-  Handlers.push_back(std::make_unique<LLVMBasedHandler>());
-  Handlers.push_back(std::make_unique<TextBasedHandler>());
+  Handlers.push_back(std::make_unique<StyleBasedHandler>(Meta));
+  Handlers.push_back(std::make_unique<ASTBasedHandler>(Meta));
+  Handlers.push_back(std::make_unique<LLVMBasedHandler>(Meta));
+  Handlers.push_back(std::make_unique<TextBasedHandler>(Meta));
 
   HandlerChain Chain(std::move(Handlers), CSources);
   Chain.handle();
