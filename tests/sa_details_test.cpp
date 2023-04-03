@@ -46,6 +46,32 @@ I'm in sa_details_test)"
       TwoSideCF, magic_enum::enum_name(ConflictMark::THEIRS),
       magic_enum::enum_name(ConflictMark::END));
   EXPECT_EQ(ExpectedTwoSideCodes, std::make_pair(OurCode, TheirCode));
+
+  // clang-format off
+  std::string CppCheckCF =
+R"(<<<<<<< /home/whalien/Desktop/projects/cppcheck/conflicts/7d2c26bd25a1d5ef030d30e2985e0f5ddb9ddf6d/gui/mainwindow.cpp/conflict.cpp
+            for (int i = 0;i < languages.size();i++)
+||||||| /home/whalien/Desktop/projects/cppcheck/conflicts/7d2c26bd25a1d5ef030d30e2985e0f5ddb9ddf6d/gui/mainwindow.cpp/base.cpp
+            for (int i=0;i<languages.size();i++)
+=======
+            for (int i = 0; i < languages.size(); i++)
+>>>>>>> /home/whalien/Desktop/projects/cppcheck/conflicts/7d2c26bd25a1d5ef030d30e2985e0f5ddb9ddf6d/gui/mainwindow.cpp/theirs.cpp>>>>>>>)";
+  std::pair<std::string_view, std::string_view> ExpectedCppCheckCode = {
+      std::string_view {
+R"(            for (int i = 0;i < languages.size();i++))"},
+      std::string_view {
+R"(            for (int i = 0; i < languages.size(); i++))"
+      }
+  };
+  // clang-format on
+  using namespace mergebot::sa;
+  OurCode = _details::extractCodeFromConflictRange(
+      CppCheckCF, magic_enum::enum_name(ConflictMark::OURS),
+      magic_enum::enum_name(ConflictMark::BASE));
+  TheirCode = _details::extractCodeFromConflictRange(
+      CppCheckCF, magic_enum::enum_name(ConflictMark::THEIRS),
+      magic_enum::enum_name(ConflictMark::END));
+  EXPECT_EQ(ExpectedCppCheckCode, std::make_pair(OurCode, TheirCode));
 }
 
 TEST(SADetailsTest, ExtractCodeFromConflictRangeDeathTest) {
