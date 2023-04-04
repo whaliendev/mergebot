@@ -9,6 +9,7 @@ find_package(Clang REQUIRED)
 if (Clang_FOUND)
   message(STATUS " Found Clang ${Clang_PACKAGE_VERSION} ")
   message(STATUS " Clang found at ${Clang_DIR} ")
+  include_directories(${CLANG_INCLUDE_DIRS})
 endif (Clang_FOUND)
 
 find_package(LLVM REQUIRED CONFIG)
@@ -31,10 +32,11 @@ add_executable(
 
 target_link_libraries(
         ${PROJECT_NAME}
-        PUBLIC
-        fmt::fmt
+        PRIVATE
+        clang-cpp
         ${llvm_libs}
-        ${PROJECT_NAME}_lib
+        fmt::fmt
         magic_enum::magic_enum
+        ${PROJECT_NAME}_lib
 )
 

@@ -1,3 +1,10 @@
+find_package(Clang REQUIRED)
+
+if (Clang_FOUND)
+  message(STATUS " Found Clang ${Clang_PACKAGE_VERSION} ")
+  message(STATUS " Clang found at ${Clang_DIR} ")
+endif (Clang_FOUND)
+
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS " Found LLVM ${LLVM_PACKAGE_VERSION} ")
 message(STATUS " Using LLVMConfig.cmake in: ${LLVM_DIR} ")
@@ -25,6 +32,6 @@ add_executable(runUnitTests ${TEST_SRC_FILES})
 
 target_link_libraries(runUnitTests gtest gtest_main)
 
-target_link_libraries(runUnitTests ${PROJECT_NAME}_lib ${llvm_libs})
+target_link_libraries(runUnitTests ${PROJECT_NAME}_lib ${llvm_libs} clang-cpp)
 
 add_test(UnitTests runUnitTests)
