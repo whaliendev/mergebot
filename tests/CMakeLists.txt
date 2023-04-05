@@ -1,8 +1,8 @@
 find_package(Clang REQUIRED)
 
 if (Clang_FOUND)
-  message(STATUS " Found Clang ${Clang_PACKAGE_VERSION} ")
-  message(STATUS " Clang found at ${Clang_DIR} ")
+    message(STATUS " Found Clang ${Clang_PACKAGE_VERSION} ")
+    message(STATUS " Clang found at ${Clang_DIR} ")
 endif (Clang_FOUND)
 
 find_package(LLVM REQUIRED CONFIG)
@@ -17,16 +17,16 @@ llvm_map_components_to_libnames(llvm_libs support)
 # copy mock data files to output binary dir
 file(GLOB_RECURSE MOCK_DATA_FILES "${CMAKE_CURRENT_SOURCE_DIR}/mock/*")
 foreach (MOCK_DATA_FILE ${MOCK_DATA_FILES})
-  configure_file(
-          ${MOCK_DATA_FILE}
-          ${MB_OUTPUT_DIR}/mock/
-          COPYONLY
-  )
+    configure_file(
+            ${MOCK_DATA_FILE}
+            ${MB_OUTPUT_DIR}/mock/
+            COPYONLY
+    )
 endforeach ()
 
 # build all tests
 file(GLOB_RECURSE TEST_SRC_FILES
-        CONFIGURE_DEPENDS ./*.cpp)
+        CONFIGURE_DEPENDS ./*test*.cpp)
 
 add_executable(runUnitTests ${TEST_SRC_FILES})
 
