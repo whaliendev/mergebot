@@ -15,21 +15,25 @@ namespace sa {
 struct ConflictFile {
   ConflictFile(std::string &&Filename,
                std::vector<ConflictBlock> &&ConflictBlocks)
-      : Filename(Filename), ConflictBlocks(ConflictBlocks) {}
+      : Filename(Filename), ConflictBlocks(ConflictBlocks), Resolved(false) {}
 
   ConflictFile(std::string const &Filename,
                std::vector<ConflictBlock> const &ConflictBlocks)
-      : Filename(Filename), ConflictBlocks(ConflictBlocks) {}
+      : Filename(Filename), ConflictBlocks(ConflictBlocks), Resolved(false) {}
 
   /// absolute file path
   std::string Filename;
 
   /// conflict blocks of a conflict file
   std::vector<ConflictBlock> ConflictBlocks;
+
+  /// whether this file is resolved
+  bool Resolved = false;
+
   explicit operator std::string() {
-    return fmt::format("ConflictFile(Filename = {}, ConflictBlocks = {})",
-                       Filename,
-                       mergebot::util::string_join(ConflictBlocks, ", "));
+    return fmt::format(
+        "ConflictFile(Filename = {}, ConflictBlocks = {}, Resolved = {})",
+        Filename, mergebot::util::string_join(ConflictBlocks, ", "), Resolved);
   }
 
   friend bool operator==(ConflictFile const &Lhs, ConflictFile const &Rhs) {

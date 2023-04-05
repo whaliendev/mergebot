@@ -26,13 +26,18 @@ struct ConflictBlock {
   /// Conflict Range content, starts with "<<<<<<<", ends with ">>>>>>>"
   std::string ConflictRange;
 
+  /// whether this block is resolved
+  bool Resolved = false;
+
   operator std::string() {
-    return fmt::format("ConflictBlock(Index = {}, ConflictRange = {},)", Index,
-                       ConflictRange);
+    return fmt::format(
+        "ConflictBlock(Index = {}, ConflictRange = {}, Resolved = {})", Index,
+        ConflictRange, Resolved);
   }
 
   friend bool operator==(ConflictBlock const &Lhs, ConflictBlock const &Rhs) {
-    return Lhs.Index == Rhs.Index && Lhs.ConflictRange == Rhs.ConflictRange;
+    return Lhs.Index == Rhs.Index && Lhs.ConflictRange == Rhs.ConflictRange &&
+           Lhs.Resolved == Rhs.Resolved;
   }
 };
 } // namespace sa

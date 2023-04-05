@@ -48,7 +48,7 @@ void ResolutionManager::_doResolutionAsync(
   // copy c/cpp related conflict files
   // TODO(hwa): avoid file name collision
   const fs::path ConflictDest =
-      fs::path(Self->mergeScenarioPath()) / "conflicts";
+      fs::path(Self->mergeScenarioPath()) / "conflicts" / "";
   std::vector<std::string> CSources = Self->_extractCppSources();
   std::transform(CSources.begin(), CSources.end(), CSources.begin(),
                  [&](const std::string_view &sv) {
@@ -110,7 +110,7 @@ void ResolutionManager::_doResolutionAsync(
          "copy two version sources failed");
   ProjectMeta Meta{
       .Project = Self->Project_,
-      .ProjectCheckSum = Self->projectCheckSum(),
+      .ProjectPath = Self->ProjectPath_,
       .ProjectCacheDir = Self->projectCacheDir(),
       .MS = Self->MS_,
       .MSCacheDir = Self->mergeScenarioPath(),

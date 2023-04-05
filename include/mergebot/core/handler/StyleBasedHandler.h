@@ -18,6 +18,16 @@ public:
 private:
   void
   resolveConflictFiles(std::vector<ConflictFile> &ConflictFiles) const override;
+
+  std::string findRefFile(std::string_view const &ConflictFilePath) const;
+
+  std::string formatOneSide(std::string_view sv,
+                            std::string const &RefFile) const;
+
+  // settings related vars
+  static bool NeedFormat;
+  static std::string Style;
+  static std::string WhichSide;
 };
 
 } // namespace sa

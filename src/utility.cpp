@@ -109,7 +109,7 @@ std::vector<ConflictBlock> constructConflictFile(
         }
         LineMark = Line.substr(0, 7);
         if (LineMark == magic_enum::enum_name(ConflictMark::END)) {
-          Block.ConflictRange = std::string(BlockStart, Pos - BlockStart);
+          Block.ConflictRange = std::string(BlockStart, Pos - BlockStart + 1);
           ConflictBlocks.push_back(std::move(Block));
           break;
         }
@@ -188,6 +188,10 @@ const server::Result NO_ROUTE_MATCH(
     "C0001", "不存在匹配的路由记录，请检查请求路径或请求方法");
 const server::Result BAD_REQUEST("C0002", "请求格式异常或参数错误");
 }  // namespace ResultEnum
+
+llvm::ErrorOr<bool> marshalResolutionResult(
+    std::string_view Filename,
+    std::vector<server::BlockResolutionResult> const& Results) {}
 }  // namespace server
 
 namespace server {

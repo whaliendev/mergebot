@@ -17,7 +17,7 @@ namespace mergebot {
 namespace sa {
 struct ProjectMeta {
   std::string Project;
-  std::string ProjectCheckSum;
+  std::string ProjectPath;
   std::string ProjectCacheDir;
   MergeScenario MS;
   std::string MSCacheDir;

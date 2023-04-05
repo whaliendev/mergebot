@@ -7,6 +7,7 @@
 #include "llvm/Support/ErrorOr.h"
 #include "mergebot/core/model/ConflictFile.h"
 #include "mergebot/server/result_vo_utils.h"
+#include "mergebot/server/vo/BlockResolutionResult.h"
 #include "spdlog/spdlog.h"
 #include "string"
 #include "string_view"
@@ -26,6 +27,10 @@ void handleSAExecError(std::error_code err, std::string_view cmd);
 extractConflictBlocks(std::vector<std::string>& ConflictFiles);
 std::vector<ConflictFile> constructConflictFiles(
     std::vector<std::string>& ConflictFilePaths);
+
+llvm::ErrorOr<bool> marshalResolutionResult(
+    std::string_view Filename,
+    std::vector<server::BlockResolutionResult> const& Results);
 }  // namespace sa
 
 namespace server {
