@@ -38,7 +38,8 @@ struct ConflictFile {
 
   friend bool operator==(ConflictFile const &Lhs, ConflictFile const &Rhs) {
     return Lhs.Filename == Rhs.Filename &&
-           Lhs.ConflictBlocks == Rhs.ConflictBlocks;
+           Lhs.ConflictBlocks == Rhs.ConflictBlocks &&
+           Lhs.Resolved == Rhs.Resolved;
   }
 };
 } // namespace sa
