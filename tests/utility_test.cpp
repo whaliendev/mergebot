@@ -1,10 +1,13 @@
 //
 // Created by whalien on 28/03/23.
 //
-#define FMT_HEADER_ONLY
 #include "mergebot/utility.h"
 
 #include <gtest/gtest.h>
+#include <spdlog/spdlog.h>
+
+#include "mergebot/core/model/ConflictFile.h"
+#include "mergebot/filesystem.h"
 
 TEST(UtilityTest, ExtractOneConflictFile) {
   std::vector<mergebot::sa::ConflictBlock> ExpectedConflictBlocks = {
@@ -42,7 +45,7 @@ TEST(UtilityTest, ExtractOneConflictFile) {
            ">>>>>>> "
            "/home/whalien/Desktop/projects/frameworks_av/conflicts/"
            "2d74c3f32d3035750b1e31fec80e5e3d5e6e1061/services/oboeservice/"
-           "AAudioServiceEndpoint.cpp/theirs.cpp"},
+           "AAudioServiceEndpoint.cpp/theirs.cpp\n"},
       {.Index = 2,
        .ConflictRange =
            "<<<<<<< "
@@ -75,7 +78,7 @@ TEST(UtilityTest, ExtractOneConflictFile) {
            ">>>>>>> "
            "/home/whalien/Desktop/projects/frameworks_av/conflicts/"
            "2d74c3f32d3035750b1e31fec80e5e3d5e6e1061/services/oboeservice/"
-           "AAudioServiceEndpoint.cpp/theirs.cpp"},
+           "AAudioServiceEndpoint.cpp/theirs.cpp\n"},
       {.Index = 3,
        .ConflictRange =
            "<<<<<<< "
@@ -109,7 +112,7 @@ TEST(UtilityTest, ExtractOneConflictFile) {
            ">>>>>>> "
            "/home/whalien/Desktop/projects/frameworks_av/conflicts/"
            "2d74c3f32d3035750b1e31fec80e5e3d5e6e1061/services/oboeservice/"
-           "AAudioServiceEndpoint.cpp/theirs.cpp"}};
+           "AAudioServiceEndpoint.cpp/theirs.cpp\n"}};
 
   std::string MockFilePath =
       "/home/whalien/codebase/cpp/mergebot/build/bin/mock/conflict.cpp";
@@ -117,12 +120,10 @@ TEST(UtilityTest, ExtractOneConflictFile) {
                                                   ExpectedConflictBlocks);
   std::vector<mergebot::sa::ConflictFile> ExpectedConflictFiles = {
       ExpectedConflictFile};
-  std::vector<std::string> ConflictFilePaths = {"./mock/conflict.cpp"};
+  std::vector<std::string> ConflictFilePaths = {
+      (std::filesystem::current_path() / "mock" / "conflict.cpp").string()};
   std::vector<mergebot::sa::ConflictFile> ConflictFiles =
       mergebot::sa::constructConflictFiles(ConflictFilePaths);
 
-  ASSERT_EQ(ExpectedConflictFiles.size(), ConflictFiles.size());
-  for (int i = 0; i < ExpectedConflictFiles.size(); ++i) {
-    EXPECT_EQ(ExpectedConflictFiles[i], ConflictFiles[i]);
-  }
+  ASSERT_EQ(ExpectedConflictFiles, ConflictFiles);
 }

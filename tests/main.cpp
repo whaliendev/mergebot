@@ -5,10 +5,11 @@
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 #endif
 
-#define FMT_HEADER_ONLY
 #include <gtest/gtest.h>
 #include <spdlog/async.h>
 #include <spdlog/spdlog.h>
+
+#include <iostream>
 
 void InitLogger();
 

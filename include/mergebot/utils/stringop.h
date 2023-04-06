@@ -18,20 +18,25 @@ namespace util {
 /// std::cend(delims) ) \param str string_view to split \param delims delimiters
 /// used to split \return a vector of string_view with split string_view
 /// segments filled
-static std::vector<std::string_view> string_split(
-    std::string_view str, std::string_view delims = " ") {
-  std::vector<std::string_view> output;
-  // output.reserve(str.size() / 2);
+std::vector<std::string_view> string_split(std::string_view str,
+                                           std::string_view delims);
 
-  for (auto first = str.data(), second = str.data(), last = first + str.size();
-       second != last && first != last; first = second + 1) {
-    second =
-        std::find_first_of(first, last, std::cbegin(delims), std::cend(delims));
+template <typename InputIt>
+std::string string_join(InputIt begin, InputIt end,
+                        const std::string_view separator) {
+  static_assert(
+      std::is_same<typename std::iterator_traits<InputIt>::iterator_category,
+                   std::random_access_iterator_tag>::value,
+      "string_join only supports random access iterators");
 
-    if (first != second) output.emplace_back(first, second - first);
+  std::ostringstream oss;
+  if (begin != end) {
+    oss << *begin++;
   }
-
-  return output;
+  std::ostream_iterator<typename std::iterator_traits<InputIt>::value_type> it(
+      oss, separator.data());
+  std::copy(begin, end, it);
+  return oss.str();
 }
 
 /// join Container of string by separator
@@ -46,11 +51,9 @@ typename std::enable_if<
                  typename std::decay<decltype(*std::end(
                      std::declval<Container>()))>::type>::value,
     std::string>::type
-string_join(const Container& cont, const std::string_view separator);
-
-template <typename InputIt>
-std::string string_join(InputIt begin, InputIt end,
-                        const std::string_view separator);
+string_join(const Container& cont, const std::string_view separator) {
+  return string_join(std::begin(cont), std::end(cont), separator);
+}
 
 static std::string removeSpaces(std::string_view sv) {
   std::string result;

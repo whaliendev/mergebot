@@ -31,11 +31,12 @@ I'm in sa_details_test
   std::pair<std::string_view, std::string_view> ExpectedTwoSideCodes = {
       std::string_view {
 R"(this is a line of code, of course our side's code
-and this is another line of code)"},
+and this is another line of code
+)"},
       std::string_view {
 R"(hello, world from whu
-I'm in sa_details_test)"
-      }
+I'm in sa_details_test
+)"}
   };
   // clang-format on
   using namespace mergebot::sa;
@@ -58,10 +59,11 @@ R"(<<<<<<< /home/whalien/Desktop/projects/cppcheck/conflicts/7d2c26bd25a1d5ef030
 >>>>>>> /home/whalien/Desktop/projects/cppcheck/conflicts/7d2c26bd25a1d5ef030d30e2985e0f5ddb9ddf6d/gui/mainwindow.cpp/theirs.cpp>>>>>>>)";
   std::pair<std::string_view, std::string_view> ExpectedCppCheckCode = {
       std::string_view {
-R"(            for (int i = 0;i < languages.size();i++))"},
+R"(            for (int i = 0;i < languages.size();i++)
+)"},
       std::string_view {
-R"(            for (int i = 0; i < languages.size(); i++))"
-      }
+R"(            for (int i = 0; i < languages.size(); i++)
+)"}
   };
   // clang-format on
   using namespace mergebot::sa;

@@ -7,6 +7,7 @@
 #include <spdlog/spdlog.h>
 
 #include <cassert>
+#include <filesystem>
 
 #include "../filesystem.h"
 namespace mergebot {

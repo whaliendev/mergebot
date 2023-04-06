@@ -6,12 +6,15 @@
 #define MB_CONFLICTFILE_H
 
 #include "mergebot/utils/stringop.h"
+#include <fmt/format.h>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <vector>
 
 #include "ConflictBlock.h"
 namespace mergebot {
 namespace sa {
+
 struct ConflictFile {
   ConflictFile(std::string &&Filename,
                std::vector<ConflictBlock> &&ConflictBlocks)
@@ -33,7 +36,7 @@ struct ConflictFile {
   explicit operator std::string() {
     return fmt::format(
         "ConflictFile(Filename = {}, ConflictBlocks = {}, Resolved = {})",
-        Filename, mergebot::util::string_join(ConflictBlocks, ", "), Resolved);
+        Filename, fmt::join(ConflictBlocks, ", "), Resolved);
   }
 
   friend bool operator==(ConflictFile const &Lhs, ConflictFile const &Rhs) {

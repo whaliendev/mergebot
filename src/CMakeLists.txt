@@ -7,9 +7,9 @@ find_package(magic_enum REQUIRED)
 find_package(Clang REQUIRED)
 
 if (Clang_FOUND)
-  message(STATUS " Found Clang ${Clang_PACKAGE_VERSION} ")
-  message(STATUS " Clang found at ${Clang_DIR} ")
-  include_directories(${CLANG_INCLUDE_DIRS})
+    message(STATUS " Found Clang ${Clang_PACKAGE_VERSION} ")
+    message(STATUS " Clang found at ${Clang_DIR} ")
+    include_directories(${CLANG_INCLUDE_DIRS})
 endif (Clang_FOUND)
 
 find_package(LLVM REQUIRED CONFIG)
@@ -35,7 +35,7 @@ target_link_libraries(
         PRIVATE
         clang-cpp
         ${llvm_libs}
-        fmt::fmt
+        fmt::fmt-header-only
         magic_enum::magic_enum
         ${PROJECT_NAME}_lib
 )
