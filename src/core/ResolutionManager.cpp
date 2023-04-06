@@ -4,9 +4,11 @@
 
 #include "mergebot/core/ResolutionManager.h"
 
+#include <filesystem>
 #include <fmt/format.h>
 #include <memory>
 #include <spdlog/spdlog.h>
+#include <system_error>
 #include <thread>
 #include <unordered_set>
 
@@ -45,8 +47,15 @@ void ResolutionManager::doResolution() {
 
 void ResolutionManager::_doResolutionAsync(
     std::shared_ptr<ResolutionManager> const &Self) {
+  // mkdir MSCacheDir / resolutions
+  const fs::path ResolutionDest =
+      fs::path(Self->mergeScenarioPath()) / "resolutions" / "";
+  if (!fs::exists(ResolutionDest)) {
+    fs::create_directories(ResolutionDest);
+  }
+
   // copy c/cpp related conflict files
-  // TODO(hwa): avoid file name collision
+  // FIX(hwa): avoid file name collision
   const fs::path ConflictDest =
       fs::path(Self->mergeScenarioPath()) / "conflicts" / "";
   std::vector<std::string> CSources = Self->_extractCppSources();
@@ -123,6 +132,8 @@ void ResolutionManager::_doResolutionAsync(
 
   HandlerChain Chain(std::move(Handlers), CSources);
   Chain.handle();
+
+  // TODO(hwa): Remember to remove running sign at last
 }
 
 void ResolutionManager::_generateCompDB(

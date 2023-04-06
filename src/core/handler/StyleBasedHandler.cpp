@@ -4,12 +4,14 @@
 
 #include "mergebot/core/handler/StyleBasedHandler.h"
 #include "mergebot/core/model/ConflictBlock.h"
+#include "mergebot/core/model/ConflictFile.h"
 #include "mergebot/core/model/ConflictMark.h"
-#include "mergebot/filesystem.h"
 #include "mergebot/magic_enum_customization.h"
-#include "mergebot/server/vo/BlockResolutionResult.h"
+#include "mergebot/server/vo/ResolutionResultVO.h"
+#include "mergebot/utility.h"
 #include "mergebot/utils/stringop.h"
 
+#include <algorithm>
 #include <clang/Format/Format.h>
 #include <clang/Tooling/Core/Replacement.h>
 #include <filesystem>
@@ -62,7 +64,7 @@ void StyleBasedHandler::resolveConflictFiles(
   assert(ConflictFiles.size() &&
          "ConflictFile sizes should be greater than zero");
 
-  spdlog::info("we are resolving conflicts use style based handler");
+  spdlog::info("we are resolving conflicts using style based handler");
 
   std::string_view FirstCR = ConflictFiles[0].ConflictBlocks[0].ConflictRange;
   size_t OurPos = FirstCR.find(magic_enum::enum_name(ConflictMark::OURS));
@@ -71,18 +73,13 @@ void StyleBasedHandler::resolveConflictFiles(
   size_t EndPos = std::string_view::npos;
   bool WithBase = OurPos != EndPos && BasePos != EndPos && TheirPos != EndPos;
 
+  // check resolved, check not resolved
+  bool EverResolved = false, AllResolved = true;
   for (ConflictFile &CF : ConflictFiles) {
-    if (CF.Resolved) {
-      continue;
-    }
     spdlog::debug("resolving {}...", CF.Filename);
 
     std::vector<server::BlockResolutionResult> ResolvedBlocks;
-
     for (ConflictBlock &CB : CF.ConflictBlocks) {
-      if (CB.Resolved) {
-        continue;
-      }
       std::string_view OurCode, TheirCode;
       if (WithBase) {
         OurCode = _details::extractCodeFromConflictRange(
@@ -119,18 +116,40 @@ void StyleBasedHandler::resolveConflictFiles(
           }
         }
         CB.Resolved = true;
-        ResolvedBlocks.push_back({.index = CB.Index,
-                                  .code = std::move(ResultStr),
-                                  .desc = "格式问题引发的合并冲突"});
-        spdlog::debug(ResolvedBlocks[0].code);
+        ResolvedBlocks.push_back({
+            .index = CB.Index,
+            .desc = "格式问题引发的合并冲突",
+            .code = std::move(ResultStr),
+        });
       }
     }
-    // marshal resolution result to specific file, ResolvedBlocks
+
+    std::for_each(CF.ConflictBlocks.begin(), CF.ConflictBlocks.end(),
+                  [&](ConflictBlock const &CB) {
+                    if (CB.Resolved) {
+                      EverResolved = true;
+                    } else {
+                      AllResolved = false;
+                    }
+                  });
+    // update resolved flag of ConflictFile
+    CF.Resolved = AllResolved;
+    // check any of blocks is resolved, if true, marshal resolution result to
+    // MSCache dir; if false, do nothing
+    if (EverResolved) {
+      fs::path ResolutionDest =
+          fs::path(Meta.MSCacheDir) / "resolutions" / pathToName(CF.Filename);
+      marshalResolutionResult(ResolutionDest.string(), CF.Filename,
+                              ResolvedBlocks);
+    }
   }
-  // delete all resolved conflict files and conflict blocks that are resolved
+  // tidy up conflict files and their conflict blocks
+  if (EverResolved) {
+    tidyUpConflictFiles(ConflictFiles);
+  }
 }
 
-std::string StyleBasedHandler::formatOneSide(std::string_view sv,
+std::string StyleBasedHandler::formatOneSide(std::string_view SV,
                                              std::string const &RefFile) const {
   using namespace clang;
   format::FormatStyle FS;
@@ -141,17 +160,17 @@ std::string StyleBasedHandler::formatOneSide(std::string_view sv,
                   Style);
     return "";
   }
-  unsigned Length = std::count(sv.begin(), sv.end(), '\n');
+  unsigned Length = std::count(SV.begin(), SV.end(), '\n');
   bool IncompleteFormat = false;
   tooling::Replacements Replaces =
       format::reformat(/*Style=*/FS,
-                       /*Code=*/sv,
+                       /*Code=*/SV,
                        /*Ranges=*/{{0, Length}},
                        /*FileName=*/RefFile,
                        /*IncompleteFormat=*/&IncompleteFormat);
-  if (auto FormattedOrErr = tooling::applyAllReplacements(sv, Replaces)) {
+  if (auto FormattedOrErr = tooling::applyAllReplacements(SV, Replaces)) {
     std::string &FormattedCode = *FormattedOrErr;
-    spdlog::debug("formatted code in file {} is {{}}", RefFile, FormattedCode);
+    spdlog::debug("formatted code in file {} is [{}]", RefFile, FormattedCode);
     return FormattedCode;
   } else {
     spdlog::warn(

@@ -47,7 +47,7 @@ public:
                      Meta.Project);
         reportResolutionResult(ConflictFiles);
       } else {
-        spdlog::info("Incredible! All the conflicts are resolved");
+        spdlog::info("Incredible! All conflicts are resolved");
       }
     } else {
       spdlog::info("skip sa handler {} to next handler. However, we reached "

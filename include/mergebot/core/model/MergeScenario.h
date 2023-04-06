@@ -44,13 +44,12 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MergeScenario, name, ours,
 } // namespace sa
 } // namespace mergebot
 
-namespace fmt {
 template <> struct fmt::formatter<mergebot::sa::MergeScenario> {
   constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) {
     auto it = ctx.begin(), end = ctx.end();
     // Check if reached the end of the range:
-    if (it != end && *it != '}')
-      throw format_error("invalid format");
+    //    if (it != end && *it != '}')
+    //      throw fmt::format_error("invalid format");
     // Return an iterator past the end of the parsed range:
     return it;
   }
@@ -64,6 +63,5 @@ template <> struct fmt::formatter<mergebot::sa::MergeScenario> {
     return fmt::format_to(ctx.out(), "{}", static_cast<std::string>(ms));
   }
 };
-} // namespace fmt
 
 #endif // MB_MERGESCENARIO_H

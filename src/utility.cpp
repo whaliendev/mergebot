@@ -3,25 +3,36 @@
 //
 #include "mergebot/utility.h"
 
+#include <fmt/format.h>
+#include <llvm/Support/Error.h>
 #include <llvm/Support/ErrorOr.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/MemoryBuffer.h>
 #include <spdlog/spdlog.h>
 #include <sys/wait.h>
 
+#include <algorithm>
 #include <array>
 #include <cerrno>
 #include <cstdio>
+#include <filesystem>
+#include <fstream>
 #include <magic_enum.hpp>
 #include <memory>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 
 #include "mergebot/controller/app_exception.h"
+#include "mergebot/core/model/ConflictBlock.h"
+#include "mergebot/core/model/ConflictFile.h"
 #include "mergebot/core/model/ConflictMark.h"
 #include "mergebot/magic_enum_customization.h"
 #include "mergebot/server/result_vo_utils.h"
+#include "mergebot/utils/fileio.h"
 #include "mergebot/utils/format.h"
 #include "mergebot/utils/pathop.h"
+#include "mergebot/utils/stringop.h"
 
 namespace mergebot {
 namespace util {
@@ -80,6 +91,31 @@ namespace util {
     usleep(1000);
   }
 }
+
+template <typename InputIt1, typename InputIt2, typename Compare>
+typename std::enable_if<
+    std::is_same<typename std::iterator_traits<InputIt1>::iterator_category,
+                 std::random_access_iterator_tag>::value &&
+        std::is_same<typename std::iterator_traits<InputIt2>::iterator_category,
+                     std::random_access_iterator_tag>::value,
+    bool>::type
+hasSameElements(InputIt1 first1, InputIt1 last1, InputIt2 first2,
+                InputIt2 last2, Compare comp) {
+  static_assert(
+      std::is_invocable_r<
+          bool, Compare, typename std::iterator_traits<InputIt1>::value_type,
+          typename std::iterator_traits<InputIt2>::value_type>::value,
+      "Compare should be invocable with two arguments of the value type");
+
+  for (InputIt1 it1 = first1; it1 != last1; ++it1) {
+    if (std::find_if(first2, last2, [&](const auto& val) {
+          return comp(*it1, val);
+        }) != last2) {
+      return true;
+    }
+  }
+  return false;
+}
 }  // namespace util
 
 namespace sa {
@@ -119,6 +155,23 @@ std::vector<ConflictBlock> constructConflictFile(
   }
   return ConflictBlocks;
 }
+
+void tidyUpConflictBlocks(std::vector<ConflictBlock>& ConflictBlocks) {
+  bool Shrunk =
+      std::any_of(ConflictBlocks.begin(), ConflictBlocks.end(),
+                  [](ConflictBlock const& CB) { return CB.Resolved; });
+  if (Shrunk) {
+    std::vector<ConflictBlock> NewConflictBlocks;
+    NewConflictBlocks.reserve(ConflictBlocks.size());
+    std::for_each(ConflictBlocks.begin(), ConflictBlocks.end(),
+                  [&](ConflictBlock& CB) {
+                    if (!CB.Resolved) {
+                      NewConflictBlocks.push_back(std::move(CB));
+                    }
+                  });
+    ConflictBlocks = NewConflictBlocks;
+  }
+}
 }  // namespace _details
 
 void handleSAExecError(std::error_code err, std::string_view cmd) {
@@ -150,6 +203,7 @@ std::vector<ConflictFile> constructConflictFiles(
           "failed to extract conflict blocks for source file [{}], err "
           "message: {}",
           AbsoluteFilePath, Err.message());
+      continue;
     }
     std::unique_ptr<MemoryBuffer> File = std::move(FileOrErr.get());
     std::vector<ConflictBlock> ConflictBlocks =
@@ -159,6 +213,85 @@ std::vector<ConflictFile> constructConflictFiles(
   }
   return ConflictFiles;
 }
+
+void tidyUpConflictFiles(std::vector<ConflictFile>& ConflictFiles) {
+  bool Shrunk =
+      std::any_of(ConflictFiles.begin(), ConflictFiles.end(),
+                  [&](ConflictFile const& CF) { return CF.Resolved; });
+  if (Shrunk) {
+    std::vector<ConflictFile> NewConflictFiles;
+    NewConflictFiles.reserve(ConflictFiles.size());
+    std::for_each(ConflictFiles.begin(), ConflictFiles.end(),
+                  [&](ConflictFile& CF) {
+                    if (!CF.Resolved) {
+                      _details::tidyUpConflictBlocks(CF.ConflictBlocks);
+                      NewConflictFiles.push_back(std::move(CF));
+                    }
+                  });
+    ConflictFiles = NewConflictFiles;
+  } else {  // all conflict files are reserved, we have to tidy up their
+            // conflict blocks
+    std::for_each(ConflictFiles.begin(), ConflictFiles.end(),
+                  [&](ConflictFile& CF) {
+                    _details::tidyUpConflictBlocks(CF.ConflictBlocks);
+                  });
+  }
+}
+
+void marshalResolutionResult(
+    std::string_view DestPath, std::string_view FileName,
+    std::vector<server::BlockResolutionResult> const& Results) {
+  fs::path ResolutionFilePath = fs::path(DestPath);
+  std::ifstream ResolutionFS(ResolutionFilePath.string());
+  // file not exists or do exist but is illegal, marshal directly
+  if (!fs::exists(ResolutionFilePath) ||
+      (fs::exists(ResolutionFilePath) &&
+       !nlohmann::json::accept(ResolutionFS))) {
+    server::FileResolutionResult FR{.filepath = std::string(FileName),
+                                    .resolutions = Results};
+    nlohmann::json JsonToDump = FR;
+    util::file_overwrite_content(ResolutionFilePath, JsonToDump.dump(2));
+  } else {  // merge resolution results
+    std::ifstream ResolvedFS(ResolutionFilePath.string());
+    nlohmann::json ResolvedJson = nlohmann::json::parse(ResolvedFS);
+    server::FileResolutionResult FileResolved = ResolvedJson;
+    std::vector<server::BlockResolutionResult>& Resolutions =
+        FileResolved.resolutions;
+#ifndef NDEBUG
+    // this check is rather inefficient and the situation is almost impossible
+    // to happen, so we only perform this check at debug phase
+    bool hasSame = util::hasSameElements(
+        Resolutions.begin(), Resolutions.end(), Results.begin(), Results.end(),
+        [](server::BlockResolutionResult const& BR1,
+           server::BlockResolutionResult const& BR2) {
+          return BR1.index == BR2.index;
+        });
+    if (hasSame) {
+      SPDLOG_ERROR(
+          "Fatal logic error: there are overlaps between Resolutions and "
+          "Results");
+    }
+#endif
+    Resolutions.reserve(Resolutions.size() + Results.size());
+    std::copy(Results.begin(), Results.end(), std::back_inserter(Resolutions));
+    nlohmann::json JsonToDump = FileResolved;
+    util::file_overwrite_content(ResolutionFilePath, JsonToDump.dump(2));
+  }
+}
+
+std::string pathToName(std::string_view path) {
+  return util::string_join(util::string_split(path, "/"), "-");
+}
+
+std::string nameToPath(std::string_view name) {
+  std::vector<std::string_view> Segs = util::string_split(name, "-");
+  return std::accumulate(Segs.begin(), Segs.end(), fs::path("/"),
+                         [](fs::path const& P, std::string_view seg) {
+                           return P / fs::path(seg);
+                         })
+      .string();
+}
+
 }  // namespace sa
 
 namespace server {
@@ -188,10 +321,6 @@ const server::Result NO_ROUTE_MATCH(
     "C0001", "不存在匹配的路由记录，请检查请求路径或请求方法");
 const server::Result BAD_REQUEST("C0002", "请求格式异常或参数错误");
 }  // namespace ResultEnum
-
-llvm::ErrorOr<bool> marshalResolutionResult(
-    std::string_view Filename,
-    std::vector<server::BlockResolutionResult> const& Results) {}
 }  // namespace server
 
 namespace server {

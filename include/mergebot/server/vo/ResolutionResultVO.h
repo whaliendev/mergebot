@@ -9,25 +9,40 @@
 #include <string>
 #include <vector>
 
+#include "mergebot/utils/String.h"
+
 namespace mergebot {
-namespace sa {
+namespace server {
 struct BlockResolutionResult {
+  /// resolution block index
   int index;
-  std::string msg;
+  /// description message to help manually resolve
+  std::string desc;
+  /// resolution code to apply
   std::string code;
+
+  explicit operator std::string() const {
+    return fmt::format(
+        "BlockResolutionResult(index = {}, desc = {}, code = {})", index, desc,
+        code);
+  }
+
+  friend bool operator==(BlockResolutionResult const &Lhs,
+                         BlockResolutionResult const &Rhs) {
+    return Lhs.index == Rhs.index && Lhs.desc == Rhs.desc &&
+           Lhs.code == Rhs.code;
+  }
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BlockResolutionResult, index,
-                                                msg, code);
-
-struct ResolutionResultVO {
-  std::string project;
-  std::string file;
-  std::vector<BlockResolutionResult> results;
+                                                desc, code);
+struct FileResolutionResult {
+  std::string filepath;
+  std::vector<BlockResolutionResult> resolutions;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ResolutionResultVO, project,
-                                                file, results);
-} // namespace sa
-} // namespace mergebot
-#endif // MB_RESOLUTIONRESULTVO_H
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(FileResolutionResult, filepath,
+                                                resolutions);
+}  // namespace server
+}  // namespace mergebot
+#endif  // MB_RESOLUTIONRESULTVO_H

@@ -15,8 +15,10 @@
 namespace mergebot {
 namespace util {
 /// split string_view str by any of the elements in [ std::cbegin(delims),
-/// std::cend(delims) ) \param str string_view to split \param delims delimiters
-/// used to split \return a vector of string_view with split string_view
+/// std::cend(delims) )
+/// \param str string_view to split
+/// \param delims delimiters used to split
+/// \return a vector of string_view with split string_view
 /// segments filled
 std::vector<std::string_view> string_split(std::string_view str,
                                            std::string_view delims);
@@ -30,20 +32,25 @@ std::string string_join(InputIt begin, InputIt end,
       "string_join only supports random access iterators");
 
   std::ostringstream oss;
-  if (begin != end) {
-    oss << *begin++;
-  }
+  if (begin == end) return "";
+
   std::ostream_iterator<typename std::iterator_traits<InputIt>::value_type> it(
       oss, separator.data());
   std::copy(begin, end, it);
-  return oss.str();
+  std::string concatenated = oss.str();
+  size_t pos = concatenated.find_last_of(separator);
+  if (pos != std::string::npos) {
+    concatenated = concatenated.substr(0, pos);
+  }
+  return concatenated;
 }
 
 /// join Container of string by separator
 /// \tparam Container the string container which supports random access
-/// iterator. Specifically, `std::begin()` and `std::end()` \param cont the
-/// string container \param separator separator to join string \return a concat
-/// string joined by separator
+/// iterator. Specifically, `std::begin()` and `std::end()`
+/// \param cont the string containers
+/// \param separator separator to join string
+/// \return a concat string joined by separator
 template <typename Container>
 typename std::enable_if<
     std::is_same<typename std::decay<
