@@ -6,6 +6,7 @@
 #include "mergebot/core/model/ConflictBlock.h"
 #include "mergebot/core/model/ConflictFile.h"
 #include "mergebot/core/model/ConflictMark.h"
+#include "mergebot/filesystem.h"
 #include "mergebot/magic_enum_customization.h"
 #include "mergebot/server/vo/ResolutionResultVO.h"
 #include "mergebot/utility.h"
