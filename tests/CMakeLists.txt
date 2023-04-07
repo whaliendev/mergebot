@@ -29,12 +29,16 @@ endforeach ()
 
 # build all tests
 file(GLOB_RECURSE TEST_SRC_FILES
-        CONFIGURE_DEPENDS ./*test*.cpp main.cpp)
+        CONFIGURE_DEPENDS ./*test*.cpp ./*Test*.cpp main.cpp)
 
 add_executable(runUnitTests ${TEST_SRC_FILES})
 
-target_link_libraries(runUnitTests gtest gtest_main)
+target_link_libraries(runUnitTests gtest)
 
-target_link_libraries(runUnitTests ${PROJECT_NAME}_lib ${llvm_libs} clang-cpp fmt::fmt-header-only)
+target_link_libraries(runUnitTests
+        ${PROJECT_NAME}_lib
+        ${llvm_libs}
+        clang-cpp
+        fmt::fmt-header-only)
 
 add_test(UnitTests runUnitTests)
