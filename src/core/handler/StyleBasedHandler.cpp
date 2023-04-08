@@ -143,10 +143,11 @@ void StyleBasedHandler::resolveConflictFiles(
       marshalResolutionResult(ResolutionDest.string(), CF.Filename,
                               ResolvedBlocks);
     }
-  }
-  // tidy up conflict files and their conflict blocks
-  if (EverResolved) {
-    tidyUpConflictFiles(ConflictFiles);
+    
+    // tidy up conflict files and their conflict blocks
+    if (EverResolved) {
+      tidyUpConflictFiles(ConflictFiles);
+    }
   }
 }
 
