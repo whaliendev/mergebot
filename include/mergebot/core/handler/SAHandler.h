@@ -80,7 +80,7 @@ protected:
     // clang-format off
     spdlog::info(fmt::format(R"(they are respectively [
         {}
-    ])", fmt::join(Filenames, ",\n")));
+    ])", fmt::join(Filenames, ",\n\t")));
     // clang-format on
   }
 

@@ -171,7 +171,7 @@ std::string StyleBasedHandler::formatOneSide(std::string_view SV,
                        /*IncompleteFormat=*/&IncompleteFormat);
   if (auto FormattedOrErr = tooling::applyAllReplacements(SV, Replaces)) {
     std::string &FormattedCode = *FormattedOrErr;
-    spdlog::debug("formatted code in file {} is [{}]", RefFile, FormattedCode);
+    spdlog::debug("formatted code in file {} is {}", RefFile, FormattedCode);
     return FormattedCode;
   } else {
     spdlog::warn(

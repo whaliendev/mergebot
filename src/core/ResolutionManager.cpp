@@ -35,7 +35,7 @@ void ResolutionManager::doResolution() {
     ]
   }}
   )", Project_, ProjectPath_, MS_,
-  fmt::join(ConflictFiles_.get(), ConflictFiles_.get() + FileNum_, ",\n\t\t"));
+  fmt::join(ConflictFiles_.get(), ConflictFiles_.get() + FileNum_, ",\n\t"));
   // clang-format on
 
   // use_count 2
