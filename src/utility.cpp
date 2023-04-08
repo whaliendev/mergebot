@@ -280,6 +280,7 @@ void marshalResolutionResult(
 }
 
 std::string pathToName(std::string_view path) {
+  // FIX(hwa): use a less common path separator
   return util::string_join(util::string_split(path, "/"), "-");
 }
 
