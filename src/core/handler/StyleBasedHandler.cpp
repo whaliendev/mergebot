@@ -75,8 +75,8 @@ void StyleBasedHandler::resolveConflictFiles(
   bool WithBase = OurPos != EndPos && BasePos != EndPos && TheirPos != EndPos;
 
   // check resolved, check not resolved
-  bool EverResolved = false, AllResolved = true;
   for (ConflictFile &CF : ConflictFiles) {
+    bool EverResolved = false, AllResolved = true;
     spdlog::debug("resolving {}...", CF.Filename);
 
     std::vector<server::BlockResolutionResult> ResolvedBlocks;
