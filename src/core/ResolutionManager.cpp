@@ -5,6 +5,7 @@
 #include "mergebot/core/ResolutionManager.h"
 
 #include <filesystem>
+#include <fmt/core.h>
 #include <fmt/format.h>
 #include <memory>
 #include <spdlog/spdlog.h>
@@ -17,6 +18,7 @@
 #include "mergebot/core/handler/SAHandler.h"
 #include "mergebot/core/handler/StyleBasedHandler.h"
 #include "mergebot/core/handler/TextBasedHandler.h"
+#include "mergebot/utility.h"
 #include "mergebot/utils/ThreadPool.h"
 #include "mergebot/utils/stringop.h"
 
@@ -55,7 +57,7 @@ void ResolutionManager::_doResolutionAsync(
   }
 
   // copy c/cpp related conflict files
-  // FIX(hwa): avoid file name collision
+  // FIXME(hwa): avoid file name collision
   const fs::path ConflictDest =
       fs::path(Self->mergeScenarioPath()) / "conflicts" / "";
   std::vector<std::string> CSources = Self->_extractCppSources();
@@ -83,6 +85,30 @@ void ResolutionManager::_doResolutionAsync(
   }
   spdlog::info("abort merge in project [{}], preparing to conduct analysis",
                Self->Project_);
+
+  // find merge base, then copy to base folder
+  CMD = fmt::format("(cd {} && git merge-base {} {})", Self->ProjectPath_,
+                    Self->MS_.ours, Self->MS_.theirs);
+  llvm::ErrorOr<std::string> BaseOrErr = util::ExecCommand(CMD);
+  if (!BaseOrErr) {
+    sa::handleSAExecError(BaseOrErr.getError(), CMD);
+  }
+
+  std::string &BaseCommitHash = BaseOrErr.get();
+  // 40 is a magic number of commit hash length
+  if (BaseCommitHash.length() != 40) {
+    spdlog::error("merge base {} of commit {} and commit {} is illegal",
+                  BaseCommitHash.substr(0, 8), Self->MS_.ours.substr(0, 8),
+                  Self->MS_.theirs.substr(0, 8));
+  } else {
+    Self->MS_.base = BaseCommitHash;
+    // copy to base folder and if possible, generate CompDB
+    const fs::path BasePath = fs::path(Self->mergeScenarioPath()) / "base";
+    ResolutionManager::_generateCompDB(Self, Self->MS_.base, BasePath);
+    spdlog::info(
+        "CompDB for base commit {} in project[{}] generated successfully",
+        BaseCommitHash.substr(0, 8), Self->Project_);
+  }
 
   // checkout to specific merge commit, fast copy to dest, generate CompDB
   const fs::path OursPath = fs::path(Self->mergeScenarioPath()) / "ours";
