@@ -5,15 +5,11 @@
 #include "mergebot/core/handler/ASTBasedHandler.h"
 #include "mergebot/core/model/ConflictFile.h"
 #include "mergebot/filesystem.h"
-#include "mergebot/utility.h"
 #include "mergebot/utils/fileio.h"
 
-#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <llvm/ADT/StringRef.h>
-#include <llvm/Support/MemoryBuffer.h>
-#include <memory>
 #include <re2/re2.h>
 #include <spdlog/spdlog.h>
 #include <sstream>
@@ -96,7 +92,6 @@ bool ASTBasedHandler::replaceProjPath(std::string const &CompDBPath,
 #endif
 
   util::file_overwrite_content(CompDBPath, FileData);
-
   return true;
 }
 
