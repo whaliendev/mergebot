@@ -1,5 +1,6 @@
 # we don't use conan actually
 find_package(Crow REQUIRED)
+find_package(re2 REQUIRED CONFIG)
 find_package(nlohmann_json REQUIRED)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
@@ -38,5 +39,6 @@ target_link_libraries(
         fmt::fmt-header-only
         magic_enum::magic_enum
         ${PROJECT_NAME}_lib
+        re2::re2
 )
 
