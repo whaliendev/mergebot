@@ -104,7 +104,6 @@ void ASTBasedHandler::initCompDB() {
       clang::tooling::JSONCompilationDatabase::loadFromFile(
           OurCompDB, ErrMsg,
           clang::tooling::JSONCommandLineSyntax::AutoDetect));
-  //));
   OurCompilationsPair.second = true;
   if (!ErrMsg.empty()) {
     spdlog::error(ErrMsg, OurCompDB);
@@ -116,7 +115,6 @@ void ASTBasedHandler::initCompDB() {
       clang::tooling::JSONCompilationDatabase::loadFromFile(
           BaseCompDB, ErrMsg,
           clang::tooling::JSONCommandLineSyntax::AutoDetect));
-  //)
   BaseCompilationsPair.second = true;
   if (!ErrMsg.empty()) {
     spdlog::error(ErrMsg, BaseCompDB);
@@ -128,7 +126,6 @@ void ASTBasedHandler::initCompDB() {
       clang::tooling::JSONCompilationDatabase::loadFromFile(
           OurCompDB, ErrMsg,
           clang::tooling::JSONCommandLineSyntax::AutoDetect));
-  //)
   TheirCompilationsPair.second = true;
   if (!ErrMsg.empty()) {
     spdlog::error(ErrMsg, TheirCompDB);
