@@ -27,12 +27,13 @@ struct MergeScenario {
 
   explicit operator std::string() const {
     // clang-format off
-    return fmt::format(R"(MergeScenario(
-        name = {},
-        ours = {},
-        theirs = {},
-        base = {}
-    ))", name, ours, theirs, base);
+    return fmt::format(
+R"(MergeScenario(
+    name = {},
+    ours = {},
+    theirs = {},
+    base = {}
+))", name, ours, theirs, base);
     // clang-format on
   }
   MergeScenario() = default;

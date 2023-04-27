@@ -339,7 +339,7 @@ void _handleMergeScenario(std::string const& project, std::string const& path,
       // and msCrafted will be moved to projList, so we need to back up them
       // here.
       spdlog::info(
-          "this merge scenario[{}] of current project[{}] doesn't exist "
+          "this merge scenario[\n{} ] of current project[{}] doesn't exist "
           "before, we'll add it and start the resolution algorithm",
           msCrafted, project);
       std::string projFoundCacheDir = it->cacheDir;
@@ -356,7 +356,7 @@ void _handleMergeScenario(std::string const& project, std::string const& path,
     } else {  // check if the algorithm is running
       // if it's running, return
       spdlog::info(
-          "this merge scenario[{}] of project[{}] already exist in the "
+          "this merge scenario[\n{} ] of project[{}] already exist in the "
           "resolution set, we'll check if the algorithm is running",
           msCrafted, project);
       fs::path runningSignFile =
