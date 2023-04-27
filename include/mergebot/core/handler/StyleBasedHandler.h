@@ -12,12 +12,11 @@ namespace sa {
 
 class StyleBasedHandler : public SAHandler {
 public:
-  StyleBasedHandler(ProjectMeta Meta, std::string Name = __FILE_NAME__)
+  explicit StyleBasedHandler(ProjectMeta Meta, std::string Name = __FILE_NAME__)
       : SAHandler(Meta, Name) {}
 
 private:
-  void
-  resolveConflictFiles(std::vector<ConflictFile> &ConflictFiles) const override;
+  void resolveConflictFiles(std::vector<ConflictFile> &ConflictFiles) override;
 
   std::string findRefFile(std::string_view const &ConflictFilePath) const;
 

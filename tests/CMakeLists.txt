@@ -1,4 +1,5 @@
 find_package(Clang REQUIRED)
+find_package(re2 REQUIRED)
 
 if (Clang_FOUND)
     message(STATUS " Found Clang ${Clang_PACKAGE_VERSION} ")
@@ -39,6 +40,7 @@ target_link_libraries(runUnitTests
         ${PROJECT_NAME}_lib
         ${llvm_libs}
         clang-cpp
-        fmt::fmt-header-only)
+        fmt::fmt-header-only
+        re2::re2)
 
 add_test(UnitTests runUnitTests)

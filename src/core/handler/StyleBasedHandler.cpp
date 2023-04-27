@@ -38,6 +38,7 @@ std::string_view extractCodeFromConflictRange(std::string_view Source,
                                               std::string_view StartMark,
                                               std::string_view EndMarker) {
   size_t StartPos = Source.find(StartMark);
+  // NOLINT(google-readability-braces-around-statements)
   while (StartPos != std::string_view::npos && StartPos != Source.length() &&
          Source[StartPos++] != '\n')
     ;
@@ -61,7 +62,7 @@ std::string StyleBasedHandler::Style = "google";
 std::string StyleBasedHandler::WhichSide = "ours";
 
 void StyleBasedHandler::resolveConflictFiles(
-    std::vector<ConflictFile> &ConflictFiles) const {
+    std::vector<ConflictFile> &ConflictFiles) {
   assert(ConflictFiles.size() &&
          "ConflictFile sizes should be greater than zero");
 
@@ -100,8 +101,12 @@ void StyleBasedHandler::resolveConflictFiles(
       assert((!OurCode.empty() || !TheirCode.empty()) &&
              "at least one side of code should not be empty");
 
-      std::string DeflatedOurs = util::removeSpaces(OurCode);
-      std::string DeflatedTheirs = util::removeSpaces(TheirCode);
+      std::string DeflatedOurs =
+          util::removeCommentsAndSpaces(std::string(OurCode));
+      std::string DeflatedTheirs =
+          util::removeCommentsAndSpaces(std::string(TheirCode));
+      spdlog::debug("deflated ours: {}", DeflatedOurs);
+      spdlog::debug("deflated theirs: {}", DeflatedTheirs);
       if (DeflatedOurs == DeflatedTheirs) { // style related conflicts
         spdlog::info("ConflictBlock {} in File [{}] of Project [{}] is a "
                      "merge conflict caused by formatting issues",

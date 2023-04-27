@@ -5,6 +5,8 @@
 #ifndef MB_STRINGOP_H
 #define MB_STRINGOP_H
 
+#include <re2/re2.h>
+
 #include <algorithm>
 #include <iterator>
 #include <sstream>
@@ -62,11 +64,15 @@ string_join(const Container& cont, const std::string_view separator) {
   return string_join(std::begin(cont), std::end(cont), separator);
 }
 
-static std::string removeSpaces(std::string_view sv) {
-  std::string result;
-  std::remove_copy_if(sv.begin(), sv.end(), std::back_inserter(result),
-                      [](char c) { return std::isspace(c); });
-  return result;
+static std::string removeCommentsAndSpaces(std::string&& code) {
+  // remove line comments, m means make ^, $ match line begin/end in addition to
+  // text begin/end
+  re2::RE2::GlobalReplace(&code, "(?m)//.*", "");
+  // remove block comments, s means make dot match newline
+  re2::RE2::GlobalReplace(&code, "(?s)/\\*.*?\\*/", "");
+  // remove spaces, tabs, newlines, and other whitespace characters
+  re2::RE2::GlobalReplace(&code, "\\s+", "");
+  return code;
 }
 }  // namespace util
 }  // namespace mergebot
