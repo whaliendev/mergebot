@@ -29,13 +29,10 @@ public:
     OurDir = fs::path(Meta.MSCacheDir) / "ours";
     TheirDir = fs::path(Meta.MSCacheDir) / "theirs";
     BaseDir = fs::path(Meta.MSCacheDir) / "base";
-
-    initCompDB();
   }
 
 private:
-  void
-  resolveConflictFiles(std::vector<ConflictFile> &ConflictFiles) const override;
+  void resolveConflictFiles(std::vector<ConflictFile> &ConflictFiles) override;
 
   std::vector<std::string>
   collectAnalysisFileSet(const std::vector<ConflictFile> &ConflictFiles,

@@ -12,12 +12,12 @@ namespace sa {
 
 class LLVMBasedHandler : public SAHandler {
 public:
-  LLVMBasedHandler(ProjectMeta Meta, std::string Name = __FILE_NAME__)
+  explicit LLVMBasedHandler(ProjectMeta Meta, std::string Name = __FILE_NAME__)
       : SAHandler(Meta, Name) {}
 
 private:
-  void resolveConflictFiles(
-      std::vector<ConflictFile> &ConflictFiles) const override {}
+  void resolveConflictFiles(std::vector<ConflictFile> &ConflictFiles) override {
+  }
 };
 } // namespace sa
 } // namespace mergebot

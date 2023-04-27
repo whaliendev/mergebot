@@ -25,7 +25,7 @@ const std::string ASTBasedHandler::CompDBRelative =
     "build/compile_commands.json";
 
 void ASTBasedHandler::resolveConflictFiles(
-    std::vector<ConflictFile> &ConflictFiles) const {
+    std::vector<ConflictFile> &ConflictFiles) {
   assert(ConflictFiles.size() &&
          "ConflictFile sizes should be greater than zero");
 
@@ -35,11 +35,13 @@ void ASTBasedHandler::resolveConflictFiles(
     spdlog::warn("CompDB doesn't exist, we'll skip AST based handler");
     return;
   }
+
+  initCompDB();
+
   replaceProjPath(OurCompDB, OurDir);
   replaceProjPath(TheirCompDB, TheirDir);
   replaceProjPath(BaseCompDB, BaseDir);
 
-  //  bool ok1 = OurCompilationsPair.second;
   auto &[OurCompilations, ok1] = OurCompilationsPair;
   auto &[BaseCompilations, ok2] = BaseCompilationsPair;
   auto &[TheirCompilations, ok3] = TheirCompilationsPair;

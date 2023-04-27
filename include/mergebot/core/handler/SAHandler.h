@@ -33,7 +33,7 @@ public:
         NextHandler_(nullptr) {}
   virtual ~SAHandler() {}
 
-  void handle(std::vector<ConflictFile> &ConflictFiles) const {
+  void handle(std::vector<ConflictFile> &ConflictFiles) {
     if (Skip_ && NextHandler_) {
       spdlog::info("skip sa handler {} to next handler {}", Name_,
                    NextHandler_->name());
@@ -86,7 +86,7 @@ protected:
 
 private:
   virtual void
-  resolveConflictFiles(std::vector<ConflictFile> &ConflictFiles) const = 0;
+  resolveConflictFiles(std::vector<ConflictFile> &ConflictFiles) = 0;
 
   bool Skip_;
   std::string Name_;
