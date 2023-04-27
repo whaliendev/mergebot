@@ -7,6 +7,7 @@
 
 #include "mergebot/core/handler/SAHandler.h"
 #include "mergebot/utility.h"
+#include <spdlog/spdlog.h>
 
 namespace mergebot {
 namespace sa {
@@ -20,10 +21,17 @@ public:
     ConflictFiles_ = constructConflictFiles(ConflictFilePaths);
   }
 
-  void handle() { Handlers_[0]->handle(ConflictFiles_); }
+  void handle() {
+    spdlog::info("there are {} conflict blocks in this merge scenario",
+                 countConflictBlocks());
+    Handlers_[0]->handle(ConflictFiles_);
+    spdlog::info("there are still {} conflict blocks in this merge scenario",
+                 countConflictBlocks());
+  }
 
 private:
   void chain();
+  unsigned countConflictBlocks() const;
   std::vector<ConflictFile> ConflictFiles_;
   std::vector<std::unique_ptr<SAHandler>> Handlers_;
 };
