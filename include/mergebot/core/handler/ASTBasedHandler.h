@@ -11,6 +11,7 @@
 #include <memory>
 #include <spdlog/spdlog.h>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "mergebot/core/model/ConflictFile.h"
@@ -34,9 +35,10 @@ public:
 private:
   void resolveConflictFiles(std::vector<ConflictFile> &ConflictFiles) override;
 
-  std::vector<std::string>
-  collectAnalysisFileSet(const std::vector<ConflictFile> &ConflictFiles,
-                         std::string_view ProjectPath) const;
+  std::unordered_set<std::string> collectAnalysisFileSet(
+      const std::vector<ConflictFile> &ConflictFiles,
+      std::string_view ProjectPath,
+      const std::unique_ptr<clang::tooling::CompilationDatabase> &CompDB) const;
 
   bool replaceProjPath(std::string const &CompDBPath,
                        std::string_view ProjPath) const;
