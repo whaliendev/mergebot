@@ -105,11 +105,11 @@ void StyleBasedHandler::resolveConflictFiles(
           util::removeCommentsAndSpaces(std::string(OurCode));
       std::string DeflatedTheirs =
           util::removeCommentsAndSpaces(std::string(TheirCode));
-      spdlog::debug("deflated ours: {}", DeflatedOurs);
-      spdlog::debug("deflated theirs: {}", DeflatedTheirs);
       if (DeflatedOurs == DeflatedTheirs) { // style related conflicts
+        spdlog::debug("deflated ours  : {}", DeflatedOurs);
+        spdlog::debug("deflated theirs: {}", DeflatedTheirs);
         spdlog::info("ConflictBlock {} in File [{}] of Project [{}] is a "
-                     "merge conflict caused by formatting issues",
+                     "style related conflict",
                      CB.Index, CF.Filename, Meta.Project);
         std::string ResultStr = std::string(OurCode);
         if (NeedFormat) {
