@@ -43,11 +43,11 @@ void ASTBasedHandler::resolveConflictFiles(
     return;
   }
 
-  initCompDB();
-
   replaceProjPath(OurCompDB, OurDir);
   replaceProjPath(TheirCompDB, TheirDir);
   replaceProjPath(BaseCompDB, BaseDir);
+
+  initCompDB();
 
   auto &[OurCompilations, ok1] = OurCompilationsPair;
   auto &[BaseCompilations, ok2] = BaseCompilationsPair;
