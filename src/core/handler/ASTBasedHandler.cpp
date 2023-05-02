@@ -18,6 +18,8 @@
 #include <llvm/ADT/DenseSet.h>
 #include <llvm/ADT/StringRef.h>
 #include <memory>
+#include <oneapi/tbb/task_group.h>
+#include <oneapi/tbb/tick_count.h>
 #include <re2/re2.h>
 #include <spdlog/spdlog.h>
 #include <sstream>
@@ -43,9 +45,15 @@ void ASTBasedHandler::resolveConflictFiles(
     return;
   }
 
-  replaceProjPath(OurCompDB, OurDir);
-  replaceProjPath(TheirCompDB, TheirDir);
-  replaceProjPath(BaseCompDB, BaseDir);
+  tbb::tick_count Start = tbb::tick_count::now();
+  tbb::task_group TG;
+  TG.run([&]() { replaceProjPath(OurCompDB, OurDir); });
+  TG.run([&]() { replaceProjPath(TheirCompDB, TheirDir); });
+  TG.run([&]() { replaceProjPath(BaseCompDB, BaseDir); });
+  TG.wait();
+  tbb::tick_count End = tbb::tick_count::now();
+  spdlog::info("it takes {} ms to fine tune copied compile commands",
+               (End - Start).seconds() * 1000);
 
   initCompDB();
 
@@ -97,8 +105,6 @@ std::unordered_set<std::string> ASTBasedHandler::collectAnalysisFileSet(
       }
     }
   }
-  spdlog::debug("size: {}, fileset: {}", AnalysisFileSet.size(),
-                fmt::join(AnalysisFileSet, ", "));
   return AnalysisFileSet;
 }
 

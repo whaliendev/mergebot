@@ -44,7 +44,7 @@ void InitThreadPool();
 
   InitMergebot();
 
-  InitThreadPool();
+  //  InitThreadPool();
   // Init Server
   // substitute default logger of crow
   mergebot::CrowSubLogger subLogger;
