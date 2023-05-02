@@ -6,6 +6,10 @@ find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(magic_enum REQUIRED)
 find_package(Clang REQUIRED)
+find_package(TBB REQUIRED)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+find_package(TreeSitter MODULE REQUIRED)
 
 if (Clang_FOUND)
     message(STATUS " Found Clang ${Clang_PACKAGE_VERSION} ")
@@ -34,11 +38,14 @@ add_executable(
 target_link_libraries(
         ${PROJECT_NAME}
         PRIVATE
-        clang-cpp
-        ${llvm_libs}
-        fmt::fmt-header-only
-        magic_enum::magic_enum
         ${PROJECT_NAME}_lib
+        clang-cpp
+        fmt::fmt-header-only
+        ${llvm_libs}
+        magic_enum::magic_enum
         re2::re2
+        TBB::tbb
+        tree-sitter::tree-sitter
+        tree-sitter::tree-sitter-cpp
 )
 
