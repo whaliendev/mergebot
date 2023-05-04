@@ -10,6 +10,7 @@ find_package(TBB REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 find_package(TreeSitter MODULE REQUIRED)
+find_package(LibGit2 MODULE REQUIRED)
 
 if (Clang_FOUND)
     message(STATUS " Found Clang ${Clang_PACKAGE_VERSION} ")
@@ -28,7 +29,18 @@ llvm_map_components_to_libnames(llvm_libs support)
 
 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ./*.cpp ./*.hpp)
 list(REMOVE_ITEM SRC_FILES ${PROJECT_SOURCE_DIR}/src/server.cpp)
-add_library(${PROJECT_NAME}_lib ${SRC_FILES})
+add_library(${PROJECT_NAME}-dep SHARED ${SRC_FILES})
+target_link_libraries(${PROJECT_NAME}-dep
+        INTERFACE
+        clang-cpp
+        fmt::fmt
+        git2::git2
+        ${llvm_libs}
+        magic_enum::magic_enum
+        re2::re2
+        TBB::tbb
+        tree-sitter::tree-sitter
+        tree-sitter::tree-sitter-cpp)
 
 add_executable(
         ${PROJECT_NAME}
@@ -38,14 +50,7 @@ add_executable(
 target_link_libraries(
         ${PROJECT_NAME}
         PRIVATE
-        ${PROJECT_NAME}_lib
-        clang-cpp
-        fmt::fmt-header-only
-        ${llvm_libs}
-        magic_enum::magic_enum
-        re2::re2
-        TBB::tbb
-        tree-sitter::tree-sitter
-        tree-sitter::tree-sitter-cpp
+        ${PROJECT_NAME}-dep
+        git2::git2
 )
 
