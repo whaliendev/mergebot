@@ -8,6 +8,7 @@
 #include <magic_enum.hpp>
 
 #include "mergebot/core/model/ConflictMark.h"
+#include "mergebot/core/model/Side.h"
 
 namespace magic_enum {
 namespace customize {
@@ -23,6 +24,22 @@ constexpr customize_t enum_name<ConflictMark>(ConflictMark Mark) noexcept {
       return "=======";
     case ConflictMark::END:
       return ">>>>>>>";
+  }
+  return default_tag;
+}
+
+using mergebot::sa::Side;
+template <>
+constexpr customize_t enum_name<Side>(Side S) noexcept {
+  switch (S) {
+    case Side::OURS:
+      return "ours";
+    case Side::BASE:
+      return "base";
+    case Side::THEIRS:
+      return "theirs";
+    case Side::OUT:
+      return "out";
   }
   return default_tag;
 }
