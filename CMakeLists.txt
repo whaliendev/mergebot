@@ -119,7 +119,11 @@ if (CMAKE_BUILD_TYPE STREQUAL "DEBUG" OR CMAKE_BUILD_TYPE STREQUAL "Debug")
         # non-virtual-dtor
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive /w14263 /w14265")
     else (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")  # clang and gcc
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wnon-virtual-dtor -Wold-style-cast -Woverloaded-virtual -Wnull-dereference")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra\
+            -Wnon-virtual-dtor\
+            -Wold-style-cast -Woverloaded-virtual -Wnull-dereference\
+            -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function\
+            -Wno-unknown-pragmas")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
     endif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif (CMAKE_BUILD_TYPE STREQUAL "DEBUG" OR CMAKE_BUILD_TYPE STREQUAL "Debug")

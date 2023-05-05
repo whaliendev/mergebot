@@ -29,8 +29,8 @@ public:
                     std::unique_ptr<std::string[]> &&ConflictFiles_,
                     int FileNum)
       : Project_(std::move(Project_)), MS_(std::move(MS_)),
-        ConflictFiles_(std::move(ConflictFiles_)), FileNum_(FileNum),
-        CurrIdx_(0) {
+        ConflictFiles_(std::move(ConflictFiles_)), CurrIdx_(0),
+        FileNum_(FileNum) {
     if (!ProjectPath_.empty() && ProjectPath_[ProjectPath_.size() - 1] !=
                                      fs::path::preferred_separator) {
       ProjectPath_ += fs::path::preferred_separator;

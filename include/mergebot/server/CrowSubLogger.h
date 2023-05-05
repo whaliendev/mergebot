@@ -8,10 +8,10 @@
 #include <spdlog/spdlog.h>
 
 namespace mergebot {
-class CrowSubLogger : public crow::ILogHandler {
+class CrowSubLogger final : public crow::ILogHandler {
  public:
   CrowSubLogger() {}
-  void log(std::string message, crow::LogLevel level) {
+  void log(std::string message, crow::LogLevel level) override {
     if (level == crow::LogLevel::Debug)
       spdlog::debug(message);
     else if (level == crow::LogLevel::Info)

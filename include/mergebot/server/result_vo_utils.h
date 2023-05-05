@@ -33,10 +33,10 @@ struct ResultVO : public crow::returnable {
       : ResultVO(code, errorMsg, nullptr) {}
 
   ResultVO(std::string code, std::string errorMsg, crow::json::wvalue data)
-      : code(code),
+      : crow::returnable("application/json"),
+        code(code),
         errorMsg(errorMsg),
-        data(std::move(data)),
-        crow::returnable("application/json") {}
+        data(std::move(data)) {}
 
   std::string dump() const override {
     auto buf = fmt::memory_buffer();

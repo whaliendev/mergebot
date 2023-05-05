@@ -63,7 +63,7 @@ void ResolutionManager::_doResolutionAsync(
   std::vector<std::string> CSources = Self->_extractCppSources();
   std::transform(CSources.begin(), CSources.end(), CSources.begin(),
                  [&](const std::string_view &sv) {
-                   return Self->ProjectPath_ + std::move(std::string(sv));
+                   return Self->ProjectPath_ + std::string(sv);
                  });
   std::string FileList = std::accumulate(
       std::next(CSources.begin()), CSources.end(), std::string(CSources[0]),

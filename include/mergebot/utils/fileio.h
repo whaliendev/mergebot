@@ -36,7 +36,7 @@ static void file_overwrite_content(std::string const &path,
 
 static bool file_exists(std::string const &path) {
   std::ifstream fin(path);
-  return (bool)fin;
+  return static_cast<bool>(fin);
 }
 
 template <class Arr = std::vector<char>>
