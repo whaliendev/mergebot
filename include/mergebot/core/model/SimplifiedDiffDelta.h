@@ -4,6 +4,8 @@
 
 #ifndef MB_SIMPLIFIEDDIFFDELTA_H
 #define MB_SIMPLIFIEDDIFFDELTA_H
+#include "mergebot/utility.h"
+#include <algorithm>
 #include <fmt/core.h>
 #include <magic_enum.hpp>
 #include <sstream>
@@ -25,27 +27,45 @@ struct SimplifiedDiffDelta {
     UNREADABLE = 9, /**< entry is unreadable */
     CONFLICTED = 10 /**< entry in the index is conflicted */
   };
-  std::string oldPath;
-  std::string newPath;
-  DeltaType deltaType;
-  uint similarity; /**< for RENAMED and COPIED, value 0-100 */
+  std::string OldPath;
+  std::string NewPath;
+  DeltaType Type;
+  uint Similarity; /**< for RENAMED and COPIED, value 0-100 */
 
-  double score() const { return similarity / 100.0; }
+  double score() const { return Similarity / 100.0; }
 
   std::string toString() const {
-    std::ostringstream oss;
-    oss << *this;
-    return oss.str();
+    std::ostringstream OSS;
+    OSS << *this;
+    return OSS.str();
   }
 
-  friend std::ostream &operator<<(std::ostream &os,
-                                  SimplifiedDiffDelta const &sdd) {
-    return os << fmt::format("SimplifiedDiffDelta(oldPath={}, newPath={}, "
+  friend std::ostream &operator<<(std::ostream &OS,
+                                  SimplifiedDiffDelta const &SDD) {
+    return OS << fmt::format("SimplifiedDiffDelta(oldPath={}, newPath={}, "
                              "deltaType={}, similarity={})",
-                             sdd.oldPath, sdd.newPath, sdd.deltaType,
-                             sdd.similarity);
+                             SDD.OldPath, SDD.NewPath, SDD.Type,
+                             SDD.Similarity);
+  }
+
+  bool operator==(SimplifiedDiffDelta const &SDD) const noexcept {
+    return toString() == SDD.toString();
   }
 };
 } // namespace sa
 } // namespace mergebot
+
+namespace std {
+template <> struct hash<mergebot::sa::SimplifiedDiffDelta> {
+  size_t
+  operator()(mergebot::sa::SimplifiedDiffDelta const &SDD) const noexcept {
+    size_t H = 1;
+    mergebot::hash_combine(H, SDD.OldPath);
+    mergebot::hash_combine(H, SDD.NewPath);
+    mergebot::hash_combine(H, SDD.Type);
+    mergebot::hash_combine(H, SDD.Similarity);
+    return H;
+  }
+};
+} // namespace std
 #endif // MB_SIMPLIFIEDDIFFDELTA_H

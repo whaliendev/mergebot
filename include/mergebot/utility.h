@@ -17,6 +17,13 @@
 #include "string_view"
 
 namespace mergebot {
+template <typename T>
+void hash_combine(size_t& seed, const T& v) {
+  const size_t prime = 31;
+  std::hash<T> hasher;
+  seed = prime * seed + hasher(v);
+}
+
 namespace util {
 // git diff --name-only --diff-filter=U
 llvm::ErrorOr<std::string> ExecCommand(std::string_view sv, int timeout = 10,

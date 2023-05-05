@@ -32,23 +32,23 @@ bool isCppSource(std::string_view path) {
 
 namespace detail {
 int each_file_cb(const git_diff_delta *delta, float progress, void *payload) {
-  auto diff_vec = static_cast<std::vector<sa::SimplifiedDiffDelta> *>(payload);
+  auto diff_set =
+      static_cast<std::unordered_set<sa::SimplifiedDiffDelta> *>(payload);
   if (isCppSource(delta->new_file.path)) {
-    diff_vec->push_back(sa::SimplifiedDiffDelta{
-        .oldPath = delta->old_file.path,
-        .newPath = delta->new_file.path,
-        .deltaType =
-            static_cast<sa::SimplifiedDiffDelta::DeltaType>(delta->status),
-        .similarity = delta->similarity});
+    diff_set->insert(sa::SimplifiedDiffDelta{
+        .OldPath = delta->old_file.path,
+        .NewPath = delta->new_file.path,
+        .Type = static_cast<sa::SimplifiedDiffDelta::DeltaType>(delta->status),
+        .Similarity = delta->similarity});
   }
   return 0;
 }
 }  // namespace detail
 
-std::vector<sa::SimplifiedDiffDelta> list_cpp_diff_files(
+std::unordered_set<sa::SimplifiedDiffDelta> list_cpp_diff_files(
     std::string_view repo_path, std::string_view old_commit_str,
     std::string_view new_commit_str) {
-  std::vector<sa::SimplifiedDiffDelta> diff_vec;
+  std::unordered_set<sa::SimplifiedDiffDelta> diff_set;
 
   git_oid old_oid, new_oid;
   git_commit *old_commit = nullptr, *new_commit = nullptr;
@@ -75,11 +75,12 @@ std::vector<sa::SimplifiedDiffDelta> list_cpp_diff_files(
 
   err = git_diff_find_similar(diff, &options);
   err = git_diff_foreach(diff, detail::each_file_cb, nullptr, nullptr, nullptr,
-                         &diff_vec);
-  return diff_vec;
+                         &diff_set);
 handle:
-  const git_error *e = git_error_last();
-  spdlog::error("Error {}/{}: {}", err, e->klass, e->message);
+  if (err < 0) {
+    const git_error *e = git_error_last();
+    spdlog::error("Error {}/{}: {}", err, e->klass, e->message);
+  }
   git_diff_free(diff);
   git_tree_free(old_tree);
   git_tree_free(new_tree);
@@ -88,7 +89,7 @@ handle:
   git_repository_free(repo);
 
   git_libgit2_shutdown();
-  return diff_vec;
+  return diff_set;
 }
 }  // namespace util
 }  // namespace mergebot

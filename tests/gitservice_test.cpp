@@ -18,12 +18,12 @@ TEST(GitServiceTest, ListCppDiffFilesTest) {
   if (!fs::exists(rocksdb) || !fs::is_directory(rocksdb)) {
     GTEST_SKIP();
   }
-  std::vector<SimplifiedDiffDelta> diff_vec =
+  std::unordered_set<SimplifiedDiffDelta> diff_set =
       mergebot::util::list_cpp_diff_files(
           rocksdb_path, "4a569d0ad3f8d35d5278604656e189f7d04f5044",
           "cb1b808ce5df1d442add84979b74ebdd7e4781ac");
   std::for_each(
-      diff_vec.begin(), diff_vec.end(),
+      diff_set.begin(), diff_set.end(),
       [](SimplifiedDiffDelta const& sdd) { std::cout << sdd << "\n"; });
 }
 }  // namespace sa
