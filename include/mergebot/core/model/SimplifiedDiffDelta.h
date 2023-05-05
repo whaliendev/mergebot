@@ -40,6 +40,17 @@ struct SimplifiedDiffDelta {
     return OSS.str();
   }
 
+  //  SimplifiedDiffDelta &operator=(SimplifiedDiffDelta const &Other) {
+  //    if (this == &Other) {
+  //      return *this;
+  //    }
+  //    this->OldPath = Other.OldPath;
+  //    this->NewPath = Other.NewPath;
+  //    this->Type = Other.Type;
+  //    this->Similarity = Other.Similarity;
+  //    return *this;
+  //  }
+
   friend std::ostream &operator<<(std::ostream &OS,
                                   SimplifiedDiffDelta const &SDD) {
     return OS << fmt::format("SimplifiedDiffDelta(oldPath={}, newPath={}, "
