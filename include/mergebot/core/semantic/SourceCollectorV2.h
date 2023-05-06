@@ -8,9 +8,15 @@
 #include "mergebot/core/handler/SAHandler.h"
 #include "mergebot/core/model/Side.h"
 #include "mergebot/core/model/SimplifiedDiffDelta.h"
+#include <clang/Frontend/CompilerInstance.h>
+#include <clang/Frontend/FrontendAction.h>
+#include <clang/Frontend/FrontendActions.h>
+#include <clang/Lex/PPCallbacks.h>
 #include <clang/Tooling/CompilationDatabase.h>
+#include <clang/Tooling/Tooling.h>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 namespace mergebot {
@@ -21,6 +27,11 @@ public:
     std::vector<std::string> OurSourceList;
     std::vector<std::string> BaseSourceList;
     std::vector<std::string> TheirSourceList;
+    std::unordered_map<std::string, std::vector<std::string>> OurDirectIncluded;
+    std::unordered_map<std::string, std::vector<std::string>>
+        BaseDirectIncluded;
+    std::unordered_map<std::string, std::vector<std::string>>
+        TheirDirectIncluded;
   };
 
   /// default settings
@@ -40,6 +51,8 @@ public:
         BaseCompilations(BaseCompilations),
         TheirCompilations(TheirCompilations) {}
 
+  /// collect analysis sources, we can set `LookupIncluded` before
+  /// this operation to add more context info
   void collectAnalysisSources();
 
   /// boilerplate accessors and mutators
@@ -62,7 +75,8 @@ private:
       std::unordered_set<SimplifiedDiffDelta> const &DiffDeltas) const;
 
   void extendIncludedSources(
-      Side S, std::vector<std::string> &SourceList,
+      Side S, std::vector<std::string> const &SourceList,
+      std::unordered_map<std::string, std::vector<std::string>> &IncludeMap,
       std::shared_ptr<clang::tooling::CompilationDatabase> Compilations) const;
 
   ProjectMeta Meta;
@@ -73,6 +87,65 @@ private:
   std::shared_ptr<clang::tooling::CompilationDatabase> BaseCompilations;
   std::shared_ptr<clang::tooling::CompilationDatabase> TheirCompilations;
 };
+
+class IncludeLookupCallback : public clang::PPCallbacks {
+public:
+  void LexedFileChanged(clang::FileID FID, LexedFileChangeReason Reason,
+                        clang::SrcMgr::CharacteristicKind FileType,
+                        clang::FileID PrevFID,
+                        clang::SourceLocation Loc) override;
+  void InclusionDirective(clang::SourceLocation HashLoc,
+                          const clang::Token &IncludeTok,
+                          llvm::StringRef FileName, bool IsAngled,
+                          clang::CharSourceRange FilenameRange,
+                          clang::OptionalFileEntryRef File,
+                          llvm::StringRef SearchPath,
+                          llvm::StringRef RelativePath,
+                          const clang::Module *Imported,
+                          clang::SrcMgr::CharacteristicKind FileType) override;
+
+  std::unordered_set<std::string> directIncludes() const {
+    return DirectIncludes;
+  }
+
+private:
+  uint Depth = 0;
+  std::unordered_set<std::string> DirectIncludes;
+};
+
+class IncludeLookupActionFactory
+    : public clang::tooling::FrontendActionFactory {
+public:
+  static std::vector<std::string> includedFiles() { return IncludedFiles; }
+  std::unique_ptr<clang::FrontendAction> create() override {
+    class IncludeLookupAction : public clang::PreprocessOnlyAction {
+    public:
+    protected:
+      bool BeginSourceFileAction(clang::CompilerInstance &CI) override {
+        std::unique_ptr<IncludeLookupCallback> Callback =
+            std::make_unique<IncludeLookupCallback>();
+        clang::Preprocessor &PP = CI.getPreprocessor();
+        PP.addPPCallbacks(std::move(Callback));
+        return true;
+      }
+      void EndSourceFileAction() override {
+        clang::CompilerInstance &CI = getCompilerInstance();
+        clang::Preprocessor &PP = CI.getPreprocessor();
+        IncludeLookupCallback *Callback =
+            static_cast<IncludeLookupCallback *>(PP.getPPCallbacks());
+        std::unordered_set<std::string> DirectIncludes =
+            Callback->directIncludes();
+        IncludedFiles = std::vector<std::string>(DirectIncludes.begin(),
+                                                 DirectIncludes.end());
+      }
+    };
+    return std::make_unique<IncludeLookupAction>();
+  }
+
+private:
+  static std::vector<std::string> IncludedFiles;
+};
+
 } // namespace sa
 } // namespace mergebot
 
