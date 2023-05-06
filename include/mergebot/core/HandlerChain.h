@@ -6,7 +6,7 @@
 #define MB_HANDLERCHAIN_H
 
 #include "mergebot/core/handler/SAHandler.h"
-#include "mergebot/utility.h"
+#include "sa_utility.h"
 #include <spdlog/spdlog.h>
 
 namespace mergebot {

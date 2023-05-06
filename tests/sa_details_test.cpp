@@ -5,8 +5,8 @@
 
 #include <magic_enum.hpp>
 
+#include "mergebot/core/magic_enum_customization.h"
 #include "mergebot/core/model/ConflictMark.h"
-#include "mergebot/magic_enum_customization.h"
 
 namespace mergebot {
 namespace sa {

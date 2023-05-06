@@ -4,7 +4,7 @@
 
 #ifndef MB_SIMPLIFIEDDIFFDELTA_H
 #define MB_SIMPLIFIEDDIFFDELTA_H
-#include "mergebot/utility.h"
+#include "mergebot/core/sa_utility.h"
 #include <algorithm>
 #include <fmt/core.h>
 #include <magic_enum.hpp>

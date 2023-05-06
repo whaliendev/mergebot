@@ -21,9 +21,10 @@
 
 #include "mergebot/controller/project_controller.h"
 #include "mergebot/controller/resolve_controller.h"
+#include "mergebot/core/sa_utility.h"
 #include "mergebot/globals.h"
 #include "mergebot/server/CrowSubLogger.h"
-#include "mergebot/utility.h"
+#include "mergebot/server/server_utility.h"
 #include "mergebot/utils/ThreadPool.h"
 #include "mergebot/utils/pathop.h"
 

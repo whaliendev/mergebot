@@ -4,6 +4,7 @@
 
 #include "mergebot/core/handler/ASTBasedHandler.h"
 #include "mergebot/core/model/ConflictFile.h"
+#include "mergebot/core/semantic/SourceCollectorV2.h"
 #include "mergebot/filesystem.h"
 #include "mergebot/utils/fileio.h"
 
@@ -65,48 +66,56 @@ void ASTBasedHandler::resolveConflictFiles(
     return;
   }
 
-  std::unordered_set<std::string> OurConflictFiles =
-      collectAnalysisFileSet(ConflictFiles, OurDir, OurCompilations);
-  std::unordered_set<std::string> BaseConflictFiles =
-      collectAnalysisFileSet(ConflictFiles, BaseDir, BaseCompilations);
-  std::unordered_set<std::string> TheirConflictFiles =
-      collectAnalysisFileSet(ConflictFiles, TheirDir, TheirCompilations);
+  SourceCollectorV2 SC(Meta, OurCompilations, BaseCompilations,
+                       TheirCompilations);
+  SC.collectAnalysisSources();
+  SourceCollectorV2::AnalysisSourceTuple ST = SC.analysisSourceTuple();
+  spdlog::info("our source list: {}, size: {}",
+               fmt::join(ST.OurSourceList, "\t"), ST.OurSourceList.size());
+  spdlog::info("base source list: {}, size: {}",
+               fmt::join(ST.BaseSourceList, "\t"), ST.BaseSourceList.size());
+  spdlog::info("their source list: {}, size: {}",
+               fmt::join(ST.TheirSourceList, "\t"), ST.TheirSourceList.size());
 }
 
-std::unordered_set<std::string> ASTBasedHandler::collectAnalysisFileSet(
-    std::vector<ConflictFile> const &ConflictFiles,
-    std::string_view ProjectPath,
-    const std::unique_ptr<clang::tooling::CompilationDatabase> &Compilations)
-    const {
-  std::unordered_set<std::string> AnalysisFileSet;
-
-  std::vector<std::string> SourcePaths;
-  SourcePaths.reserve(ConflictFiles.size());
-  for (const auto &CF : ConflictFiles) {
-    SourcePaths.push_back(fs::path(ProjectPath) /
-                          fs::relative(CF.Filename, Meta.ProjectPath));
-  }
-
-  clang::tooling::ClangTool Tool(*Compilations, SourcePaths);
-  std::vector<std::unique_ptr<clang::ASTUnit>> TUs;
-  Tool.buildASTs(TUs);
-  for (const std::unique_ptr<clang::ASTUnit> &TU : TUs) {
-    clang::Preprocessor &PP = TU->getPreprocessor();
-    clang::Preprocessor::IncludedFilesSet &IncludedFiles =
-        PP.getIncludedFiles();
-    for (const auto *FileEntry : IncludedFiles) {
-      if (fs::path(FileEntry->getName().str()).is_relative()) {
-        std::error_code EC;
-        fs::path FullPath = fs::canonical(
-            fs::path(ProjectPath) / FileEntry->getName().str(), EC);
-        if (!EC) {
-          AnalysisFileSet.insert(FullPath);
-        }
-      }
-    }
-  }
-  return AnalysisFileSet;
-}
+// std::unordered_set<std::string> ASTBasedHandler::collectAnalysisFileSet(
+//     std::vector<ConflictFile> const &ConflictFiles,
+//     std::string_view ProjectPath,
+//     const std::unique_ptr<clang::tooling::CompilationDatabase> &Compilations)
+//     const {
+//   // collect conflict files to analyze, we collect the following category
+//   // 1. conflict files,
+//   // 2. direct header files, which provide all identifiers(discard all
+//   // libraries)
+//   std::unordered_set<std::string> AnalysisFileSet;
+//
+//   std::vector<std::string> SourcePaths;
+//   SourcePaths.reserve(ConflictFiles.size());
+//   for (const auto &CF : ConflictFiles) {
+//     SourcePaths.push_back(fs::path(ProjectPath) /
+//                           fs::relative(CF.Filename, Meta.ProjectPath));
+//   }
+//
+//   clang::tooling::ClangTool Tool(*Compilations, SourcePaths);
+//   std::vector<std::unique_ptr<clang::ASTUnit>> TUs;
+//   Tool.buildASTs(TUs);
+//   for (const std::unique_ptr<clang::ASTUnit> &TU : TUs) {
+//     clang::Preprocessor &PP = TU->getPreprocessor();
+//     clang::Preprocessor::IncludedFilesSet &IncludedFiles =
+//         PP.getIncludedFiles();
+//     for (const auto *FileEntry : IncludedFiles) {
+//       if (fs::path(FileEntry->getName().str()).is_relative()) {
+//         std::error_code EC;
+//         fs::path FullPath = fs::canonical(
+//             fs::path(ProjectPath) / FileEntry->getName().str(), EC);
+//         if (!EC) {
+//           AnalysisFileSet.insert(FullPath);
+//         }
+//       }
+//     }
+//   }
+//   return AnalysisFileSet;
+// }
 
 bool ASTBasedHandler::replaceProjPath(std::string const &CompDBPath,
                                       std::string_view ProjPath) const {

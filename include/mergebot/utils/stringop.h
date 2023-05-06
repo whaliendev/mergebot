@@ -74,6 +74,21 @@ static std::string removeCommentsAndSpaces(std::string&& code) {
   re2::RE2::GlobalReplace(&code, "\\s+", "");
   return code;
 }
+
+static bool starts_with(std::string_view str, std::string_view prefix) {
+  if (prefix.length() > str.length()) {
+    return false;
+  }
+  return str.compare(0, prefix.length(), prefix) == 0;
+}
+
+static bool ends_with(const std::string& str, const std::string& suffix) {
+  if (suffix.length() > str.length()) {
+    return false;
+  }
+  return str.compare(str.length() - suffix.length(), suffix.length(), suffix) ==
+         0;
+}
 }  // namespace util
 }  // namespace mergebot
 #endif  // MB_STRINGOP_H

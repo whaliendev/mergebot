@@ -35,10 +35,11 @@ public:
 private:
   void resolveConflictFiles(std::vector<ConflictFile> &ConflictFiles) override;
 
-  std::unordered_set<std::string> collectAnalysisFileSet(
-      const std::vector<ConflictFile> &ConflictFiles,
-      std::string_view ProjectPath,
-      const std::unique_ptr<clang::tooling::CompilationDatabase> &CompDB) const;
+  //  std::unordered_set<std::string> collectAnalysisFileSet(
+  //      const std::vector<ConflictFile> &ConflictFiles,
+  //      std::string_view ProjectPath,
+  //      const std::unique_ptr<clang::tooling::CompilationDatabase> &CompDB)
+  //      const;
 
   bool replaceProjPath(std::string const &CompDBPath,
                        std::string_view ProjPath) const;
@@ -57,11 +58,11 @@ private:
   std::string BaseDir;
   std::string TheirDir;
 
-  std::pair<std::unique_ptr<clang::tooling::CompilationDatabase>, bool>
+  std::pair<std::shared_ptr<clang::tooling::CompilationDatabase>, bool>
       OurCompilationsPair;
-  std::pair<std::unique_ptr<clang::tooling::CompilationDatabase>, bool>
+  std::pair<std::shared_ptr<clang::tooling::CompilationDatabase>, bool>
       BaseCompilationsPair;
-  std::pair<std::unique_ptr<clang::tooling::CompilationDatabase>, bool>
+  std::pair<std::shared_ptr<clang::tooling::CompilationDatabase>, bool>
       TheirCompilationsPair;
 };
 } // namespace sa

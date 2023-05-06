@@ -28,8 +28,17 @@ add_definitions(${LLVM_DEFINITIONS_LIST})
 llvm_map_components_to_libnames(llvm_libs support)
 
 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ./*.cpp ./*.hpp)
+list(FILTER SRC_FILES EXCLUDE REGEX "core/.*")
+# if llvm compiles with -fno-rtti, all dependent srcs should compile with -fno-rtti
+file(GLOB_RECURSE RTTI_DISABLED_SRCS CONFIGURE_DEPENDS ./core/*.cpp ./core/*.hpp)
+foreach (file ${RTTI_DISABLED_SRCS})
+    set_source_files_properties(${file} PROPERTIES COMPILE_FLAGS "-fno-rtti")
+endforeach ()
+
+# extract src files for test purpose
 list(REMOVE_ITEM SRC_FILES ${PROJECT_SOURCE_DIR}/src/server.cpp)
-add_library(${PROJECT_NAME}-dep SHARED ${SRC_FILES})
+
+add_library(${PROJECT_NAME}-dep SHARED ${SRC_FILES} ${RTTI_DISABLED_SRCS})
 target_link_libraries(${PROJECT_NAME}-dep
         INTERFACE
         clang-cpp

@@ -1,12 +1,11 @@
 //
 // Created by whalien on 28/03/23.
 //
-#include "mergebot/utility.h"
-
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
 #include "mergebot/core/model/ConflictFile.h"
+#include "mergebot/core/sa_utility.h"
 #include "mergebot/filesystem.h"
 
 TEST(UtilityTest, ExtractOneConflictFile) {

@@ -18,7 +18,7 @@
 #include "mergebot/core/handler/SAHandler.h"
 #include "mergebot/core/handler/StyleBasedHandler.h"
 #include "mergebot/core/handler/TextBasedHandler.h"
-#include "mergebot/utility.h"
+#include "mergebot/core/sa_utility.h"
 #include "mergebot/utils/ThreadPool.h"
 #include "mergebot/utils/stringop.h"
 

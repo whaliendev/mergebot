@@ -17,6 +17,7 @@
 #include "mergebot/core/ResolutionManager.h"
 #include "mergebot/core/model/Project.h"
 #include "mergebot/filesystem.h"
+#include "mergebot/server/server_utility.h"
 #include "mergebot/utils/fileio.h"
 #include "mergebot/utils/format.h"
 #include "mergebot/utils/pathop.h"
