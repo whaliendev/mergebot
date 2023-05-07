@@ -28,14 +28,14 @@ set(TREE_SITTER_LIBRARIES ${TREE_SITTER_LIBRARIES} CACHE FILEPATH "TreeSitter li
 set(TREE_SITTER_CPP_LIBRARIES ${TREE_SITTER_CPP_LIBRARIES} CACHE FILEPATH "TreeSitter C++ libraries")
 
 # Create an imported target for TreeSitter library.
-add_library(tree-sitter::${TREE_SITTER_LIB_NAME} INTERFACE IMPORTED)
+add_library(tree-sitter::${TREE_SITTER_LIB_NAME} SHARED IMPORTED)
 set_target_properties(tree-sitter::${TREE_SITTER_LIB_NAME} PROPERTIES
         IMPORTED_LOCATION ${TREE_SITTER_LIBRARIES}
         INTERFACE_INCLUDE_DIRECTORIES ${TREE_SITTER_INCLUDE_DIRS}
         )
 
 # Create an imported target for TreeSitter C++ library.
-add_library(tree-sitter::${TREE_SITTER_CPP_LIB_NAME} INTERFACE IMPORTED)
+add_library(tree-sitter::${TREE_SITTER_CPP_LIB_NAME} SHARED IMPORTED)
 set_target_properties(tree-sitter::${TREE_SITTER_CPP_LIB_NAME} PROPERTIES
         IMPORTED_LOCATION ${TREE_SITTER_CPP_LIBRARIES}
         INTERFACE_INCLUDE_DIRECTORIES ${TREE_SITTER_INCLUDE_DIRS}
