@@ -124,6 +124,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "DEBUG" OR CMAKE_BUILD_TYPE STREQUAL "Debug")
             -Wold-style-cast -Woverloaded-virtual -Wnull-dereference\
             -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function\
             -Wno-unknown-pragmas")
+        # TODO(hwa): in release phase, remove the following line
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
     endif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif (CMAKE_BUILD_TYPE STREQUAL "DEBUG" OR CMAKE_BUILD_TYPE STREQUAL "Debug")
