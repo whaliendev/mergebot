@@ -8,6 +8,7 @@
 #include <tree_sitter/api.h>
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "mergebot/parser/children.h"
@@ -68,29 +69,23 @@ class Node {
   /// get an S-expression representing the node as a string
   std::string sexp() const;
 
-  Node getChildByFieldID(TSFieldId field_id);
-  Node getChildByFieldName(std::string const &name);
+  std::optional<Node> getChildByFieldID(TSFieldId field_id);
+  std::optional<Node> getChildByFieldName(std::string const &name);
 
-  // TODO(hwa): refactor with optional
-  /// unsafe method, check before using
-  Node getChildByFieldID(TSFieldId field_id) const;
-  /// unsafe method, check before using
-  Node getChildByFieldName(std::string const &name) const;
+  std::optional<Node> getChildByFieldID(TSFieldId field_id) const;
+  std::optional<Node> getChildByFieldName(std::string const &name) const;
 
   /// if no field is found, return empty string
   /// note that ts_node_named_child is not implemented, as it's too dangerous,
   /// use namedChildren and index it
-  std::string getChildFiledName(size_t index) const;
+  std::optional<std::string> getChildFiledName(size_t index) const;
 
-  // this method is unsafe, check before using it
-  Node nextSibling();
-  // this method is unsafe, check before using it
-  Node nextNamedSibling();
-  Node parent();
-  // this method is unsafe, check before using it
-  Node prevSibling();
-  /// this method is unsafe, check before using it
-  Node prevNamedSibling();
+  std::optional<Node> nextSibling();
+
+  std::optional<Node> nextNamedSibling();
+  std::optional<Node> parent();
+  std::optional<Node> prevSibling();
+  std::optional<Node> prevNamedSibling();
 
  private:
   TSNode node;

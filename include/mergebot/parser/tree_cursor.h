@@ -8,6 +8,7 @@
 #include <tree_sitter/api.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 
 extern "C" {
@@ -18,7 +19,6 @@ namespace ts {
 class Node;
 class Tree;
 
-/// TODO(hwa): refactor this class
 class TreeCursor {
  public:
   TreeCursor(Node, std::shared_ptr<Tree>);
@@ -27,14 +27,9 @@ class TreeCursor {
 
   Node node();
 
-  /// unsafe, get the field name of the tree cursor's current node
-  ///
-  /// this returns `NULL` if the current node doesn't have a field. so we return
-  //// a const char* instead of std::string
-  const char* getCurrentFieldName() const;
+  std::optional<std::string> getCurrentFieldName() const;
 
-  // TODO(hwa): refactor with std::optional
-  /// there methods are all unsafe, refactor with optional
+  // TODO(hwa): is it unsafe? do we need to refactor to std::optional<Node>?
   bool gotoParent();
   bool gotoFirstChild();
   bool gotoNextSibling();

@@ -6,6 +6,8 @@
 
 #include <tree_sitter/api.h>
 
+#include <optional>
+
 #include "mergebot/parser/node.h"
 
 namespace mergebot {
@@ -32,8 +34,12 @@ Node TreeCursor::node() {
   return *node_;
 }
 
-const char* TreeCursor::getCurrentFieldName() const {
-  return ts_tree_cursor_current_field_name(&cursor);
+std::optional<std::string> TreeCursor::getCurrentFieldName() const {
+  const char* name = ts_tree_cursor_current_field_name(&cursor);
+  if (!name) {
+    return std::nullopt;
+  }
+  return name;
 }
 
 bool TreeCursor::gotoParent() {

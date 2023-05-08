@@ -7,6 +7,8 @@
 #include <tree_sitter/api.h>
 
 #include <cassert>
+#include <cstddef>
+#include <optional>
 
 #include "mergebot/parser/tree_cursor.h"
 
@@ -34,9 +36,19 @@ bool Node::isNamed() const { return ts_node_is_named(node); }
 bool Node::isMissing() const { return ts_node_is_missing(node); }
 bool Node::hasChanges() const { return ts_node_has_changes(node); }
 bool Node::hasError() const { return ts_node_has_error(node); }
-Node Node::parent() { return Node(ts_node_parent(node), tree); }
-std::string Node::getChildFiledName(size_t index) const {
-  return ts_node_field_name_for_child(node, index);
+std::optional<Node> Node::parent() {
+  TSNode nodeOrNull = ts_node_parent(node);
+  if (ts_node_is_null(nodeOrNull)) {
+    return std::nullopt;
+  }
+  return Node(nodeOrNull, tree);
+}
+std::optional<std::string> Node::getChildFiledName(size_t index) const {
+  const char *name = ts_node_field_name_for_child(node, index);
+  if (!name) {
+    return std::nullopt;
+  }
+  return name;
 }
 size_t Node::childrenCount() const { return ts_node_child_count(node); }
 size_t Node::namedChildrenCount() const {
@@ -77,34 +89,70 @@ std::vector<Node> Node::childrenByFieldName(const std::string &name) {
   return childrenByFieldID(field_id);
 }
 
-Node Node::getChildByFieldID(TSFieldId field_id) {
+std::optional<Node> Node::getChildByFieldID(TSFieldId field_id) {
+  TSNode nodeOrNull = ts_node_child_by_field_id(node, field_id);
+  if (ts_node_is_null(nodeOrNull)) {
+    return std::nullopt;
+  }
+  return Node(nodeOrNull, tree);
+}
+
+std::optional<Node> Node::getChildByFieldName(const std::string &name) {
+  TSNode nodeOrNull =
+      ts_node_child_by_field_name(node, name.c_str(), name.length());
+  if (ts_node_is_null(nodeOrNull)) {
+    return std::nullopt;
+  }
+  return Node(nodeOrNull, tree);
+}
+
+std::optional<Node> Node::getChildByFieldID(TSFieldId field_id) const {
+  TSNode nodeOrNull = ts_node_child_by_field_id(node, field_id);
+  if (ts_node_is_null(nodeOrNull)) {
+    return std::nullopt;
+  }
   return Node(ts_node_child_by_field_id(node, field_id), tree);
 }
 
-Node Node::getChildByFieldName(const std::string &name) {
-  return Node(ts_node_child_by_field_name(node, name.c_str(), name.length()),
-              tree);
+std::optional<Node> Node::getChildByFieldName(const std::string &name) const {
+  TSNode nodeOrNull =
+      ts_node_child_by_field_name(node, name.c_str(), name.length());
+  if (ts_node_is_null(nodeOrNull)) {
+    return std::nullopt;
+  }
+  return Node(nodeOrNull, tree);
 }
 
-Node Node::getChildByFieldID(TSFieldId field_id) const {
-  return Node(ts_node_child_by_field_id(node, field_id), tree);
+std::optional<Node> Node::nextSibling() {
+  TSNode nodeOrNull = ts_node_next_sibling(node);
+  if (ts_node_is_null(nodeOrNull)) {
+    return std::nullopt;
+  }
+  return Node(nodeOrNull, tree);
 }
 
-Node Node::getChildByFieldName(const std::string &name) const {
-  return Node(ts_node_child_by_field_name(node, name.c_str(), name.length()),
-              tree);
+std::optional<Node> Node::nextNamedSibling() {
+  TSNode nodeOrNull = ts_node_next_named_sibling(node);
+  if (ts_node_is_null(nodeOrNull)) {
+    return std::nullopt;
+  }
+  return Node(nodeOrNull, tree);
 }
 
-Node Node::nextSibling() { return Node(ts_node_next_sibling(node), tree); }
-
-Node Node::nextNamedSibling() {
-  return Node(ts_node_next_named_sibling(node), tree);
+std::optional<Node> Node::prevSibling() {
+  TSNode nodeOrNull = ts_node_prev_sibling(node);
+  if (ts_node_is_null(nodeOrNull)) {
+    return std::nullopt;
+  }
+  return Node(nodeOrNull, tree);
 }
 
-Node Node::prevSibling() { return Node(ts_node_prev_sibling(node), tree); }
-
-Node Node::prevNamedSibling() {
-  return Node(ts_node_prev_named_sibling(node), tree);
+std::optional<Node> Node::prevNamedSibling() {
+  TSNode nodeOrNull = ts_node_prev_named_sibling(node);
+  if (ts_node_is_null(nodeOrNull)) {
+    return std::nullopt;
+  }
+  return Node(nodeOrNull, tree);
 }
 
 bool Node::operator==(const Node &rhs) const {
