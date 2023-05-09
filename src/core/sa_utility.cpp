@@ -170,6 +170,7 @@ void tidyUpConflictBlocks(std::vector<ConflictBlock> &ConflictBlocks) {
     ConflictBlocks = NewConflictBlocks;
   }
 }
+
 } // namespace _details
 
 void handleSAExecError(std::error_code err, std::string_view cmd) {
@@ -255,6 +256,7 @@ void marshalResolutionResult(
     server::FileResolutionResult FileResolved = ResolvedJson;
     std::vector<server::BlockResolutionResult> &Resolutions =
         FileResolved.resolutions;
+    // TODO(whalien): fix overlap
 #ifndef NDEBUG
     // this check is rather inefficient and the situation is almost impossible
     // to happen, so we only perform this check at debug phase
@@ -289,6 +291,26 @@ std::string nameToPath(std::string_view name) {
                            return P / fs::path(seg);
                          })
       .string();
+}
+
+std::string_view extractCodeFromConflictRange(std::string_view Source,
+                                              std::string_view StartMark,
+                                              std::string_view EndMarker) {
+  size_t StartPos = Source.find(StartMark);
+  // NOLINT(google-readability-braces-around-statements)
+  while (StartPos != std::string_view::npos && StartPos != Source.length() &&
+         Source[StartPos++] != '\n')
+    ;
+  assert(StartPos != std::string_view::npos && StartPos != Source.length() &&
+         "illegal conflict range, start marker line is in bad format");
+  size_t EndPos = Source.find(EndMarker, StartPos);
+  assert(EndPos != std::string_view::npos &&
+         "illegal conflict range, no end marker");
+  if (StartPos == std::string_view::npos || StartPos == Source.length() ||
+      EndPos == std::string_view::npos) {
+    return std::string_view();
+  }
+  return Source.substr(StartPos, EndPos - StartPos);
 }
 
 } // namespace sa

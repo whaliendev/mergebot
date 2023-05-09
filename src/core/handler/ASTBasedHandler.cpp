@@ -40,36 +40,36 @@ void ASTBasedHandler::resolveConflictFiles(
          "ConflictFile sizes should be greater than zero");
 
   spdlog::info("we are resolving conflicts using AST based handler");
-  if (!fs::exists(OurCompDB) || !fs::exists(TheirCompDB) ||
-      !fs::exists(BaseCompDB)) {
-    spdlog::warn("CompDB doesn't exist, we'll skip AST based handler");
-    return;
-  }
-
-  tbb::tick_count Start = tbb::tick_count::now();
-  tbb::task_group TG;
-  TG.run([&]() { replaceProjPath(OurCompDB, OurDir); });
-  TG.run([&]() { replaceProjPath(TheirCompDB, TheirDir); });
-  TG.run([&]() { replaceProjPath(BaseCompDB, BaseDir); });
-  TG.wait();
-  tbb::tick_count End = tbb::tick_count::now();
-  spdlog::info("it takes {} ms to fine tune copied compile commands",
-               (End - Start).seconds() * 1000);
-
-  initCompDB();
-
-  auto &[OurCompilations, ok1] = OurCompilationsPair;
-  auto &[BaseCompilations, ok2] = BaseCompilationsPair;
-  auto &[TheirCompilations, ok3] = TheirCompilationsPair;
-  if (!ok1 || !ok2 || !ok3) {
-    spdlog::warn("cannot read CompDB, we'll skip AST based analysis");
-    return;
-  }
-
-  SourceCollectorV2 SC(Meta, OurCompilations, BaseCompilations,
-                       TheirCompilations);
-  SC.collectAnalysisSources();
-  SourceCollectorV2::AnalysisSourceTuple ST = SC.analysisSourceTuple();
+  //  if (!fs::exists(OurCompDB) || !fs::exists(TheirCompDB) ||
+  //      !fs::exists(BaseCompDB)) {
+  //    spdlog::warn("CompDB doesn't exist, we'll skip AST based handler");
+  //    return;
+  //  }
+  //
+  //  tbb::tick_count Start = tbb::tick_count::now();
+  //  tbb::task_group TG;
+  //  TG.run([&]() { replaceProjPath(OurCompDB, OurDir); });
+  //  TG.run([&]() { replaceProjPath(TheirCompDB, TheirDir); });
+  //  TG.run([&]() { replaceProjPath(BaseCompDB, BaseDir); });
+  //  TG.wait();
+  //  tbb::tick_count End = tbb::tick_count::now();
+  //  spdlog::info("it takes {} ms to fine tune copied compile commands",
+  //               (End - Start).seconds() * 1000);
+  //
+  //  initCompDB();
+  //
+  //  auto &[OurCompilations, ok1] = OurCompilationsPair;
+  //  auto &[BaseCompilations, ok2] = BaseCompilationsPair;
+  //  auto &[TheirCompilations, ok3] = TheirCompilationsPair;
+  //  if (!ok1 || !ok2 || !ok3) {
+  //    spdlog::warn("cannot read CompDB, we'll skip AST based analysis");
+  //    return;
+  //  }
+  //
+  //  SourceCollectorV2 SC(Meta, OurCompilations, BaseCompilations,
+  //                       TheirCompilations);
+  //  SC.collectAnalysisSources();
+  //  SourceCollectorV2::AnalysisSourceTuple ST = SC.analysisSourceTuple();
 }
 
 bool ASTBasedHandler::replaceProjPath(std::string const &CompDBPath,

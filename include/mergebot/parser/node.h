@@ -13,6 +13,7 @@
 
 #include "mergebot/parser/children.h"
 #include "mergebot/parser/point.h"
+#include "mergebot/parser/symbol.h"
 #include "mergebot/parser/tree.h"
 
 extern "C" {
@@ -82,10 +83,10 @@ class Node {
 
   std::optional<Node> nextSibling();
 
-  std::optional<Node> nextNamedSibling();
-  std::optional<Node> parent();
-  std::optional<Node> prevSibling();
-  std::optional<Node> prevNamedSibling();
+  std::optional<Node> nextNamedSibling() const;
+  std::optional<Node> parent() const;
+  std::optional<Node> prevSibling() const;
+  std::optional<Node> prevNamedSibling() const;
 
  private:
   TSNode node;

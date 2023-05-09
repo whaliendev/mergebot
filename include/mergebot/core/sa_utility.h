@@ -56,6 +56,18 @@ void tidyUpConflictFiles(std::vector<ConflictFile> &ConflictFiles);
 std::string pathToName(std::string_view path);
 
 std::string nameToPath(std::string_view name);
+
+/// extract code between two markers in conflict code range, note that the
+/// marker line will be discarded from code
+/// !!! we have to make sure the lifetime of Source's referenced object should
+/// be longer than the returned value.
+/// \param Source the source string_view of conflict code
+/// \param StartMark the start marker
+/// \param EndMarker the end marker
+/// \return code between two markers
+std::string_view extractCodeFromConflictRange(std::string_view Source,
+                                              std::string_view StartMark,
+                                              std::string_view EndMarker);
 } // namespace sa
 } // namespace mergebot
 

@@ -25,36 +25,6 @@
 namespace mergebot {
 namespace sa {
 
-namespace _details {
-/// extract code between two markers in conflict code range, note that the
-/// marker line will be discarded from code
-/// !!! we have to make sure the lifetime of Source's referenced object should
-/// be longer than the returned value.
-/// \param Source the source string_view of conflict code
-/// \param StartMark the start marker
-/// \param EndMarker the end marker
-/// \return code between two markers
-std::string_view extractCodeFromConflictRange(std::string_view Source,
-                                              std::string_view StartMark,
-                                              std::string_view EndMarker) {
-  size_t StartPos = Source.find(StartMark);
-  // NOLINT(google-readability-braces-around-statements)
-  while (StartPos != std::string_view::npos && StartPos != Source.length() &&
-         Source[StartPos++] != '\n')
-    ;
-  assert(StartPos != std::string_view::npos && StartPos != Source.length() &&
-         "illegal conflict range, start marker line is in bad format");
-  size_t EndPos = Source.find(EndMarker, StartPos);
-  assert(EndPos != std::string_view::npos &&
-         "illegal conflict range, no end marker");
-  if (StartPos == std::string_view::npos || StartPos == Source.length() ||
-      EndPos == std::string_view::npos) {
-    return std::string_view();
-  }
-  return Source.substr(StartPos, EndPos - StartPos);
-}
-} // namespace _details
-
 bool StyleBasedHandler::NeedFormat = true;
 /// llvm, chromium, mozilla, google, webkit, gnu, microsoft
 std::string StyleBasedHandler::Style = "google";
@@ -84,17 +54,17 @@ void StyleBasedHandler::resolveConflictFiles(
     for (ConflictBlock &CB : CF.ConflictBlocks) {
       std::string_view OurCode, TheirCode;
       if (WithBase) {
-        OurCode = _details::extractCodeFromConflictRange(
+        OurCode = extractCodeFromConflictRange(
             CB.ConflictRange, magic_enum::enum_name(ConflictMark::OURS),
             magic_enum::enum_name(ConflictMark::BASE));
-        TheirCode = _details::extractCodeFromConflictRange(
+        TheirCode = extractCodeFromConflictRange(
             CB.ConflictRange, magic_enum::enum_name(ConflictMark::THEIRS),
             magic_enum::enum_name(ConflictMark::END));
       } else {
-        OurCode = _details::extractCodeFromConflictRange(
+        OurCode = extractCodeFromConflictRange(
             CB.ConflictRange, magic_enum::enum_name(ConflictMark::OURS),
             magic_enum::enum_name(ConflictMark::THEIRS));
-        TheirCode = _details::extractCodeFromConflictRange(
+        TheirCode = extractCodeFromConflictRange(
             CB.ConflictRange, magic_enum::enum_name(ConflictMark::THEIRS),
             magic_enum::enum_name(ConflictMark::END));
       }

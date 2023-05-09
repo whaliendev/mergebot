@@ -15,11 +15,11 @@ namespace mergebot {
 namespace server {
 struct BlockResolutionResult {
   /// resolution block index
-  int index;
+  int index = -1;
   /// description message to help manually resolve
-  std::string desc;
+  std::string desc = "";
   /// resolution code to apply
-  std::string code;
+  std::string code = "";
 
   explicit operator std::string() const {
     return fmt::format(
