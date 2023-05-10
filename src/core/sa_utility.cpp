@@ -171,6 +171,40 @@ void tidyUpConflictBlocks(std::vector<ConflictBlock> &ConflictBlocks) {
   }
 }
 
+// 判断一行是否为空行
+bool isBlankLine(const std::string &line) {
+  for (const char &c : line) {
+    if (!isspace(c))
+      return false;
+  }
+  return true;
+}
+
+// 去除一行的注释
+std::string removeComment(const std::string &line) {
+  std::string result;
+  bool inSingleQuote = false;
+  bool inDoubleQuote = false;
+  for (size_t i = 0; i < line.size(); i++) {
+    char c = line[i];
+    if (c == '\'') {
+      inSingleQuote = !inSingleQuote;
+      result += c;
+    } else if (c == '\"') {
+      inDoubleQuote = !inDoubleQuote;
+      result += c;
+    } else if (inSingleQuote || inDoubleQuote) {
+      result += c;
+    } else {
+      if (i < line.size() - 1 && c == '/' && line[i + 1] == '/') {
+        break;
+      } else {
+        result += c;
+      }
+    }
+  }
+  return result;
+}
 } // namespace _details
 
 void handleSAExecError(std::error_code err, std::string_view cmd) {
@@ -311,6 +345,20 @@ std::string_view extractCodeFromConflictRange(std::string_view Source,
     return std::string_view();
   }
   return Source.substr(StartPos, EndPos - StartPos);
+}
+
+// 去除代码前后的空行和行内的注释
+std::string trim(const std::string &code) {
+  std::string str = code;
+  // Remove leading blank lines
+  while (str.length() > 0 && str[0] == '\n') {
+    str.erase(0, 1);
+  }
+  // Remove trailing blank lines
+  while (str.length() > 0 && str[str.length() - 1] == '\n') {
+    str.erase(str.length() - 1, 1);
+  }
+  return str;
 }
 
 } // namespace sa

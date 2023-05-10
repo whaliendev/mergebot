@@ -36,7 +36,7 @@ void StyleBasedHandler::resolveConflictFiles(
   assert(ConflictFiles.size() &&
          "ConflictFile sizes should be greater than zero");
 
-  spdlog::info("we are resolving conflicts using style based handler");
+  spdlog::info("we are resolving conflicts using style based handler...");
 
   std::string_view FirstCR = ConflictFiles[0].ConflictBlocks[0].ConflictRange;
   size_t OurPos = FirstCR.find(magic_enum::enum_name(ConflictMark::OURS));

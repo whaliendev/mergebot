@@ -68,6 +68,8 @@ std::string nameToPath(std::string_view name);
 std::string_view extractCodeFromConflictRange(std::string_view Source,
                                               std::string_view StartMark,
                                               std::string_view EndMarker);
+
+std::string trim(std::string const &code);
 } // namespace sa
 } // namespace mergebot
 

@@ -54,6 +54,14 @@ void ResolutionManager::_doResolutionAsync(
       fs::path(Self->mergeScenarioPath()) / "resolutions" / "";
   if (!fs::exists(ResolutionDest)) {
     fs::create_directories(ResolutionDest);
+  } else {
+    bool Success = fs::remove_all(ResolutionDest);
+    if (!Success) {
+      spdlog::error("fail to rm -r {}, which may cause serious problem to "
+                    "output resolution result",
+                    ResolutionDest.string());
+    }
+    fs::create_directories(ResolutionDest);
   }
 
   // copy c/cpp related conflict files
@@ -117,9 +125,9 @@ void ResolutionManager::_doResolutionAsync(
   // collide
   ResolutionManager::_generateCompDB(Self, Self->MS_.ours, OursPath);
   ResolutionManager::_generateCompDB(Self, Self->MS_.theirs, TheirsPath);
-  spdlog::info("CompDB for ours branch and theirs branch in "
-               "project[{}] generated successfully",
-               Self->Project_);
+  //  spdlog::info("CompDB for ours branch and theirs branch in "
+  //               "project[{}] generated successfully",
+  //               Self->Project_);
 
   // restore project to previous state
   // TODO(hwa): extract following piece of code to a cleanup function
@@ -160,6 +168,11 @@ void ResolutionManager::_doResolutionAsync(
   Chain.handle();
 
   // TODO(hwa): Remember to remove running sign at last
+  const fs::path RunningSign = fs::path(Self->mergeScenarioPath()) / "running";
+  if (fs::exists(RunningSign)) {
+    fs::remove(RunningSign);
+    spdlog::info("unlock merge scenario(remove running sign)\n\n\n");
+  }
 }
 
 void ResolutionManager::_generateCompDB(
@@ -184,7 +197,7 @@ void ResolutionManager::_generateCompDB(
   // generate CompDB.
   // At this stage, we simply move the 2 compile_commands to mergescenario dir
   // TODO(hwa): Generate CompDB
-  spdlog::info("Generate CompDB for {} successfully", SourceDest);
+  //  spdlog::info("Generate CompDB for {} successfully", SourceDest);
 }
 std::vector<std::string> ResolutionManager::_extractCppSources() {
   // get conflict files

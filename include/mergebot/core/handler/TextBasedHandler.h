@@ -18,6 +18,9 @@ public:
 
 private:
   void resolveConflictFiles(std::vector<ConflictFile> &ConflictFiles) override;
+  bool checkDeletion(std::string_view Our, std::string_view Their,
+                     ConflictFile const &CF,
+                     server::BlockResolutionResult &BRR);
   bool checkOneSideDelta(std::string_view Our, std::string_view Their,
                          ConflictFile const &CF,
                          server::BlockResolutionResult &BRR);

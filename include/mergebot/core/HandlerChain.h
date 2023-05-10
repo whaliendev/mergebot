@@ -7,7 +7,10 @@
 
 #include "mergebot/core/handler/SAHandler.h"
 #include "sa_utility.h"
+#include <iomanip>
+#include <ios>
 #include <spdlog/spdlog.h>
+#include <sstream>
 
 namespace mergebot {
 namespace sa {
@@ -22,14 +25,23 @@ public:
   }
 
   void handle() {
+    ConflictBlockCount = countConflictBlocks();
     spdlog::info("there are {} conflict blocks in this merge scenario",
-                 countConflictBlocks());
+                 ConflictBlockCount);
     Handlers_[0]->handle(ConflictFiles_);
+    int AfterResolveCount = countConflictBlocks();
     spdlog::info("there are still {} conflict blocks in this merge scenario",
-                 countConflictBlocks());
+                 AfterResolveCount);
+    double Ratio = ((ConflictBlockCount - AfterResolveCount) /
+                    static_cast<double>(ConflictBlockCount)) *
+                   100;
+    std::stringstream SS;
+    SS << std::fixed << std::setprecision(2) << Ratio << " %";
+    spdlog::info("resolve ratio at this merge scenario is: {}", SS.str());
   }
 
 private:
+  int ConflictBlockCount = 0;
   void chain();
   unsigned countConflictBlocks() const;
   std::vector<ConflictFile> ConflictFiles_;

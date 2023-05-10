@@ -79,6 +79,8 @@ bool isSubSequence(std::vector<std::string_view> const &Seq1,
 
 bool parseDeclarations(std::string const &Code,
                        std::vector<std::string> &Decls) {
+  if (Code.empty())
+    return false;
   ts::Parser Parser(ts::cpp::language());
 
   std::shared_ptr<ts::Tree> Tree = Parser.parse(std::string(Code));
@@ -103,6 +105,7 @@ bool parseDeclarations(std::string const &Code,
             ts::cpp::symbols::sym_comment.name) {
       std::string comment = PrevSibling.value().text();
       Decl = comment + "\n" + Node.text();
+      PrevSibling = PrevSibling.value().prevSibling();
     }
     Decls.push_back(std::move(Decl));
   }
@@ -111,6 +114,8 @@ bool parseDeclarations(std::string const &Code,
 
 bool parseDefinitions(std::string const &Code,
                       std::vector<std::string> &Definitions) {
+  if (Code.empty())
+    return false;
   ts::Parser Parser(ts::cpp::language());
 
   std::shared_ptr<ts::Tree> Tree = Parser.parse(std::string(Code));
@@ -135,16 +140,37 @@ bool parseDefinitions(std::string const &Code,
       EverDefinition = true;
     }
     std::optional<ts::Node> PrevSibling = Node.prevSibling();
-    if (PrevSibling.has_value() &&
-        ts::Symbol::nameOfSymbol(ts::cpp::language(),
-                                 PrevSibling.value().symbol()) ==
-            ts::cpp::symbols::sym_comment.name) {
+    while (PrevSibling.has_value() &&
+           ts::Symbol::nameOfSymbol(ts::cpp::language(),
+                                    PrevSibling.value().symbol()) ==
+               ts::cpp::symbols::sym_comment.name) {
       std::string comment = PrevSibling.value().text();
       Definition = comment + "\n" + Node.text();
+      PrevSibling = PrevSibling.value().prevSibling();
     }
     Definitions.push_back(std::move(Definition));
   }
   return EverDefinition;
+}
+
+bool parseInclusions(std::string const &Code,
+                     std::vector<std::string> &Inclusions) {
+  if (Code.empty())
+    return false;
+  ts::Parser Parser(ts::cpp::language());
+
+  std::shared_ptr<ts::Tree> Tree = Parser.parse(std::string(Code));
+  ts::Node Root = Tree->rootNode();
+  for (ts::Node const &Node : Root.namedChildren()) {
+    std::string SymbolName =
+        ts::Symbol::nameOfSymbol(ts::cpp::language(), Node.symbol());
+    // only parse #include
+    if (SymbolName != ts::cpp::symbols::sym_preproc_include.name) {
+      return false;
+    }
+    Inclusions.push_back(Node.text());
+  }
+  return true;
 }
 
 bool topologicalSort(
@@ -219,6 +245,8 @@ bool TextBasedHandler::checkOneSideDelta(std::string_view Our,
                                          std::string_view Their,
                                          ConflictFile const &CF,
                                          server::BlockResolutionResult &BRR) {
+  if (Our.empty() || Their.empty())
+    return false;
   using namespace llvm;
   fs::path Relative = fs::relative(CF.Filename, Meta.ProjectPath);
   fs::path BaseFile =
@@ -233,20 +261,32 @@ bool TextBasedHandler::checkOneSideDelta(std::string_view Our,
     return false;
   }
   std::unique_ptr<MemoryBuffer> File = std::move(FileOrErr.get());
+
+  std::string TrimmedOurs = trim(std::string(Our));
+  std::string TrimmedTheirs = trim(std::string(Their));
   bool FoundOurs = _details::isConflictBlockInBuffer(
-      std::string(Our), File->getBufferStart(), File->getBufferEnd(),
+      std::string(TrimmedOurs), File->getBufferStart(), File->getBufferEnd(),
       File->getBufferSize());
+  bool FoundTheirs = _details::isConflictBlockInBuffer(
+      std::string(TrimmedTheirs), File->getBufferStart(), File->getBufferEnd(),
+      File->getBufferSize());
+  if (FoundOurs && FoundTheirs)
+    return false;
   if (FoundOurs) {
     BRR.code = std::string(Their);
-    BRR.desc = "单边修改，新增功能，接受their side";
+    BRR.desc = "单边修改，接受their side";
+    spdlog::info(
+        "only one side of code changed in conflict range[{}] in file[{}]",
+        BRR.index, CF.Filename);
     return true;
   }
-  bool FoundTheirs = _details::isConflictBlockInBuffer(
-      std::string(Their), File->getBufferStart(), File->getBufferEnd(),
-      File->getBufferSize());
   if (FoundTheirs) {
     BRR.code = std::string(Our);
-    BRR.desc = "单边修改，新增功能，接受our side";
+    spdlog::info(
+        "only one side of code changed in conflict range[{}] in file[{}]",
+        BRR.index, CF.Filename);
+    BRR.desc = "单边修改，接受our side";
+    return true;
   }
   return false;
 }
@@ -274,13 +314,19 @@ bool TextBasedHandler::checkInclusion(std::string_view Our,
     if (OurLineVec.size() > TheirLineVec.size()) {
       if (_details::isSubSequence(OurLineVec, TheirLineVec)) {
         BRR.code = std::string(Our);
-        BRR.desc = "新增检查或方法抽取，接受our side";
+        BRR.desc = "新增代码或方法抽取，接受our side";
+        spdlog::info("more check or method extraction found for conflict "
+                     "block[{}] in conflict file[{}]",
+                     BRR.index, CF.Filename);
         return true;
       }
     } else {
       if (_details::isSubSequence(TheirLineVec, OurLineVec)) {
         BRR.code = std::string(Their);
-        BRR.desc = "新增检查或方法抽取，接受their side";
+        BRR.desc = "新增代码或方法抽取，接受their side";
+        spdlog::info("add check or method extraction found for conflict "
+                     "block[{}] in conflict file[{}]",
+                     BRR.index, CF.Filename);
         return true;
       }
     }
@@ -298,7 +344,7 @@ bool TextBasedHandler::checkInclusion(std::string_view Our,
         continue;
       }
       // currently, in header we only resolve declaration related inclusion
-      // resolution
+      // resolution, as function definition may change frequently
       if (SymbolName.find("declaration") == std::string::npos) {
         return false;
       }
@@ -319,13 +365,17 @@ bool TextBasedHandler::checkInclusion(std::string_view Our,
 
     if (OurContain) {
       BRR.code = std::string(Our);
-      BRR.desc = "新增声明，列表合并";
+      BRR.desc = "集合包含，接受our side";
+      spdlog::info("inclusion merged for conflict block[{}] in file[{}]",
+                   BRR.index, CF.Filename);
       return true;
     }
 
     if (TheirContain) {
       BRR.code = std::string(Their);
-      BRR.desc = "新增声明，列表合并";
+      BRR.desc = "集合包含，接受their side";
+      spdlog::info("inclusion merged for conflict block[{}] in file[{}]",
+                   BRR.index, CF.Filename);
       return true;
     }
   }
@@ -335,6 +385,24 @@ bool TextBasedHandler::checkInclusion(std::string_view Our,
 bool TextBasedHandler::doListMerge(std::string_view Our, std::string_view Their,
                                    ConflictFile const &CF,
                                    server::BlockResolutionResult &BRR) {
+  std::vector<std::string> OurInclusions;
+  bool OurAllInclusions =
+      _details::parseInclusions(std::string(Our), OurInclusions);
+  std::vector<std::string> TheirInclusions;
+  bool TheirAllInclusions =
+      _details::parseInclusions(std::string(Their), TheirInclusions);
+  if (OurAllInclusions && TheirAllInclusions) {
+    std::vector<std::string> Merged;
+    if (_details::mergeVectors(OurInclusions, TheirInclusions, Merged)) {
+      BRR.code = util::string_join(Merged, "\n");
+      BRR.desc = "头文件修改, 列表合并";
+      spdlog::info("both sides of header include modified, we do a list merge "
+                   "for conflict block[{}] in file[{}]",
+                   BRR.index, CF.Filename);
+      return true;
+    }
+  }
+
   // function definition or declaration
   // 抽取签名成为list，判断相交，合并
   if (_details::isCppHeader(CF.Filename)) {
@@ -349,7 +417,7 @@ bool TextBasedHandler::doListMerge(std::string_view Our, std::string_view Their,
     std::vector<std::string> Merged;
     if (_details::mergeVectors(OurDecls, TheirDecls, Merged)) {
       BRR.code = util::string_join(Merged, "\n\n");
-      BRR.desc = "新增功能，列表合并";
+      BRR.desc = "声明合并";
       return true;
     }
     return false;
@@ -357,6 +425,18 @@ bool TextBasedHandler::doListMerge(std::string_view Our, std::string_view Their,
 
   // cpp source, check function and merge function
   if (_details::isCppSource(CF.Filename)) {
+    //    std::vector<std::string> OurDecls;
+    //    bool OurAllDecls = _details::parseDeclarations(std::string(Our),
+    //    OurDecls); std::vector<std::string> TheirDecls; bool TheirAllDecls =
+    //        _details::parseDeclarations(std::string(Their), TheirDecls);
+    //    if (OurAllDecls && TheirAllDecls) {
+    //      std::vector<std::string> Merged;
+    //      if (_details::mergeVectors(OurDecls, TheirDecls, Merged)) {
+    //        BRR.code = util::string_join(Merged, "\n\n");
+    //        BRR.desc = "声明合并";
+    //        return true;
+    //      }
+    //    }
     std::vector<std::string> OurDefinitions;
     if (!_details::parseDefinitions(std::string(Our), OurDefinitions)) {
       return false;
@@ -369,6 +449,9 @@ bool TextBasedHandler::doListMerge(std::string_view Our, std::string_view Their,
     if (_details::mergeVectors(OurDefinitions, TheirDefinitions, Merged)) {
       BRR.code = util::string_join(Merged, "\n\n");
       BRR.desc = "新增功能，列表合并";
+      spdlog::info("new feature added, we do a list merge for conflict "
+                   "block[{}] in file[{}]",
+                   BRR.index, CF.Filename);
       return true;
     }
     return false;
@@ -381,7 +464,7 @@ void TextBasedHandler::resolveConflictFiles(
   assert(ConflictFiles.size() &&
          "ConflictFile sizes should be greater than zero");
 
-  spdlog::info("we are resolving conflicts using heuristic based handler");
+  spdlog::info("we are resolving conflicts using heuristic based handler...");
   std::string_view FirstCR = ConflictFiles[0].ConflictBlocks[0].ConflictRange;
   size_t OurPos = FirstCR.find(magic_enum::enum_name(ConflictMark::OURS));
   size_t BasePos = FirstCR.find(magic_enum::enum_name(ConflictMark::BASE));
@@ -416,11 +499,18 @@ void TextBasedHandler::resolveConflictFiles(
                  "at least one side of code should not be empty");
       server::BlockResolutionResult BRR;
       BRR.index = CB.Index;
-      if (checkOneSideDelta(OurCode, TheirCode, CF, BRR)) {
+
+      if (checkDeletion(OurCode, TheirCode, CF, BRR)) {
         ResolvedBlocks.push_back(std::move(BRR));
         CB.Resolved = true;
         continue;
       }
+
+      //      if (checkOneSideDelta(OurCode, TheirCode, CF, BRR)) {
+      //        ResolvedBlocks.push_back(std::move(BRR));
+      //        CB.Resolved = true;
+      //        continue;
+      //      }
 
       if (checkInclusion(OurCode, TheirCode, CF, BRR)) {
         ResolvedBlocks.push_back(std::move(BRR));
@@ -459,6 +549,42 @@ void TextBasedHandler::resolveConflictFiles(
       tidyUpConflictFiles(ConflictFiles);
     }
   }
+}
+
+bool TextBasedHandler::checkDeletion(std::string_view Our,
+                                     std::string_view Their,
+                                     const ConflictFile &CF,
+                                     server::BlockResolutionResult &BRR) {
+  if (!Our.empty() && !Their.empty())
+    return false;
+  using namespace llvm;
+  fs::path Relative = fs::relative(CF.Filename, Meta.ProjectPath);
+  fs::path BaseFile =
+      fs::path(Meta.MSCacheDir) / magic_enum::enum_name(Side::BASE) / Relative;
+
+  ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
+      MemoryBuffer::getFile(BaseFile.string());
+  if (auto Err = FileOrErr.getError()) {
+    spdlog::error("failed to extract conflict block for base side file[{}], "
+                  "err message: {}",
+                  BaseFile.string(), Err.message());
+    return false;
+  }
+  std::unique_ptr<MemoryBuffer> File = std::move(FileOrErr.get());
+
+  std::string ToLookup =
+      Our.empty() ? trim(std::string(Their)) : trim(std::string(Our));
+  bool FoundNonEmpty = _details::isConflictBlockInBuffer(
+      ToLookup, File->getBufferStart(), File->getBufferEnd(),
+      File->getBufferSize());
+  if (FoundNonEmpty) {
+    BRR.code = "";
+    BRR.desc = "单边删除";
+    spdlog::info("deletion detected for conflict block[{}] in file[{}]",
+                 BRR.index, CF.Filename);
+    return true;
+  }
+  return false;
 }
 } // namespace sa
 } // namespace mergebot
