@@ -74,7 +74,7 @@ void InitThreadPool();
 
   app.register_blueprint(subApiBP);
 
-  app.loglevel(crow::LogLevel::INFO).bindaddr("127.0.0.1").port(18080).run();
+  app.loglevel(crow::LogLevel::INFO).port(18080).run();
 }
 
 void InitThreadPool() {
