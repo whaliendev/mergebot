@@ -10,15 +10,14 @@
 #include "mergebot/core/model/Side.h"
 #include "mergebot/core/sa_utility.h"
 #include "mergebot/filesystem.h"
-#include "mergebot/parser/languages/cpp.h"
+// #include "mergebot/parser/languages/cpp.h"
 #include "mergebot/parser/node.h"
 #include "mergebot/parser/parser.h"
 #include "mergebot/parser/symbol.h"
 #include "mergebot/parser/tree.h"
 #include "mergebot/server/vo/ResolutionResultVO.h"
+#include "mergebot/utils/fileio.h"
 #include "mergebot/utils/stringop.h"
-#include <filesystem>
-#include <forward_list>
 #include <llvm/Support/ErrorOr.h>
 #include <llvm/Support/MemoryBuffer.h>
 #include <magic_enum.hpp>
@@ -41,6 +40,27 @@ bool isConflictBlockInBuffer(std::string const &Source, char const *Start,
   }
   const char *FoundPos = std::search(Start, End, Source.begin(), Source.end());
   return FoundPos != End;
+}
+
+std::string extractConflictBlock(int Index, const char *Start, size_t Size) {
+  std::string BeginPattern = "<<<<<<<";
+  std::string EndPattern = ">>>>>>>";
+  auto Begin = Start;
+  auto End = Start + Size;
+
+  int Count = 0;
+  auto It = Begin;
+  while ((It = std::search(It, End, BeginPattern.begin(),
+                           BeginPattern.end())) != End) {
+    auto BlockBegin = It + BeginPattern.size();
+    auto BlockEnd =
+        std::search(BlockBegin, End, EndPattern.begin(), EndPattern.end());
+    if (++Count == Index) {
+      return std::string(It, BlockEnd + EndPattern.size());
+    }
+    It = BlockEnd + EndPattern.size();
+  }
+  return "";
 }
 
 bool isCppSource(std::string const &Filename) {
@@ -249,43 +269,43 @@ bool TextBasedHandler::checkOneSideDelta(std::string_view Our,
     return false;
   using namespace llvm;
   fs::path Relative = fs::relative(CF.Filename, Meta.ProjectPath);
-  fs::path BaseFile =
-      fs::path(Meta.MSCacheDir) / magic_enum::enum_name(Side::BASE) / Relative;
-
-  ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
-      MemoryBuffer::getFile(BaseFile.string());
+  fs::path ConflictFile = fs::path(Meta.MSCacheDir) / "conflicts" / Relative;
+  llvm::ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
+      MemoryBuffer::getFile(ConflictFile.string());
   if (auto Err = FileOrErr.getError()) {
-    spdlog::error("failed to extract conflict block for base side file[{}], "
-                  "err message: {}",
-                  BaseFile.string(), Err.message());
+    spdlog::error("fail to read conflict file [{}], err message: {}",
+                  ConflictFile.string(), Err.message());
     return false;
   }
-  std::unique_ptr<MemoryBuffer> File = std::move(FileOrErr.get());
 
-  std::string TrimmedOurs = trim(std::string(Our));
-  std::string TrimmedTheirs = trim(std::string(Their));
-  bool FoundOurs = _details::isConflictBlockInBuffer(
-      std::string(TrimmedOurs), File->getBufferStart(), File->getBufferEnd(),
-      File->getBufferSize());
-  bool FoundTheirs = _details::isConflictBlockInBuffer(
-      std::string(TrimmedTheirs), File->getBufferStart(), File->getBufferEnd(),
-      File->getBufferSize());
-  if (FoundOurs && FoundTheirs)
+  std::unique_ptr<MemoryBuffer> File = std::move(FileOrErr.get());
+  std::string CodeRange = _details::extractConflictBlock(
+      BRR.index, File->getBufferStart(), File->getBufferSize());
+  if (CodeRange.empty())
     return false;
-  if (FoundOurs) {
+  std::string_view OurCode = extractCodeFromConflictRange(
+      CodeRange, magic_enum::enum_name(ConflictMark::OURS),
+      magic_enum::enum_name(ConflictMark::BASE));
+  std::string_view BaseCode = extractCodeFromConflictRange(
+      CodeRange, magic_enum::enum_name(ConflictMark::BASE),
+      magic_enum::enum_name(ConflictMark::THEIRS));
+  std::string_view TheirCode = extractCodeFromConflictRange(
+      CodeRange, magic_enum::enum_name(ConflictMark::THEIRS),
+      magic_enum::enum_name(ConflictMark::END));
+  if (OurCode == BaseCode) {
     BRR.code = std::string(Their);
     BRR.desc = "单边修改，接受their side";
     spdlog::info(
-        "only one side of code changed in conflict range[{}] in file[{}]",
+        "one side delta detected for conflict block [{}] in conflict file [{}]",
         BRR.index, CF.Filename);
     return true;
   }
-  if (FoundTheirs) {
+  if (TheirCode == BaseCode) {
     BRR.code = std::string(Our);
+    BRR.desc = "单边修改，接受their side";
     spdlog::info(
-        "only one side of code changed in conflict range[{}] in file[{}]",
+        "one side delta detected for conflict block [{}] in conflict file [{}]",
         BRR.index, CF.Filename);
-    BRR.desc = "单边修改，接受our side";
     return true;
   }
   return false;
@@ -459,6 +479,36 @@ bool TextBasedHandler::doListMerge(std::string_view Our, std::string_view Their,
   return false;
 }
 
+void TextBasedHandler::threeWayMerge(std::vector<ConflictFile> &ConflictFiles) {
+  auto conflictsDir = fs::path(Meta.MSCacheDir) / "conflicts";
+  fs::create_directories(conflictsDir);
+  for (const ConflictFile &CF : ConflictFiles) {
+    fs::path Relative = fs::relative(CF.Filename, Meta.ProjectPath);
+    std::string ourFilePath = fs::path(Meta.MSCacheDir) /
+                              magic_enum::enum_name(Side::OURS) / Relative;
+    std::string baseFilePath = fs::path(Meta.MSCacheDir) /
+                               magic_enum::enum_name(Side::BASE) / Relative;
+    std::string theirFilePath = fs::path(Meta.MSCacheDir) /
+                                magic_enum::enum_name(Side::THEIRS) / Relative;
+    if (!exists(fs::path(ourFilePath)) || !exists(fs::path(baseFilePath)) ||
+        !exists(fs::path(theirFilePath))) {
+      continue;
+    }
+    auto CMD = fmt::format("git merge-file -p --diff3 {} {} {}", ourFilePath,
+                           baseFilePath, theirFilePath);
+    auto OutputOrErr = util::ExecCommand(CMD);
+    if (!OutputOrErr)
+      spdlog::error("fail to merge {} {} and {}", ourFilePath, baseFilePath,
+                    theirFilePath);
+    else {
+      fs::path FilePath = conflictsDir / Relative;
+      if (!exists(FilePath.parent_path()))
+        fs::create_directories(FilePath.parent_path());
+      util::file_overwrite_content(FilePath, OutputOrErr.get());
+    }
+  }
+}
+
 void TextBasedHandler::resolveConflictFiles(
     std::vector<ConflictFile> &ConflictFiles) {
   assert(ConflictFiles.size() &&
@@ -472,6 +522,7 @@ void TextBasedHandler::resolveConflictFiles(
   size_t EndPos = std::string_view::npos;
   bool WithBase = OurPos != EndPos && BasePos != EndPos && TheirPos != EndPos;
 
+  threeWayMerge(ConflictFiles);
   for (ConflictFile &CF : ConflictFiles) {
     bool EverResolved = false, AllResolved = true;
     spdlog::debug("resolving {}...", CF.Filename);
@@ -506,11 +557,11 @@ void TextBasedHandler::resolveConflictFiles(
         continue;
       }
 
-      //      if (checkOneSideDelta(OurCode, TheirCode, CF, BRR)) {
-      //        ResolvedBlocks.push_back(std::move(BRR));
-      //        CB.Resolved = true;
-      //        continue;
-      //      }
+      if (checkOneSideDelta(OurCode, TheirCode, CF, BRR)) {
+        ResolvedBlocks.push_back(std::move(BRR));
+        CB.Resolved = true;
+        continue;
+      }
 
       if (checkInclusion(OurCode, TheirCode, CF, BRR)) {
         ResolvedBlocks.push_back(std::move(BRR));
@@ -559,32 +610,81 @@ bool TextBasedHandler::checkDeletion(std::string_view Our,
     return false;
   using namespace llvm;
   fs::path Relative = fs::relative(CF.Filename, Meta.ProjectPath);
-  fs::path BaseFile =
-      fs::path(Meta.MSCacheDir) / magic_enum::enum_name(Side::BASE) / Relative;
-
-  ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
-      MemoryBuffer::getFile(BaseFile.string());
+  fs::path ConflictFile = fs::path(Meta.MSCacheDir) / "conflicts" / Relative;
+  llvm::ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
+      MemoryBuffer::getFile(ConflictFile.string());
   if (auto Err = FileOrErr.getError()) {
-    spdlog::error("failed to extract conflict block for base side file[{}], "
-                  "err message: {}",
-                  BaseFile.string(), Err.message());
+    spdlog::error("fail to read conflict file [{}], err message: {}",
+                  ConflictFile.string(), Err.message());
     return false;
   }
-  std::unique_ptr<MemoryBuffer> File = std::move(FileOrErr.get());
 
-  std::string ToLookup =
-      Our.empty() ? trim(std::string(Their)) : trim(std::string(Our));
-  bool FoundNonEmpty = _details::isConflictBlockInBuffer(
-      ToLookup, File->getBufferStart(), File->getBufferEnd(),
-      File->getBufferSize());
-  if (FoundNonEmpty) {
-    BRR.code = "";
+  std::unique_ptr<MemoryBuffer> File = std::move(FileOrErr.get());
+  std::string CodeRange = _details::extractConflictBlock(
+      BRR.index, File->getBufferStart(), File->getBufferSize());
+  if (CodeRange.empty())
+    return false;
+  std::string_view OurCode = extractCodeFromConflictRange(
+      CodeRange, magic_enum::enum_name(ConflictMark::OURS),
+      magic_enum::enum_name(ConflictMark::BASE));
+  std::string_view BaseCode = extractCodeFromConflictRange(
+      CodeRange, magic_enum::enum_name(ConflictMark::BASE),
+      magic_enum::enum_name(ConflictMark::THEIRS));
+  std::string_view TheirCode = extractCodeFromConflictRange(
+      CodeRange, magic_enum::enum_name(ConflictMark::THEIRS),
+      magic_enum::enum_name(ConflictMark::END));
+  if (Our.empty() && TheirCode == BaseCode) {
+    BRR.code = Our;
     BRR.desc = "单边删除";
-    spdlog::info("deletion detected for conflict block[{}] in file[{}]",
+    spdlog::info("deletion detected for conflict block [{}] in file [{}]",
+                 BRR.index, CF.Filename);
+    return true;
+  }
+  if (Their.empty() && OurCode == BaseCode) {
+    BRR.code = Their;
+    BRR.desc = "单边删除";
+    spdlog::info("deletion detected for conflict block [{}] in file [{}]",
                  BRR.index, CF.Filename);
     return true;
   }
   return false;
 }
+
+// bool TextBasedHandler::checkDeletion(std::string_view Our,
+//                                      std::string_view Their,
+//                                      const ConflictFile &CF,
+//                                      server::BlockResolutionResult &BRR) {
+//   if (!Our.empty() && !Their.empty())
+//     return false;
+//   using namespace llvm;
+//   fs::path Relative = fs::relative(CF.Filename, Meta.ProjectPath);
+//   fs::path BaseFile =
+//       fs::path(Meta.MSCacheDir) / magic_enum::enum_name(Side::BASE) /
+//       Relative;
+//
+//   ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
+//       MemoryBuffer::getFile(BaseFile.string());
+//   if (auto Err = FileOrErr.getError()) {
+//     spdlog::error("failed to extract conflict block for base side file[{}], "
+//                   "err message: {}",
+//                   BaseFile.string(), Err.message());
+//     return false;
+//   }
+//   std::unique_ptr<MemoryBuffer> File = std::move(FileOrErr.get());
+//
+//   std::string ToLookup =
+//       Our.empty() ? trim(std::string(Their)) : trim(std::string(Our));
+//   bool FoundNonEmpty = _details::isConflictBlockInBuffer(
+//       ToLookup, File->getBufferStart(), File->getBufferEnd(),
+//       File->getBufferSize());
+//   if (FoundNonEmpty) {
+//     BRR.code = "";
+//     BRR.desc = "单边删除";
+//     spdlog::info("deletion detected for conflict block[{}] in file[{}]",
+//                  BRR.index, CF.Filename);
+//     return true;
+//   }
+//   return false;
+// }
 } // namespace sa
 } // namespace mergebot

@@ -29,6 +29,7 @@ private:
                       server::BlockResolutionResult &BRR);
   bool doListMerge(std::string_view Our, std::string_view Their,
                    ConflictFile const &CF, server::BlockResolutionResult &BRR);
+  void threeWayMerge(std::vector<ConflictFile> &ConflictFiles);
 };
 
 } // namespace sa
