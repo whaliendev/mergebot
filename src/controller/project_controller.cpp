@@ -265,7 +265,9 @@ void _goResolve(std::string project, std::string path, std::string ours,
 
 /// \brief set merge scenario resolution algorithm running sign in
 /// projDir/msName dir. Note that this method should be called in a thread-safe
-/// context. \param projDir project cache dir \param msName merge scenario name
+/// context.
+/// \param projDir project cache dir
+/// \param msName merge scenario name
 void _setRunningSign(std::string const& projDir, std::string const& msName) {
   fs::path msPath = fs::path(projDir) / msName;
   // clang-format off

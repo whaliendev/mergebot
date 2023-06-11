@@ -13,7 +13,6 @@
 #include <spdlog/spdlog.h>
 
 #include <unordered_set>
-#include <vector>
 
 #include "git2.h"
 #include "mergebot/core/model/SimplifiedDiffDelta.h"
