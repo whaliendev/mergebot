@@ -7,6 +7,9 @@ find_package(spdlog REQUIRED)
 find_package(magic_enum REQUIRED)
 find_package(Clang REQUIRED)
 find_package(TBB REQUIRED)
+find_package(Boost 1.71 REQUIRED
+        COMPONENTS
+        graph)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 find_package(TreeSitter MODULE REQUIRED)
@@ -49,7 +52,8 @@ target_link_libraries(${PROJECT_NAME}-dep
         re2::re2
         TBB::tbb
         tree-sitter::tree-sitter
-        tree-sitter::tree-sitter-cpp)
+        tree-sitter::tree-sitter-cpp
+        Boost::graph)
 
 add_executable(
         ${PROJECT_NAME}

@@ -4,28 +4,23 @@
 
 #include "mergebot/core/handler/ASTBasedHandler.h"
 #include "mergebot/core/model/ConflictFile.h"
+#include "mergebot/core/semantic/GraphBuilder.h"
 #include "mergebot/core/semantic/SourceCollectorV2.h"
 #include "mergebot/filesystem.h"
 #include "mergebot/utils/fileio.h"
-
-#include <clang/Frontend/ASTUnit.h>
-#include <clang/Lex/Preprocessor.h>
+#include "mergebot/utils/stringop.h"
 #include <clang/Tooling/CompilationDatabase.h>
 #include <clang/Tooling/JSONCompilationDatabase.h>
-#include <clang/Tooling/Tooling.h>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
-#include <llvm/ADT/DenseSet.h>
 #include <llvm/ADT/StringRef.h>
-#include <memory>
 #include <oneapi/tbb/task_group.h>
 #include <oneapi/tbb/tick_count.h>
 #include <re2/re2.h>
 #include <spdlog/spdlog.h>
 #include <sstream>
 #include <system_error>
-#include <unordered_set>
 #include <vector>
 
 namespace mergebot {
@@ -39,13 +34,13 @@ void ASTBasedHandler::resolveConflictFiles(
   assert(ConflictFiles.size() &&
          "ConflictFile sizes should be greater than zero");
 
+  /// init CompDB
   spdlog::info("we are resolving conflicts using AST based handler");
   if (!fs::exists(OurCompDB) || !fs::exists(TheirCompDB) ||
       !fs::exists(BaseCompDB)) {
     spdlog::warn("CompDB doesn't exist, we'll skip AST based handler");
     return;
   }
-
   tbb::tick_count Start = tbb::tick_count::now();
   tbb::task_group TG;
   TG.run([&]() { replaceProjPath(OurCompDB, OurDir); });
@@ -55,9 +50,7 @@ void ASTBasedHandler::resolveConflictFiles(
   tbb::tick_count End = tbb::tick_count::now();
   spdlog::info("it takes {} ms to fine tune copied compile commands",
                (End - Start).seconds() * 1000);
-
   initCompDB();
-
   auto &[OurCompilations, ok1] = OurCompilationsPair;
   auto &[BaseCompilations, ok2] = BaseCompilationsPair;
   auto &[TheirCompilations, ok3] = TheirCompilationsPair;
@@ -66,10 +59,37 @@ void ASTBasedHandler::resolveConflictFiles(
     return;
   }
 
+  /// do variant intelli merge
+  // 1. Collect Sources set to analyze
   SourceCollectorV2 SC(Meta, OurCompilations, BaseCompilations,
                        TheirCompilations);
   SC.collectAnalysisSources();
   SourceCollectorV2::AnalysisSourceTuple ST = SC.analysisSourceTuple();
+
+  // 2. Get Graph representation of 3 commit nodes
+  std::vector<std::string> ConflictPaths;
+  ConflictPaths.reserve(ConflictFiles.size());
+  for (ConflictFile const &CF : ConflictFiles) {
+    std::string RelativePath = fs::relative(CF.Filename, Meta.ProjectPath);
+    if (util::starts_with(RelativePath, "./")) {
+      RelativePath.erase(0, 2);
+    }
+    ConflictPaths.push_back(std::move(RelativePath));
+  }
+  Start = tbb::tick_count::now();
+  GraphBuilder OurBuilder(Side::OURS, Meta, ConflictPaths, ST.OurSourceList,
+                          ST.OurDirectIncluded);
+  GraphBuilder BaseBuilder(Side::BASE, Meta, ConflictPaths, ST.BaseSourceList,
+                           ST.BaseDirectIncluded);
+  GraphBuilder TheirBuilder(Side::THEIRS, Meta, ConflictPaths,
+                            ST.TheirSourceList, ST.TheirDirectIncluded);
+  TG.run([&OurBuilder]() { OurBuilder.build(); });
+  TG.run([&BaseBuilder]() { BaseBuilder.build(); });
+  TG.run([&TheirBuilder]() { TheirBuilder.build(); });
+  TG.wait();
+  End = tbb::tick_count::now();
+  spdlog::info("it takes {} ms to build 3 commit nodes' graph representation",
+               (End - Start).seconds() * 1000);
 }
 
 bool ASTBasedHandler::replaceProjPath(std::string const &CompDBPath,
