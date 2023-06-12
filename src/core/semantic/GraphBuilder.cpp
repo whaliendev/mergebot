@@ -3,7 +3,9 @@
 //
 
 #include "mergebot/core/semantic/GraphBuilder.h"
+
 #include "mergebot/filesystem.h"
+#include "mergebot/lsp/client.h"
 #include <magic_enum.hpp>
 
 namespace mergebot {

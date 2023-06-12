@@ -10,6 +10,7 @@
 #include "mergebot/core/model/SemanticEdge.h"
 #include "mergebot/core/model/SemanticNode.h"
 #include "mergebot/core/model/Side.h"
+#include "mergebot/lsp/client.h"
 #include <boost/graph/graph_selectors.hpp>
 #include <memory>
 #include <string>
