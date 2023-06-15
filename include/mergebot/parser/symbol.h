@@ -20,6 +20,7 @@ class Symbol {
 
   constexpr operator TSSymbol() const { return symbol; }
 
+  static std::string nameOfSymbol(TSLanguage const* language, TSSymbol sym);
   TSSymbol symbol;
   const char* name;
 };

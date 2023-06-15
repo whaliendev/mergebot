@@ -72,5 +72,8 @@ void Parser::resetParsing() const { ts_parser_reset(parser); }
 void Parser::exportToDotGraphs(int file) const {
   ts_parser_print_dot_graphs(parser, file);
 }
+std::string Parser::nameOfSymbol(TSSymbol symbol) const {
+  return ts_language_symbol_name(language(), symbol);
+}
 }  // namespace ts
 }  // namespace mergebot

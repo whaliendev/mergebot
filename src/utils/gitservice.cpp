@@ -19,7 +19,7 @@
 
 namespace mergebot {
 namespace util {
-bool isCppSource(std::string_view path) {
+bool isCppFile(std::string_view path) {
   using namespace std::string_view_literals;
   std::unordered_set<std::string_view> cpp_exts = {
       ".h", ".hpp", ".c", ".cc", ".cp", ".C", ".cxx", ".cpp", ".c++"};
@@ -33,7 +33,7 @@ namespace detail {
 int each_file_cb(const git_diff_delta *delta, float progress, void *payload) {
   auto diff_set =
       static_cast<std::unordered_set<sa::SimplifiedDiffDelta> *>(payload);
-  if (isCppSource(delta->new_file.path)) {
+  if (isCppFile(delta->new_file.path)) {
     diff_set->insert(sa::SimplifiedDiffDelta{
         .OldPath = delta->old_file.path,
         .NewPath = delta->new_file.path,

@@ -248,13 +248,26 @@ void _goResolve(std::string project, std::string path, std::string ours,
       std::make_shared<sa::ResolutionManager>(
           std::move(project), std::move(path), std::move(ms),
           std::move(conflictFiles), cppSources.size());
-  // call its async doResolution method to do resolution
-  resolutionManager->doResolution();
+  try {
+    // call its async doResolution method to do resolution
+    resolutionManager->doResolution();
+  } catch (const std::exception& ex) {
+    const fs::path runningSign =
+        fs::path(resolutionManager->mergeScenarioPath()) / "running";
+    if (fs::exists(runningSign)) {
+      fs::remove(runningSign);
+      spdlog::info("unexpected error caught: {}, unlock merge scenario\n\n\n",
+                   ex.what());
+    }
+    throw ex;
+  }
 }
 
 /// \brief set merge scenario resolution algorithm running sign in
 /// projDir/msName dir. Note that this method should be called in a thread-safe
-/// context. \param projDir project cache dir \param msName merge scenario name
+/// context.
+/// \param projDir project cache dir
+/// \param msName merge scenario name
 void _setRunningSign(std::string const& projDir, std::string const& msName) {
   fs::path msPath = fs::path(projDir) / msName;
   // clang-format off

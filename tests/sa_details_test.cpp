@@ -7,16 +7,7 @@
 
 #include "mergebot/core/magic_enum_customization.h"
 #include "mergebot/core/model/ConflictMark.h"
-
-namespace mergebot {
-namespace sa {
-namespace _details {
-std::string_view extractCodeFromConflictRange(std::string_view Source,
-                                              std::string_view StartMark,
-                                              std::string_view EndMarker);
-}
-}  // namespace sa
-}  // namespace mergebot
+#include "mergebot/core/sa_utility.h"
 
 TEST(SADetailsTest, ExtractCodeFromConflictRangeTest) {
   // clang-format off
@@ -40,10 +31,10 @@ I'm in sa_details_test
   };
   // clang-format on
   using namespace mergebot::sa;
-  std::string_view OurCode = _details::extractCodeFromConflictRange(
+  std::string_view OurCode = extractCodeFromConflictRange(
       TwoSideCF, magic_enum::enum_name(ConflictMark::OURS),
       magic_enum::enum_name(ConflictMark::THEIRS));
-  std::string_view TheirCode = _details::extractCodeFromConflictRange(
+  std::string_view TheirCode = extractCodeFromConflictRange(
       TwoSideCF, magic_enum::enum_name(ConflictMark::THEIRS),
       magic_enum::enum_name(ConflictMark::END));
   EXPECT_EQ(ExpectedTwoSideCodes, std::make_pair(OurCode, TheirCode));
@@ -67,10 +58,10 @@ R"(            for (int i = 0; i < languages.size(); i++)
   };
   // clang-format on
   using namespace mergebot::sa;
-  OurCode = _details::extractCodeFromConflictRange(
+  OurCode = extractCodeFromConflictRange(
       CppCheckCF, magic_enum::enum_name(ConflictMark::OURS),
       magic_enum::enum_name(ConflictMark::BASE));
-  TheirCode = _details::extractCodeFromConflictRange(
+  TheirCode = extractCodeFromConflictRange(
       CppCheckCF, magic_enum::enum_name(ConflictMark::THEIRS),
       magic_enum::enum_name(ConflictMark::END));
   EXPECT_EQ(ExpectedCppCheckCode, std::make_pair(OurCode, TheirCode));
@@ -95,7 +86,7 @@ I'm in sa_details_test
   //      magic_enum::enum_name(ConflictMark::END));
   ASSERT_DEATH(
       {
-        _details::extractCodeFromConflictRange(
+        extractCodeFromConflictRange(
             OurSideDeathCF, magic_enum::enum_name(ConflictMark::OURS),
             magic_enum::enum_name(ConflictMark::THEIRS));
       },

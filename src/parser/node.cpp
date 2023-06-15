@@ -8,8 +8,10 @@
 
 #include <cassert>
 #include <cstddef>
+#include <memory>
 #include <optional>
 
+#include "mergebot/parser/tree.h"
 #include "mergebot/parser/tree_cursor.h"
 
 namespace mergebot {
@@ -36,7 +38,7 @@ bool Node::isNamed() const { return ts_node_is_named(node); }
 bool Node::isMissing() const { return ts_node_is_missing(node); }
 bool Node::hasChanges() const { return ts_node_has_changes(node); }
 bool Node::hasError() const { return ts_node_has_error(node); }
-std::optional<Node> Node::parent() {
+std::optional<Node> Node::parent() const {
   TSNode nodeOrNull = ts_node_parent(node);
   if (ts_node_is_null(nodeOrNull)) {
     return std::nullopt;
@@ -131,7 +133,7 @@ std::optional<Node> Node::nextSibling() {
   return Node(nodeOrNull, tree);
 }
 
-std::optional<Node> Node::nextNamedSibling() {
+std::optional<Node> Node::nextNamedSibling() const {
   TSNode nodeOrNull = ts_node_next_named_sibling(node);
   if (ts_node_is_null(nodeOrNull)) {
     return std::nullopt;
@@ -139,7 +141,7 @@ std::optional<Node> Node::nextNamedSibling() {
   return Node(nodeOrNull, tree);
 }
 
-std::optional<Node> Node::prevSibling() {
+std::optional<Node> Node::prevSibling() const {
   TSNode nodeOrNull = ts_node_prev_sibling(node);
   if (ts_node_is_null(nodeOrNull)) {
     return std::nullopt;
@@ -147,7 +149,7 @@ std::optional<Node> Node::prevSibling() {
   return Node(nodeOrNull, tree);
 }
 
-std::optional<Node> Node::prevNamedSibling() {
+std::optional<Node> Node::prevNamedSibling() const {
   TSNode nodeOrNull = ts_node_prev_named_sibling(node);
   if (ts_node_is_null(nodeOrNull)) {
     return std::nullopt;

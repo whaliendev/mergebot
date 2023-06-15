@@ -170,6 +170,41 @@ void tidyUpConflictBlocks(std::vector<ConflictBlock> &ConflictBlocks) {
     ConflictBlocks = NewConflictBlocks;
   }
 }
+
+// 判断一行是否为空行
+bool isBlankLine(const std::string &line) {
+  for (const char &c : line) {
+    if (!isspace(c))
+      return false;
+  }
+  return true;
+}
+
+// 去除一行的注释
+std::string removeComment(const std::string &line) {
+  std::string result;
+  bool inSingleQuote = false;
+  bool inDoubleQuote = false;
+  for (size_t i = 0; i < line.size(); i++) {
+    char c = line[i];
+    if (c == '\'') {
+      inSingleQuote = !inSingleQuote;
+      result += c;
+    } else if (c == '\"') {
+      inDoubleQuote = !inDoubleQuote;
+      result += c;
+    } else if (inSingleQuote || inDoubleQuote) {
+      result += c;
+    } else {
+      if (i < line.size() - 1 && c == '/' && line[i + 1] == '/') {
+        break;
+      } else {
+        result += c;
+      }
+    }
+  }
+  return result;
+}
 } // namespace _details
 
 void handleSAExecError(std::error_code err, std::string_view cmd) {
@@ -255,6 +290,7 @@ void marshalResolutionResult(
     server::FileResolutionResult FileResolved = ResolvedJson;
     std::vector<server::BlockResolutionResult> &Resolutions =
         FileResolved.resolutions;
+    // TODO(whalien): fix overlap
 #ifndef NDEBUG
     // this check is rather inefficient and the situation is almost impossible
     // to happen, so we only perform this check at debug phase
@@ -289,6 +325,40 @@ std::string nameToPath(std::string_view name) {
                            return P / fs::path(seg);
                          })
       .string();
+}
+
+std::string_view extractCodeFromConflictRange(std::string_view Source,
+                                              std::string_view StartMark,
+                                              std::string_view EndMarker) {
+  size_t StartPos = Source.find(StartMark);
+  // NOLINT(google-readability-braces-around-statements)
+  while (StartPos != std::string_view::npos && StartPos != Source.length() &&
+         Source[StartPos++] != '\n')
+    ;
+  assert(StartPos != std::string_view::npos && StartPos != Source.length() &&
+         "illegal conflict range, start marker line is in bad format");
+  size_t EndPos = Source.find(EndMarker, StartPos);
+  assert(EndPos != std::string_view::npos &&
+         "illegal conflict range, no end marker");
+  if (StartPos == std::string_view::npos || StartPos == Source.length() ||
+      EndPos == std::string_view::npos) {
+    return std::string_view();
+  }
+  return Source.substr(StartPos, EndPos - StartPos);
+}
+
+// 去除代码前后的空行和行内的注释
+std::string trim(const std::string &code) {
+  std::string str = code;
+  // Remove leading blank lines
+  while (str.length() > 0 && str[0] == '\n') {
+    str.erase(0, 1);
+  }
+  // Remove trailing blank lines
+  while (str.length() > 0 && str[str.length() - 1] == '\n') {
+    str.erase(str.length() - 1, 1);
+  }
+  return str;
 }
 
 } // namespace sa

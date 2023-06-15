@@ -104,6 +104,8 @@ class Parser {
   void cancelParsing();
   bool cancelled() const;
 
+  std::string nameOfSymbol(TSSymbol) const;
+
   /**
    * Set the file descriptor to which the parser should write debugging graphs
    * during parsing. The graphs are formatted in the DOT language. You may want
