@@ -24,7 +24,7 @@ ssize_t JSONRpcEndpoint::SendRequest(const RpcRequestBody& json) {
     return 0;
   }
 
-  return bytesWritten;  // Placeholder for the return value
+  return bytesWritten;
 }
 
 std::optional<JSONRpcEndpoint::RpcResponseBody>
