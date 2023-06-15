@@ -226,5 +226,13 @@ std::optional<URI> URI::parse(std::string_view origUri) {
   out.body_ = percentDecode(uri);
   return out;
 }
+
+std::optional<URIForFile> URIForFile::fromURI(std::string_view uri,
+                                              std::string_view hintPath) {
+  auto uriOpt = URI::parse(uri);
+  assert(uriOpt && "illegal uri");
+  // use file path to construct a URIForFile
+  return URIForFile(std::string(uriOpt->body()));
+}
 }  // namespace lsp
 }  // namespace mergebot

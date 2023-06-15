@@ -97,6 +97,7 @@ class URI {
 // URI in "file" scheme for a file.
 struct URIForFile {
   URIForFile() = default;
+  URIForFile(const std::string &file) : file(file) {}
 
   /// Canonicalizes \p AbsPath via URI.
   ///
@@ -111,8 +112,8 @@ struct URIForFile {
   //  static URIForFile canonicalize(std::string_view absPath,
   //                                 std::string_view TUPath);
 
-  //  static std::optional<URIForFile> fromURI(const URI &uri,
-  //                                           std::string_view hintPath);
+  static std::optional<URIForFile> fromURI(std::string_view uri,
+                                           std::string_view hintPath = "");
 
   explicit operator bool() const { return !file.empty(); }
   std::string uri() const { return URI::createFile(file).toString(); }
@@ -132,7 +133,7 @@ struct URIForFile {
   std::string file;
 
  private:
-  explicit URIForFile(std::string &&file) : file(std::move(file)) {}
+  URIForFile(std::string &&file) : file(std::move(file)) {}
 };
 }  // namespace lsp
 }  // namespace mergebot

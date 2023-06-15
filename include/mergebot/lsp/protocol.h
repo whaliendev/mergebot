@@ -7,6 +7,7 @@
 
 #include <magic_enum.hpp>
 
+#include "mergebot/utils/stringop.h"
 #include "uri.h"
 
 #define MAP_JSON(...) \
@@ -56,7 +57,7 @@ class LSPError {
   ErrorCode code;
   static char id;
 
-  LSPError(std::string message, ErrorCode code)
+  LSPError(const std::string& message, ErrorCode code)
       : message(message), code(code) {}
 
   std::string toString() const {
@@ -353,15 +354,15 @@ struct ClientCapabilities {
 
   /// Client supports displaying a container string for results of
   /// textDocument/reference (clangd extension)
-  bool ReferenceContainer = false;
+  bool ReferenceContainer = true;
 
   /// Client supports hierarchical document symbols.
   /// textDocument.documentSymbol.hierarchicalDocumentSymbolSupport
-  bool HierarchicalDocumentSymbol = false;
+  bool HierarchicalDocumentSymbol = true;
 
   /// Client supports signature help.
   /// textDocument.signatureHelp
-  bool HasSignatureHelp = false;
+  bool HasSignatureHelp = true;
 
   /// Client signals that it only supports folding complete lines.
   /// Client will ignore specified `startCharacter` and `endCharacter`
@@ -436,6 +437,7 @@ struct ClientCapabilities {
     for (size_t i = CompletionItemKindMax; i <= CompletionItemKindMax; ++i) {
       CompletionItemKinds.push_back(static_cast<CompletionItemKind>(i));
     }
+    offsetEncoding = {OffsetEncoding::UTF8};
   }
 };
 
@@ -493,6 +495,7 @@ struct InitializeParams {
   unsigned processId = 0;
   ClientCapabilities capabilities;
   std::optional<URIForFile> rootUri;
+  /// @deprecated in favour of rootUri
   std::optional<TextType> rootPath;
   InitializationOptions initializationOptions;
 };
@@ -806,8 +809,8 @@ struct SymbolDetails {
   /// Unlike SymbolID, it is variable-length and somewhat human-readable.
   /// It is a common representation across several clang tools.
   /// (See USRGeneration.h)
-  TextType USR;
-  std::optional<TextType> ID;
+  TextType usr;
+  std::optional<TextType> id;
 };
 
 struct WorkspaceSymbolParams {
@@ -932,8 +935,8 @@ struct CompletionItem {
   /// This is a clangd extension.
   float score = 0.f;
 
-  // TODO: Add custom commitCharacters for some of the completion items. For
-  // example, it makes sense to use () only for the functions.
+  // TODO(krasimir): Add custom commitCharacters for some of the completion
+  // items. For example, it makes sense to use () only for the functions.
   // TODO(krasimir): The following optional fields defined by the language
   // server protocol are unsupported:
   //
@@ -1083,9 +1086,8 @@ struct FileStatus {
   /// The human-readable string presents the current state of the file, can be
   /// shown in the UI (e.g. status bar).
   TextType state;
-  // FIXME: add detail messages.
+  // FIXME(krasimir): add detail messages.
 };
-
 }  // namespace lsp
 }  // namespace mergebot
 
@@ -1113,8 +1115,19 @@ struct adl_serializer<std::optional<T>> {
 };
 
 JSON_SERIALIZE(
-    mergebot::lsp::URIForFile, { j = value.file; },
-    { value.file = j.get<std::string>(); })
+    mergebot::lsp::URIForFile, { j = value.uri(); },
+    {
+      auto str = j.get<std::string>();
+      auto parsed = mergebot::lsp::URI::parse(str);
+      assert(parsed && "illegal URI");
+      auto uri = parsed.value();
+      assert(uri.scheme() == "file" &&
+             "workspace files can only have 'file' URI scheme");
+      auto uriForFile =
+          mergebot::lsp::URIForFile::fromURI(uri.toString(), /*hintPath=*/"");
+      assert(uriForFile && "unresolvable URI");
+      value = std::move(uriForFile.value());
+    })
 
 JSON_SERIALIZE(mergebot::lsp::TextDocumentIdentifier, MAP_JSON(MAP_KEY(uri)),
                {})
@@ -1328,6 +1341,13 @@ JSON_SERIALIZE(mergebot::lsp::SymbolInformation,
                  FROM_KEY(location);
                  FROM_KEY(containerName)
                })
+
+JSON_SERIALIZE(mergebot::lsp::SymbolDetails,
+               MAP_JSON(MAP_KEY(name), MAP_KEY(containerName), MAP_KEY(usr),
+                        MAP_KEY(id)),
+               {FROM_KEY(name) FROM_KEY(containerName) FROM_KEY(usr)
+                    FROM_KEY(id)})
+
 JSON_SERIALIZE(mergebot::lsp::WorkspaceSymbolParams, MAP_JSON(MAP_KEY(query)),
                {})
 JSON_SERIALIZE(mergebot::lsp::TextDocumentPositionParams,
