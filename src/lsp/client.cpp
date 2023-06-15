@@ -242,8 +242,6 @@ void LspEndpoint::handleResult(int rpcId,
   if (rpcId == -1) return;
   std::unique_lock<std::mutex> lock(cvMutex);
   responseDict[rpcId] = std::make_pair(result, error);
-  SPDLOG_INFO("result: {}", result.dump());
-  SPDLOG_INFO("error: {}", error.dump());
   auto it = eventDict.find(rpcId);
   lock.unlock();
   if (it != eventDict.end()) {
