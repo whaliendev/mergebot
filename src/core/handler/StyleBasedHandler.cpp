@@ -38,12 +38,15 @@ void StyleBasedHandler::resolveConflictFiles(
 
   spdlog::info("we are resolving conflicts using style based handler...");
 
-  std::string_view FirstCR = ConflictFiles[0].ConflictBlocks[0].ConflictRange;
-  size_t OurPos = FirstCR.find(magic_enum::enum_name(ConflictMark::OURS));
-  size_t BasePos = FirstCR.find(magic_enum::enum_name(ConflictMark::BASE));
-  size_t TheirPos = FirstCR.find(magic_enum::enum_name(ConflictMark::THEIRS));
-  size_t EndPos = std::string_view::npos;
-  bool WithBase = OurPos != EndPos && BasePos != EndPos && TheirPos != EndPos;
+  bool WithBase = false;
+  if (ConflictFiles[0].ConflictBlocks.size() != 0) {
+    std::string_view FirstCR = ConflictFiles[0].ConflictBlocks[0].ConflictRange;
+    size_t OurPos = FirstCR.find(magic_enum::enum_name(ConflictMark::OURS));
+    size_t BasePos = FirstCR.find(magic_enum::enum_name(ConflictMark::BASE));
+    size_t TheirPos = FirstCR.find(magic_enum::enum_name(ConflictMark::THEIRS));
+    size_t EndPos = std::string_view::npos;
+    WithBase = OurPos != EndPos && BasePos != EndPos && TheirPos != EndPos;
+  }
 
   // check resolved, check not resolved
   for (ConflictFile &CF : ConflictFiles) {

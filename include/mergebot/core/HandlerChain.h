@@ -38,9 +38,12 @@ public:
     std::stringstream SS;
     SS << std::fixed << std::setprecision(2) << Ratio << " %";
     spdlog::info("resolve ratio at this merge scenario is: {}", SS.str());
+    writeResolveRatio(ConflictBlockCount,
+                      ConflictBlockCount - AfterResolveCount);
   }
 
 private:
+  void writeResolveRatio(int cbCnt, int resolvedCnt);
   int ConflictBlockCount = 0;
   void chain();
   unsigned countConflictBlocks() const;

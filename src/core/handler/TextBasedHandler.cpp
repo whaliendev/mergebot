@@ -515,12 +515,16 @@ void TextBasedHandler::resolveConflictFiles(
          "ConflictFile sizes should be greater than zero");
 
   spdlog::info("we are resolving conflicts using heuristic based handler...");
-  std::string_view FirstCR = ConflictFiles[0].ConflictBlocks[0].ConflictRange;
-  size_t OurPos = FirstCR.find(magic_enum::enum_name(ConflictMark::OURS));
-  size_t BasePos = FirstCR.find(magic_enum::enum_name(ConflictMark::BASE));
-  size_t TheirPos = FirstCR.find(magic_enum::enum_name(ConflictMark::THEIRS));
-  size_t EndPos = std::string_view::npos;
-  bool WithBase = OurPos != EndPos && BasePos != EndPos && TheirPos != EndPos;
+  // TODO(hwa): squirrel bug, find why
+  bool WithBase = false;
+  if (ConflictFiles[0].ConflictBlocks.size() != 0) {
+    std::string_view FirstCR = ConflictFiles[0].ConflictBlocks[0].ConflictRange;
+    size_t OurPos = FirstCR.find(magic_enum::enum_name(ConflictMark::OURS));
+    size_t BasePos = FirstCR.find(magic_enum::enum_name(ConflictMark::BASE));
+    size_t TheirPos = FirstCR.find(magic_enum::enum_name(ConflictMark::THEIRS));
+    size_t EndPos = std::string_view::npos;
+    WithBase = OurPos != EndPos && BasePos != EndPos && TheirPos != EndPos;
+  }
 
   threeWayMerge(ConflictFiles);
   for (ConflictFile &CF : ConflictFiles) {

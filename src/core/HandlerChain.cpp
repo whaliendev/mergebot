@@ -4,6 +4,8 @@
 
 #include "mergebot/core/HandlerChain.h"
 #include "mergebot/core/model/ConflictFile.h"
+#include "mergebot/utils/pathop.h"
+#include <fstream>
 #include <memory>
 #include <numeric>
 #include <vector>
@@ -23,6 +25,22 @@ unsigned HandlerChain::countConflictBlocks() const {
                          [&](int Cnt, const ConflictFile &Cur) {
                            return Cnt + Cur.ConflictBlocks.size();
                          });
+}
+
+void HandlerChain::writeResolveRatio(int cbCnt, int resolvedCnt) {
+  fs::path ratioPath = fs::path(util::toabs("~/.mergebot")) / "ratio.csv";
+  FILE *file = fopen(ratioPath.c_str(), "a");
+  if (file == nullptr) {
+    spdlog::error("unable to write to file\n");
+    return;
+  }
+
+  int number1 = cbCnt;
+  int number2 = resolvedCnt;
+  fprintf(file, "%d, %d\n", number1, number2);
+
+  spdlog::info("write to ratio file successfully");
+  fclose(file);
 }
 } // namespace sa
 } // namespace mergebot
