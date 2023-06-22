@@ -79,6 +79,7 @@ void ResolutionManager::_doResolutionAsync(
         return std::move(pre) + " " + std::string(cur);
       });
   spdlog::debug("conflict file list: {}", FileList);
+  // FIXME(hwa): remove rsync deps
   auto CMD = fmt::format("rsync -auLv {} {}", FileList, ConflictDest.string());
   llvm::ErrorOr<std::string> CopyResultOrErr = util::ExecCommand(CMD);
   if (!CopyResultOrErr) {
@@ -167,7 +168,6 @@ void ResolutionManager::_doResolutionAsync(
   HandlerChain Chain(std::move(Handlers), CSources);
   Chain.handle();
 
-  // TODO(hwa): Remember to remove running sign at last
   const fs::path RunningSign = fs::path(Self->mergeScenarioPath()) / "running";
   if (fs::exists(RunningSign)) {
     fs::remove(RunningSign);
@@ -195,7 +195,7 @@ void ResolutionManager::_generateCompDB(
   }
 
   // generate CompDB.
-  // At this stage, we simply move the 2 compile_commands to mergescenario dir
+  // At this stage, we simply move the 2 compile_commands to merge scenario dir
   // TODO(hwa): Generate CompDB
   //  spdlog::info("Generate CompDB for {} successfully", SourceDest);
 }

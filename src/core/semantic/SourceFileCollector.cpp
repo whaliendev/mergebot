@@ -14,7 +14,6 @@ namespace mergebot {
 namespace sa {
 void SourceFileCollector::collectAnalysisSources() {
   computeDiffDeltas();
-  // TODO(hwa): lookup included files, currently we don't support this feature
   if (LookupIncluded) {
     if (OnlyBothModified) {
       collectIncludedFiles(Side::OURS, FileSet.BothModifiedDiffDeltas,
