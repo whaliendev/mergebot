@@ -206,7 +206,7 @@ void ResolutionManager::_doResolutionAsync(
   });
   TG.wait();
   tbb::tick_count End = tbb::tick_count::now();
-  spdlog::info("it takes {} ms to copy 3(or 2) versions' source and fine tune "
+  spdlog::info("it takes {}ms to copy 3(or 2) versions' sources and fine tune "
                "CompDB\n\n\n",
                (End - Start).seconds() * 1000);
   assert(fs::exists(OursPath) && fs::exists(TheirsPath) &&
@@ -248,7 +248,7 @@ void ResolutionManager::prepareSource(
   if (!Success) {
     spdlog::error("fail to dump version {} to {}", CommitHash, SourceDest);
   } else {
-    spdlog::info("source code of commit {} prepared, written to {}", CommitHash,
+    spdlog::info("sources of commit {} prepared, written to {}", CommitHash,
                  SourceDest);
   }
 

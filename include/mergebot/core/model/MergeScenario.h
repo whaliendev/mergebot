@@ -29,11 +29,11 @@ struct MergeScenario {
     // clang-format off
     return fmt::format(
 R"(MergeScenario(
-    name = {},
-    ours = {},
-    theirs = {},
-    base = {}
-))", name, ours, theirs, base);
+      name = {},
+      ours = {},
+      theirs = {},
+      base = {}
+    ))", name, ours, theirs, base);
     // clang-format on
   }
   MergeScenario() = default;
