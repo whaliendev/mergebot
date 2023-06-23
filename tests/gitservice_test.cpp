@@ -26,5 +26,23 @@ TEST(GitServiceTest, ListCppDiffFilesTest) {
       diff_set.begin(), diff_set.end(),
       [](SimplifiedDiffDelta const& sdd) { std::cout << sdd << "\n"; });
 }
+
+TEST(GitServiceTest, DumpTreeObjectTest) {
+  std::string rocksdb_path = "/home/whalien/Desktop/rocksdb/.git";
+  fs::path rocksdb = fs::path(rocksdb_path);
+  if (!fs::exists(rocksdb) || !fs::is_directory(rocksdb)) {
+    GTEST_SKIP();
+  }
+
+  std::string commit_hash = "28d1a0c6f59cfdc692a7274f8816b87af7a1d8cc";
+  auto start = std::chrono::high_resolution_clock::now();
+  mergebot::util::dump_tree_object_to("/tmp/rocksdb", commit_hash,
+                                      rocksdb_path);
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  spdlog::info("it takes {} ms to copy commit hash {}", duration.count(),
+               commit_hash);
+}
 }  // namespace sa
 }  // namespace mergebot
