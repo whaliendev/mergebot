@@ -8,6 +8,8 @@
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include <memory>
+#include <oneapi/tbb/task_group.h>
+#include <oneapi/tbb/tick_count.h>
 #include <spdlog/spdlog.h>
 #include <system_error>
 #include <thread>
@@ -20,10 +22,15 @@
 #include "mergebot/core/handler/TextBasedHandler.h"
 #include "mergebot/core/sa_utility.h"
 #include "mergebot/utils/ThreadPool.h"
+#include "mergebot/utils/fileio.h"
+#include "mergebot/utils/gitservice.h"
 #include "mergebot/utils/stringop.h"
 
 namespace mergebot {
 namespace sa {
+const std::string ResolutionManager::CompDBRelative =
+    "build/compile_commands.json";
+
 void ResolutionManager::doResolution() {
   // remember to clear running sign
   // clang-format off
@@ -86,16 +93,9 @@ void ResolutionManager::_doResolutionAsync(
     sa::handleSAExecError(CopyResultOrErr.getError(), CMD);
   }
 
-  // abort merge
-  CMD = fmt::format("(cd {} && git merge --abort)", Self->ProjectPath_);
-  llvm::ErrorOr<std::string> ResultOrErr = util::ExecCommand(CMD);
-  if (!ResultOrErr) {
-    sa::handleSAExecError(ResultOrErr.getError(), CMD);
-  }
-  spdlog::info("abort merge in project [{}], preparing to conduct analysis",
-               Self->Project_);
-
-  // find merge base, then copy to base folder
+  tbb::tick_count Start = tbb::tick_count::now();
+  tbb::task_group TG;
+  spdlog::info("collecting source, preparing to conduct analysis");
   CMD = fmt::format("(cd {} && git merge-base {} {})", Self->ProjectPath_,
                     Self->MS_.ours, Self->MS_.theirs);
   llvm::ErrorOr<std::string> BaseOrErr = util::ExecCommand(CMD);
@@ -109,49 +109,36 @@ void ResolutionManager::_doResolutionAsync(
     spdlog::error("merge base {} of commit {} and commit {} is illegal",
                   BaseCommitHash.substr(0, 8), Self->MS_.ours.substr(0, 8),
                   Self->MS_.theirs.substr(0, 8));
-  } else {
-    Self->MS_.base = BaseCommitHash;
-    // copy to base folder and if possible, generate CompDB
-    const fs::path BasePath = fs::path(Self->mergeScenarioPath()) / "base";
-    ResolutionManager::_generateCompDB(Self, Self->MS_.base, BasePath);
-    spdlog::info(
-        "CompDB for base commit {} in project[{}] generated successfully",
-        BaseCommitHash.substr(0, 8), Self->Project_);
   }
 
-  // checkout to specific merge commit, fast copy to dest, generate CompDB
+  const fs::path BasePath = fs::path(Self->mergeScenarioPath()) / "base";
   const fs::path OursPath = fs::path(Self->mergeScenarioPath()) / "ours";
   const fs::path TheirsPath = fs::path(Self->mergeScenarioPath()) / "theirs";
-  // ours and theirs should not execute parallel, otherwise rsync and git will
-  // collide
-  ResolutionManager::_generateCompDB(Self, Self->MS_.ours, OursPath);
-  ResolutionManager::_generateCompDB(Self, Self->MS_.theirs, TheirsPath);
-  //  spdlog::info("CompDB for ours branch and theirs branch in "
-  //               "project[{}] generated successfully",
-  //               Self->Project_);
+  TG.run([&]() {
+    if (BaseCommitHash.length() == 40) { // success to get base commit
+      Self->MS_.base = BaseCommitHash;
+      // copy to base folder and if possible, prepare CompDB
+      ResolutionManager::prepareSource(Self, Self->MS_.base, BasePath);
+    }
+  });
+  TG.run([&]() {
+    ResolutionManager::prepareSource(Self, Self->MS_.ours, OursPath);
+  });
+  TG.run([&]() {
+    ResolutionManager::prepareSource(Self, Self->MS_.theirs, TheirsPath);
+  });
+  TG.wait();
+  tbb::tick_count End = tbb::tick_count::now();
+  spdlog::info(
+      "it takes {} ms to copy 3(or 2) versions' source and fine tune CompDB",
+      (End - Start).seconds() * 1000);
+  assert(fs::exists(OursPath) && fs::exists(TheirsPath) &&
+         "copy our version's and their version's source failed");
 
-  // restore project to previous state
-  // TODO(hwa): extract following piece of code to a cleanup function
-  const auto RestoreCMD =
-      fmt::format("(cd {} && git checkout {} && git merge {})",
-                  Self->ProjectPath_, Self->MS_.ours, Self->MS_.theirs);
-  llvm::ErrorOr<std::string> RestoreResultOrErr =
-      util::ExecCommand(RestoreCMD, 10, 256);
-  if (!RestoreResultOrErr) {
-    handleSAExecError(RestoreResultOrErr.getError(), RestoreCMD);
-  }
-  spdlog::info("restore merge conflicts in project[{}]\n\n\n"
-               "***  all the preparation work(project[{}]) done, the "
+  spdlog::info("***  all the preparation work(project[{}]) done, the "
                "resolution algorithm starts  ***",
                Self->Project_, Self->Project_);
-
   // task queue -> thread queue -> resolved file
-  //  assert(fs::exists(OursPath) && fs::exists(TheirsPath) &&
-  //         fs::exists(OursPath / "compile_commands.json") &&
-  //         fs::exists(TheirsPath / "compile_commands.json") &&
-  //         "CompDB generation failed");
-  assert(fs::exists(OursPath) && fs::exists(TheirsPath) &&
-         "copy two version sources failed");
   ProjectMeta Meta{
       .Project = Self->Project_,
       .ProjectPath = Self->ProjectPath_,
@@ -175,30 +162,37 @@ void ResolutionManager::_doResolutionAsync(
   }
 }
 
-void ResolutionManager::_generateCompDB(
+void ResolutionManager::prepareSource(
     const std::shared_ptr<ResolutionManager> &Self,
     const std::string &CommitHash, std::string const &SourceDest) {
-  // checkout to specific merge scenario
-  const auto CheckoutCMD =
-      fmt::format("cd {} && git checkout {}", Self->ProjectPath_, CommitHash);
-  const auto CheckoutResultOrErr = util::ExecCommand(CheckoutCMD);
-  if (!CheckoutResultOrErr) {
-    sa::handleSAExecError(CheckoutResultOrErr.getError(), CheckoutCMD);
-  }
-
-  // fast copy to `SourceDest`
-  const auto CopyCMD =
-      fmt::format("rsync -rauLv {} {}", Self->ProjectPath_, SourceDest);
-  const auto CopyResultOrErr = util::ExecCommand(CopyCMD);
-  if (!CopyResultOrErr) {
-    sa::handleSAExecError(CopyResultOrErr.getError(), CopyCMD);
+  // use libgit2 to read commit tree and dump to SourceDest
+  bool Success = mergebot::util::dump_tree_object_to(SourceDest, CommitHash,
+                                                     Self->ProjectPath_);
+  if (!Success) {
+    spdlog::error("fail to dump version {} to {}", CommitHash, SourceDest);
+  } else {
+    spdlog::info("source code of commit prepared, written to {}", CommitHash,
+                 SourceDest);
   }
 
   // generate CompDB.
-  // At this stage, we simply move the 2 compile_commands to merge scenario dir
-  // TODO(hwa): Generate CompDB
-  //  spdlog::info("Generate CompDB for {} successfully", SourceDest);
+  // At this stage, we simply move the 3 compile_commands to merge scenario dir
+  // and do a textual replacement
+  bool fineTuned = false;
+  const fs::path OrigCompDBPath = fs::path(Self->ProjectPath_) / CompDBRelative;
+  if (fs::exists(OrigCompDBPath)) {
+    const fs::path CurCompDBPath = fs::path(SourceDest) / CompDBRelative;
+    bool copied = util::copy_file(OrigCompDBPath, CurCompDBPath);
+    if (copied) {
+      fineTuned = fineTuneCompDB(CurCompDBPath, SourceDest, Self->ProjectPath_);
+      if (fineTuned) {
+        spdlog::info("CompDB fine tuned, written to {}",
+                     CurCompDBPath.string());
+      }
+    }
+  }
 }
+
 std::vector<std::string> ResolutionManager::_extractCppSources() {
   // get conflict files
   std::string Command =
@@ -239,6 +233,42 @@ std::vector<std::string> ResolutionManager::_extractCppSources() {
                  Project_);
   }
   return CSources;
+}
+
+bool ResolutionManager::fineTuneCompDB(const std::string &CompDBPath,
+                                       std::string_view ProjPath,
+                                       const std::string &OrigPath) {
+  std::ifstream CompDB(CompDBPath);
+  if (!CompDB.is_open()) {
+    spdlog::error("failed to open CompDB {}", CompDBPath);
+    return false;
+  }
+
+  std::stringstream ss;
+  std::streambuf *FileBuf = CompDB.rdbuf();
+  char Buffer[4096];
+  std::size_t BytesRead;
+  while ((BytesRead = FileBuf->sgetn(Buffer, sizeof(Buffer))) > 0) {
+    ss.write(Buffer, BytesRead);
+  }
+
+  // remove trailing separator if it has
+  std::string ProjectPath = OrigPath;
+  if (ProjectPath.back() == fs::path::preferred_separator) {
+    ProjectPath.pop_back();
+  }
+  std::string FileData = ss.str();
+  re2::RE2 OriginalPath("(" + re2::RE2::QuoteMeta(ProjectPath) + ")");
+  assert(OriginalPath.ok() && "fail to compile regex for CompDB");
+  int ReplaceCnt = re2::RE2::GlobalReplace(&FileData, OriginalPath, ProjPath);
+#ifndef NDEBUG
+  if (!ReplaceCnt) {
+    spdlog::warn("we replaced 0 original project path, which is weird");
+  }
+#endif
+
+  util::file_overwrite_content(CompDBPath, FileData);
+  return true;
 }
 } // namespace sa
 } // namespace mergebot

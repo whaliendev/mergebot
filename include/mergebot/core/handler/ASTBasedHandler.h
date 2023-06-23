@@ -41,9 +41,6 @@ private:
   //      const std::unique_ptr<clang::tooling::CompilationDatabase> &CompDB)
   //      const;
 
-  bool replaceProjPath(std::string const &CompDBPath,
-                       std::string_view ProjPath) const;
-
   void initCompDB();
 
   const static std::string CompDBRelative;

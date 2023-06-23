@@ -44,15 +44,7 @@ void ASTBasedHandler::resolveConflictFiles(
   //    spdlog::warn("CompDB doesn't exist, we'll skip AST based handler");
   //    return;
   //  }
-  //  tbb::tick_count Start = tbb::tick_count::now();
-  //  tbb::task_group TG;
-  //  TG.run([&]() { replaceProjPath(OurCompDB, OurDir); });
-  //  TG.run([&]() { replaceProjPath(TheirCompDB, TheirDir); });
-  //  TG.run([&]() { replaceProjPath(BaseCompDB, BaseDir); });
-  //  TG.wait();
-  //  tbb::tick_count End = tbb::tick_count::now();
-  //  spdlog::info("it takes {} ms to fine tune copied compile commands",
-  //               (End - Start).seconds() * 1000);
+
   //  initCompDB();
   //  auto &[OurCompilations, ok1] = OurCompilationsPair;
   //  auto &[BaseCompilations, ok2] = BaseCompilationsPair;
@@ -95,41 +87,6 @@ void ASTBasedHandler::resolveConflictFiles(
   //  spdlog::info("it takes {} ms to build 3 commit nodes' graph
   //  representation",
   //               (End - Start).seconds() * 1000);
-}
-
-bool ASTBasedHandler::replaceProjPath(std::string const &CompDBPath,
-                                      std::string_view ProjPath) const {
-  std::ifstream CompDB(CompDBPath);
-  if (!CompDB.is_open()) {
-    spdlog::error("failed to open CompDB {}", CompDBPath);
-    return false;
-  }
-
-  std::stringstream ss;
-  std::streambuf *FileBuf = CompDB.rdbuf();
-  char Buffer[1024];
-  std::size_t BytesRead;
-  while ((BytesRead = FileBuf->sgetn(Buffer, sizeof(Buffer))) > 0) {
-    ss.write(Buffer, BytesRead);
-  }
-
-  // remove trailing separator if it has
-  std::string ProjectPath = Meta.ProjectPath;
-  if (ProjectPath.back() == fs::path::preferred_separator) {
-    ProjectPath.pop_back();
-  }
-  std::string FileData = ss.str();
-  re2::RE2 OriginalPath("(" + re2::RE2::QuoteMeta(ProjectPath) + ")");
-  assert(OriginalPath.ok() && "fail to compile regex for CompDB");
-  int ReplaceCnt = re2::RE2::GlobalReplace(&FileData, OriginalPath, ProjPath);
-#ifndef NDEBUG
-  if (!ReplaceCnt) {
-    spdlog::warn("we replaced 0 original project path, which is weird");
-  }
-#endif
-
-  util::file_overwrite_content(CompDBPath, FileData);
-  return true;
 }
 
 void ASTBasedHandler::initCompDB() {

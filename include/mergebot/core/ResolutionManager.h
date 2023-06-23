@@ -84,12 +84,16 @@ public:
   void doResolution();
 
 private:
+  const static std::string CompDBRelative;
+
+  static bool fineTuneCompDB(const std::string &CompDBPath,
+                             std::string_view ProjPath,
+                             const std::string &OrigPath);
   static void
   _doResolutionAsync(std::shared_ptr<ResolutionManager> const &Self);
-
-  static void _generateCompDB(std::shared_ptr<ResolutionManager> const &Self,
-                              std::string const &CommitHash,
-                              std::string const &SourceDest);
+  static void prepareSource(std::shared_ptr<ResolutionManager> const &Self,
+                            std::string const &CommitHash,
+                            std::string const &SourceDest);
 
   std::vector<std::string> _extractCppSources();
 

@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 
+#include "mergebot/filesystem.h"
+
 namespace mergebot {
 namespace util {
 [[nodiscard]] static std::string file_get_content(std::string const &path) {
@@ -100,6 +102,50 @@ static bool file_put_binary(char const *arr_data, size_t arr_size,
 template <class Arr = std::vector<char>>
 static bool file_put_binary(Arr const &arr, std::string const &path) {
   return file_put_binary(std::data(arr), std::size(arr), path);
+}
+
+static bool copy_file(const std::string &source,
+                      const std::string &destination) {
+  int srcFd = open(source.c_str(), O_RDONLY);
+  if (srcFd == -1) {
+    spdlog::error("failed to open source file: {}", source);
+    return false;
+  }
+
+  // create parent folder of the destination file if it doesn't exist
+  std::string parentDir = fs::path(destination).parent_path();
+  if (mkdir(parentDir.c_str(), 0777) == -1 && errno != EEXIST) {
+    spdlog::error("failed to create parent directory: {}", parentDir);
+    close(srcFd);
+    return false;
+  }
+
+  int destFd = open(destination.c_str(), O_WRONLY | O_CREAT | O_TRUNC,
+                    S_IRUSR | S_IWUSR);
+  if (destFd == -1) {
+    spdlog::error("failed to open destination file: {}", destination);
+    close(srcFd);
+    return false;
+  }
+
+  const int bufferSize = 4096;
+  char buffer[bufferSize];
+  ssize_t bytesRead;
+
+  while ((bytesRead = read(srcFd, buffer, bufferSize)) > 0) {
+    ssize_t bytesWritten = write(destFd, buffer, bytesRead);
+    if (bytesWritten == -1) {
+      spdlog::error("failed to write to destination file: {}", destination);
+      close(srcFd);
+      close(destFd);
+      return false;
+    }
+  }
+
+  close(srcFd);
+  close(destFd);
+
+  return true;
 }
 }  // namespace util
 }  // namespace mergebot
