@@ -31,6 +31,81 @@ namespace sa {
 const std::string ResolutionManager::CompDBRelative =
     "build/compile_commands.json";
 
+namespace detail {
+/// copy conflict files to destination folder
+/// \param FileList paths of conflict files
+/// \param Dest destination folder
+/// \return false if any file transmission failed, otherwise true
+bool copyConflicts(const std::vector<std::string> &FileList,
+                   std::string_view Dest) {
+  bool Success = true;
+  char Buffer[4096];
+  ssize_t BytesRead = -1, BytesWritten = -1;
+
+  // create dest directory if not exist
+  if (mkdir(Dest.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1) {
+    if (errno != EEXIST) {
+      spdlog::error("error creating destination directory: {}, reason: {}",
+                    Dest, strerror(errno));
+      return false;
+    }
+  }
+
+  for (const auto &File : FileList) {
+    std::string DestPath = fs::path(Dest) / fs::path(File).filename();
+    int SrcFd, DestFd;
+    struct stat StatBuffer;
+
+    SrcFd = open(File.c_str(), O_RDONLY);
+    if (SrcFd == -1) {
+      spdlog::error("error opening source file: {}, reason: {}", File,
+                    strerror(errno));
+      Success = false;
+      // flip flag to indicate failure, continue to copy as much as possible
+      continue;
+    }
+
+    if (stat(DestPath.c_str(), &StatBuffer) == 0) {
+      spdlog::debug("conflict: destination file: {} already exists", DestPath);
+      close(SrcFd);
+      continue;
+    }
+
+    // not exist, create it
+    DestFd = open(DestPath.c_str(), O_WRONLY | O_CREAT,
+                  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
+    if (DestFd == -1) {
+      spdlog::error("error creating destination file: {}, error reason: {}",
+                    DestPath, strerror(errno));
+      Success = false;
+      close(SrcFd);
+      continue;
+    }
+
+    while ((BytesRead = read(SrcFd, Buffer, sizeof(Buffer))) > 0) {
+      BytesWritten = write(DestFd, Buffer, BytesRead);
+      if (BytesRead != BytesWritten) {
+        spdlog::error("error writing to destination file: {}, error reason: {}",
+                      DestPath, strerror(errno));
+        Success = false;
+        break;
+      }
+    }
+
+    close(SrcFd);
+    close(DestFd);
+
+    if (BytesRead == -1) {
+      spdlog::error("error reading from source file: {}, error reason: {}",
+                    File, strerror(errno));
+      Success = false;
+    }
+  }
+
+  return Success;
+}
+} // namespace detail
+
 void ResolutionManager::doResolution() {
   // remember to clear running sign
   // clang-format off
@@ -86,18 +161,20 @@ void ResolutionManager::_doResolutionAsync(
         return std::move(pre) + " " + std::string(cur);
       });
   spdlog::debug("conflict file list: {}", FileList);
-  // FIXME(hwa): remove rsync deps
-  auto CMD = fmt::format("rsync -auLv {} {}", FileList, ConflictDest.string());
-  llvm::ErrorOr<std::string> CopyResultOrErr = util::ExecCommand(CMD);
-  if (!CopyResultOrErr) {
-    sa::handleSAExecError(CopyResultOrErr.getError(), CMD);
+
+  spdlog::info("copying conflict files to destination directory {}",
+               ConflictDest.string());
+  bool Success = detail::copyConflicts(CSources, ConflictDest.string());
+  if (!Success) {
+    spdlog::error("fail to copy conflict files to conflicts directory {}",
+                  ConflictDest.string());
   }
 
   tbb::tick_count Start = tbb::tick_count::now();
   tbb::task_group TG;
-  spdlog::info("collecting source, preparing to conduct analysis");
-  CMD = fmt::format("(cd {} && git merge-base {} {})", Self->ProjectPath_,
-                    Self->MS_.ours, Self->MS_.theirs);
+  spdlog::info("collecting source, preparing to conduct analysis...");
+  auto CMD = fmt::format("(cd {} && git merge-base {} {})", Self->ProjectPath_,
+                         Self->MS_.ours, Self->MS_.theirs);
   llvm::ErrorOr<std::string> BaseOrErr = util::ExecCommand(CMD);
   if (!BaseOrErr) {
     sa::handleSAExecError(BaseOrErr.getError(), CMD);
@@ -129,9 +206,9 @@ void ResolutionManager::_doResolutionAsync(
   });
   TG.wait();
   tbb::tick_count End = tbb::tick_count::now();
-  spdlog::info(
-      "it takes {} ms to copy 3(or 2) versions' source and fine tune CompDB",
-      (End - Start).seconds() * 1000);
+  spdlog::info("it takes {} ms to copy 3(or 2) versions' source and fine tune "
+               "CompDB\n\n\n",
+               (End - Start).seconds() * 1000);
   assert(fs::exists(OursPath) && fs::exists(TheirsPath) &&
          "copy our version's and their version's source failed");
 
@@ -171,20 +248,20 @@ void ResolutionManager::prepareSource(
   if (!Success) {
     spdlog::error("fail to dump version {} to {}", CommitHash, SourceDest);
   } else {
-    spdlog::info("source code of commit prepared, written to {}", CommitHash,
+    spdlog::info("source code of commit {} prepared, written to {}", CommitHash,
                  SourceDest);
   }
 
   // generate CompDB.
   // At this stage, we simply move the 3 compile_commands to merge scenario dir
   // and do a textual replacement
-  bool fineTuned = false;
   const fs::path OrigCompDBPath = fs::path(Self->ProjectPath_) / CompDBRelative;
   if (fs::exists(OrigCompDBPath)) {
     const fs::path CurCompDBPath = fs::path(SourceDest) / CompDBRelative;
     bool copied = util::copy_file(OrigCompDBPath, CurCompDBPath);
     if (copied) {
-      fineTuned = fineTuneCompDB(CurCompDBPath, SourceDest, Self->ProjectPath_);
+      bool fineTuned =
+          fineTuneCompDB(CurCompDBPath, SourceDest, Self->ProjectPath_);
       if (fineTuned) {
         spdlog::info("CompDB fine tuned, written to {}",
                      CurCompDBPath.string());

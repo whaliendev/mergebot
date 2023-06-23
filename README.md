@@ -51,7 +51,6 @@
 
 - LLVM
 - git
-- rsync
 
 #### Optional Dependencies
 
@@ -73,12 +72,17 @@ The deps you need to install on your own:
 1. install conan
    First, we recommend that you utilize `conan` to install project dependencies.
    `Conan` can be installed on a host that has at least python 3.6 installed by
-   executing `pip install conan`. Alternatively, if your host has a native package manager, you
-   could also use it to install `conan`. Moreover, the more recent version of `conan` you install,
-   the better. So be cautious if some `conan` installed through your system's package manager is at
+   executing `pip install conan`. Alternatively, if your host has a native
+   package manager, you
+   could also use it to install `conan`. Moreover, the more recent version
+   of `conan` you install,
+   the better. So be cautious if some `conan` installed through your system's
+   package manager is at
    a very outdated version.
-   After installing `conan`, you must supply a default profile for it and alter the compiler ABI
-   settings to stdc++11. You may accomplish this by using the following commands:
+   After installing `conan`, you must supply a default profile for it and alter
+   the compiler ABI
+   settings to stdc++11. You may accomplish this by using the following
+   commands:
 
 ```shell
 conan profile new default --detect
@@ -97,7 +101,8 @@ conan profile update settings.compiler.libcxx=libstdc++11 default
 cmake -Bbuild
 ```
 
-Of course you can generate `.ninja` files for Ninja build system by appending `-GNinja` to the above
+Of course you can generate `.ninja` files for Ninja build system by
+appending `-GNinja` to the above
 command.
 
 3. generate
