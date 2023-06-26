@@ -5,6 +5,7 @@
 #include "mergebot/utils/gitservice.h"
 
 #include <git2.h>
+#include <oneapi/tbb.h>
 #include <spdlog/spdlog.h>
 
 #include <fstream>
@@ -96,7 +97,7 @@ int dump_tree_entry(const char *root, const git_tree_entry *entry,
 
     const void *data = git_blob_rawcontent(blob);
     size_t size = git_blob_rawsize(blob);
-    
+
     int output_fd = open(dest_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC,
                          S_IRUSR | S_IWUSR);
     if (output_fd == -1) {
@@ -131,6 +132,33 @@ std::unique_ptr<GitCommit> GitRepository::lookupCommit(
   if (err < 0) {
     return std::make_unique<GitCommit>(nullptr);
   }
+  return std::make_unique<GitCommit>(commit);
+}
+
+std::unique_ptr<GitCommit> GitRepository::lookupCommitByPrefix(
+    std::string_view commit_hash) const {
+  if (commit_hash.length() > GIT_OID_MAX_HEXSIZE) {
+    return nullptr;
+  }
+
+  int err = -1;
+  git_oid oid;
+  git_commit *commit = nullptr;
+
+  err = commit_hash.length() == GIT_OID_MAX_HEXSIZE
+            ? git_oid_fromstr(&oid, commit_hash.data())
+            : git_oid_fromstrp(&oid, commit_hash.data());
+  if (err < 0) {
+    const git_error *e = git_error_last();
+    spdlog::debug(
+        "fail to parse commit hash [{}] into git_oid, error {}/{}: {}",
+        commit_hash, err, e->klass, e->message);
+    return nullptr;
+  }
+
+  err = git_commit_lookup_prefix(&commit, repo, &oid, commit_hash.length());
+  if (err < 0) return nullptr;
+
   return std::make_unique<GitCommit>(commit);
 }
 
@@ -197,6 +225,8 @@ bool dump_tree_object_to(std::string_view dest, std::string_view commit_hash,
   std::unique_ptr<GitCommit> commit_ptr = nullptr;
   std::unique_ptr<GitTree> tree_ptr = nullptr;
   detail::DumpTreePayload payload;
+  std::chrono::time_point<std::chrono::high_resolution_clock> start;
+  std::chrono::time_point<std::chrono::high_resolution_clock> end;
 
   repo_ptr = GitRepository::create(repo_path.data());
   if (!repo_ptr) goto handle;
@@ -208,8 +238,15 @@ bool dump_tree_object_to(std::string_view dest, std::string_view commit_hash,
   if (!tree_ptr) goto handle;
 
   payload = {dest, repo_ptr->get()};
+  start = std::chrono::high_resolution_clock ::now();
   err = git_tree_walk(tree_ptr->get(), GIT_TREEWALK_PRE,
                       detail::dump_tree_entry, &payload);
+  end = std::chrono::high_resolution_clock ::now();
+  spdlog::debug(
+      "it takes {}ms to dump commit tree object {} to {}",
+      std::chrono::duration_cast<std::chrono::milliseconds>((end - start))
+          .count(),
+      commit_hash, dest);
   if (err < 0) goto handle;
   return true;
 
@@ -217,6 +254,43 @@ handle:
   const git_error *e = git_error_last();
   spdlog::error("error {}/{}: {}", err, e->klass, e->message);
   return false;
+}
+
+std::optional<std::string> full_commit_hash(const std::string &hash,
+                                            const std::string &project_path) {
+  std::optional<std::string> result = std::nullopt;
+
+  std::unique_ptr<GitRepository> repo_ptr = nullptr;
+  std::unique_ptr<GitCommit> commit_ptr = nullptr;
+  git_oid full_oid;
+
+  repo_ptr = GitRepository::create(project_path);
+  if (!repo_ptr) return std::nullopt;
+
+  commit_ptr = repo_ptr->lookupCommitByPrefix(hash);
+  if (!commit_ptr) return std::nullopt;
+
+  char full_hash[GIT_OID_MAX_HEXSIZE + 1];
+  full_hash[GIT_OID_MAX_HEXSIZE] = '\0';
+  git_oid_fmt(full_hash, git_commit_id(commit_ptr->get()));
+  return std::string(full_hash);
+}
+
+std::optional<std::string> git_merge_base(const std::string &our,
+                                          const std::string &their,
+                                          const std::string &project_path) {
+  std::string cmd =
+      fmt::format("(cd {} && git merge-base {} {})", project_path, our, their);
+  llvm::ErrorOr<std::string> resultOrErr = util::ExecCommand(cmd);
+  if (!resultOrErr) return std::nullopt;
+  std::string base = resultOrErr.get();
+  if (base.length() != 40) {
+    spdlog::warn(
+        "base commit of our [{}] and their [{}] branches doesn't exist", our,
+        their);
+    return std::nullopt;
+  }
+  return base;
 }
 }  // namespace util
 }  // namespace mergebot

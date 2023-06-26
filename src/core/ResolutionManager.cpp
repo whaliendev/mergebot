@@ -66,7 +66,7 @@ bool copyConflicts(const std::vector<std::string> &FileList,
     }
 
     if (stat(DestPath.c_str(), &StatBuffer) == 0) {
-      spdlog::debug("conflict: destination file: {} already exists", DestPath);
+      spdlog::debug("destination file {} already exists", DestPath);
       close(SrcFd);
       continue;
     }
@@ -252,7 +252,7 @@ void ResolutionManager::prepareSource(
                  SourceDest);
   }
 
-  // generate CompDB.
+  // Generate CompDB.
   // At this stage, we simply move the 3 compile_commands to merge scenario dir
   // and do a textual replacement
   const fs::path OrigCompDBPath = fs::path(Self->ProjectPath_) / CompDBRelative;

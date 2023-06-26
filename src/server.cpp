@@ -198,13 +198,6 @@ void ConfigBPRoutes(crow::Blueprint& bp) {
       .methods(crow::HTTPMethod::GET)(
           [](const crow::request& req) { return "list configuration"; });
 
-  // project specific
-  CROW_BP_ROUTE(bp, "/project")
-      .methods(crow::HTTPMethod::POST)(
-          [](const crow::request& req, crow::response& res) {
-            server::PostProject(req, res);
-          });
-
   // post merge scenario information
   CROW_BP_ROUTE(bp, "/ms").methods(crow::HTTPMethod::POST)(
       [](const crow::request& req, crow::response& res) {

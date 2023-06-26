@@ -8,11 +8,15 @@
 #include <crow/http_request.h>
 #include <crow/http_response.h>
 
+#include <shared_mutex>
+
 #include "mergebot/server/result_vo_utils.h"
 
 namespace mergebot {
 namespace server {
-void PostProject(const crow::request& req, crow::response& res);
+static std::shared_mutex rwMutex;
+static std::mutex peekMutex;
+
 void PostMergeScenario(const crow::request& req, crow::response& res);
 }  // namespace server
 

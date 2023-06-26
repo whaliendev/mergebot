@@ -142,10 +142,11 @@ class GitRepository {
     return *this;
   }
 
-  static std::unique_ptr<GitRepository> create(const char* bare_path) {
+  static std::unique_ptr<GitRepository> create(
+      const std::string& project_path) {
     git_libgit2_init();
 
-    std::string repo_path(bare_path);
+    std::string repo_path(project_path.c_str());
     if (!util::ends_with(repo_path, ".git")) {
       repo_path = fs::path(repo_path) / ".git";
     }
@@ -162,11 +163,14 @@ class GitRepository {
 
   std::unique_ptr<GitCommit> lookupCommit(std::string_view commit_hash) const;
 
+  std::unique_ptr<GitCommit> lookupCommitByPrefix(
+      std::string_view commit_hash) const;
+
  private:
   git_repository* repo;
 };
 
-bool is_cpp_file(std::string_view path);
+// bool is_cpp_file(std::string_view path);
 
 std::unordered_set<sa::SimplifiedDiffDelta> list_cpp_diff_files(
     std::string_view repo_path, std::string_view old_commit,
@@ -174,6 +178,13 @@ std::unordered_set<sa::SimplifiedDiffDelta> list_cpp_diff_files(
 
 bool dump_tree_object_to(std::string_view dest, std::string_view commit_hash,
                          std::string_view repo_path);
+
+std::optional<std::string> full_commit_hash(const std::string& hash,
+                                            const std::string& project_path);
+
+std::optional<std::string> git_merge_base(const std::string& our,
+                                          const std::string& their,
+                                          const std::string& project_path);
 }  // namespace util
 }  // namespace mergebot
 
