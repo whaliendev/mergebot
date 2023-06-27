@@ -5,15 +5,16 @@
 #ifndef MB_SA_UTILITY_H
 #define MB_SA_UTILITY_H
 #include <llvm/Support/Error.h>
+#include <llvm/Support/ErrorOr.h>
+#include <spdlog/spdlog.h>
 
+#include <shared_mutex>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include "mergebot/core/model/ConflictFile.h"
 #include "mergebot/server/vo/ResolutionResultVO.h"
-#include <llvm/Support/ErrorOr.h>
-#include <spdlog/spdlog.h>
-#include <string>
-#include <string_view>
 
 namespace mergebot {
 template <typename T> void hash_combine(size_t &seed, const T &v) {
@@ -22,7 +23,10 @@ template <typename T> void hash_combine(size_t &seed, const T &v) {
   seed = prime * seed + hasher(v);
 }
 
-namespace util {
+namespace utils {
+static std::shared_mutex rwMutex;
+static std::mutex peekMutex;
+
 // git diff --name-only --diff-filter=U
 llvm::ErrorOr<std::string> ExecCommand(std::string_view sv, int timeout = 10,
                                        int exitCode = 0);
@@ -36,7 +40,12 @@ typename std::enable_if<
     bool>::type
 hasSameElements(InputIt1 first1, InputIt1 last1, InputIt2 first2,
                 InputIt2 last2, Compare comp);
-} // namespace util
+
+std::pair<int, struct flock> lockRDFD(std::string_view path);
+std::pair<int, struct flock> lockWRFD(std::string_view path);
+bool unlockFD(std::string_view path, int fd, struct flock &lck);
+
+} // namespace utils
 
 namespace sa {
 void handleSAExecError(std::error_code err, std::string_view cmd);

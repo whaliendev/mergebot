@@ -175,7 +175,7 @@ void ResolutionManager::_doResolutionAsync(
   spdlog::info("collecting source, preparing to conduct analysis...");
   auto CMD = fmt::format("(cd {} && git merge-base {} {})", Self->ProjectPath_,
                          Self->MS_.ours, Self->MS_.theirs);
-  llvm::ErrorOr<std::string> BaseOrErr = util::ExecCommand(CMD);
+  llvm::ErrorOr<std::string> BaseOrErr = utils::ExecCommand(CMD);
   if (!BaseOrErr) {
     sa::handleSAExecError(BaseOrErr.getError(), CMD);
   }
@@ -275,7 +275,7 @@ std::vector<std::string> ResolutionManager::_extractCppSources() {
   std::string Command =
       fmt::format("(cd {} && git --no-pager diff --name-only --diff-filter=U)",
                   ProjectPath_);
-  llvm::ErrorOr<std::string> ResultOrErr = util::ExecCommand(Command);
+  llvm::ErrorOr<std::string> ResultOrErr = utils::ExecCommand(Command);
   if (!ResultOrErr) {
     handleSAExecError(ResultOrErr.getError(), Command);
   }

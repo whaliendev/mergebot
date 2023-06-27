@@ -10,11 +10,28 @@
 
 #include <system_error>
 
+#include "mergebot/core/model/MergeScenario.h"
 #include "mergebot/server/result_vo_utils.h"
 #include "mergebot/server/vo/ResolutionResultVO.h"
 
 namespace mergebot {
 namespace server {
+
+namespace utils {
+bool checkMSMetadata(const std::string& project, const std::string& path,
+                     const sa::MergeScenario& ms);
+void checkConflictFile(const std::string& project, const std::string& path,
+                       const sa::MergeScenario& ms, const std::string& file);
+void checkPath(std::string const& pathStr);
+void checkGitRepo(std::string const& path);
+bool containKeys(const crow::json::rvalue& bodyJson,
+                 const std::vector<std::string>& keys);
+std::string calcProjChecksum(std::string const& project,
+                             std::string const& path);
+void validateAndCompleteCommitHash(sa::MergeScenario& ms,
+                                   const std::string& projectPath);
+}  // namespace utils
+
 void handleServerExecError(std::error_code err, std::string_view cmd);
 inline bool err(crow::json::wvalue& rv) {
   return rv.t() == crow::json::type::Object &&

@@ -14,9 +14,6 @@
 
 namespace mergebot {
 namespace server {
-static std::shared_mutex rwMutex;
-static std::mutex peekMutex;
-
 void PostMergeScenario(const crow::request& req, crow::response& res);
 }  // namespace server
 

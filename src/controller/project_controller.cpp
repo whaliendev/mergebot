@@ -16,133 +16,17 @@
 #include "mergebot/controller/exception_handler_aspect.h"
 #include "mergebot/core/ResolutionManager.h"
 #include "mergebot/core/model/Project.h"
+#include "mergebot/core/sa_utility.h"
 #include "mergebot/filesystem.h"
 #include "mergebot/server/server_utility.h"
 #include "mergebot/utils/fileio.h"
 #include "mergebot/utils/gitservice.h"
 #include "mergebot/utils/pathop.h"
-#include "mergebot/utils/sha1.h"
 #include "mergebot/utils/stringop.h"
 
 namespace mergebot {
 namespace server {
 using json = nlohmann::json;
-
-namespace detail {
-void checkPath(std::string const& pathStr) {
-  const fs::path dirPath = pathStr;
-  const auto rwPerms =
-      static_cast<int>((fs::status(dirPath).permissions() &
-                        (fs::perms::owner_read | fs::perms::owner_write)));
-  if (fs::exists(dirPath)) {
-    if (!fs::is_directory(dirPath) || !rwPerms) {
-      spdlog::warn("no permission to access path [{}]", pathStr);
-      throw AppBaseException("U1000", fmt::format("无权限访问 [{}]", pathStr));
-    }
-  } else {
-    spdlog::warn("project path [{}] doesn't exist", pathStr);
-    throw AppBaseException("U1000",
-                           fmt::format("项目路径[{}] 不存在", pathStr));
-  }
-}
-
-void checkGitRepo(std::string const& path) {
-  const fs::path gitDirPath = fs::path(path) / ".git";
-  const auto repoPtr = util::GitRepository::create(gitDirPath.c_str());
-  if (!repoPtr) {
-    spdlog::warn("project path[{}] is not a valid git repo", path);
-    throw AppBaseException("U1000",
-                           fmt::format("路径[{}]不是一个git仓库", path));
-  }
-}
-
-bool containKeys(const crow::json::rvalue& bodyJson,
-                 const std::vector<std::string>& keys) {
-  for (const auto& key : keys) {
-    if (!bodyJson.has(key)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-std::string calcProjChecksum(std::string const& project,
-                             std::string const& path) {
-  util::SHA1 checksum;
-  std::string pathMut = path;
-  if (pathMut.back() == fs::path::preferred_separator) {
-    pathMut.pop_back();
-  }
-  checksum.update(fmt::format("{}-{}", project, pathMut));
-  return checksum.final();
-}
-
-void validateAndCompleteCommitHash(sa::MergeScenario& ms,
-                                   const std::string& projectPath) {
-  const auto ourFullHash = util::full_commit_hash(ms.ours, projectPath);
-  const auto theirFullHash = util::full_commit_hash(ms.theirs, projectPath);
-  if (!ourFullHash.has_value() || !theirFullHash.has_value()) {
-    throw AppBaseException("C1000", "commit hash is illegal or non unique");
-  }
-  ms.ours = ourFullHash.value();
-  ms.theirs = theirFullHash.value();
-}
-
-std::pair<int, struct flock> lockRDFD(std::string_view path) {
-  std::shared_lock<std::shared_mutex> lock(rwMutex);
-  int fd = -1;
-  struct flock fileLck;
-
-  fd = open(path.data(), O_RDONLY);
-  if (fd == -1) {
-    spdlog::error("fail to open file [{}] for read, reason: {}", path,
-                  strerror(errno));
-    return std::make_pair(-1, fileLck);
-  }
-
-  fileLck = {.l_type = F_RDLCK, .l_whence = SEEK_SET, .l_start = 0, .l_len = 0};
-  if (fcntl(fd, F_SETLKW, &fileLck) == -1) {
-    spdlog::error("fail to acquire read lock for file [{}]", path);
-    close(fd);
-    return std::make_pair(-1, fileLck);
-  }
-  return std::make_pair(fd, fileLck);
-}
-
-std::pair<int, struct flock> lockWRFD(std::string_view path) {
-  std::lock_guard<std::shared_mutex> lock(rwMutex);
-  int fd = -1;
-  struct flock fileLck;
-
-  // open for write
-  // didn't exist, create one
-  // exist, trunc
-  fd = open(path.data(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-  if (fd == -1) {
-    spdlog::error("fail to open file [{}] for write, reason: {}", path,
-                  strerror(errno));
-    return std::make_pair(-1, fileLck);
-  }
-
-  fileLck = {.l_type = F_WRLCK, .l_whence = SEEK_SET, .l_start = 0, .l_len = 0};
-  if (fcntl(fd, F_SETLKW, &fileLck) == -1) {
-    spdlog::error("fail to acquire write lock for file [{}]", path);
-    close(fd);
-    return std::make_pair(-1, fileLck);
-  }
-  return std::make_pair(fd, fileLck);
-}
-
-bool unlockFD(std::string_view path, int fd, struct flock& lck) {
-  std::lock_guard<std::shared_mutex> lock(rwMutex);
-  lck.l_type = F_UNLCK;
-  if (fcntl(fd, F_SETLKW, &lck) == -1) {
-    spdlog::error("fail to release lock for file {}", path);
-    return false;
-  }
-  return true;
-}
-}  // namespace detail
 
 namespace internal {
 /// \brief set merge scenario resolution algorithm running sign in
@@ -156,7 +40,7 @@ void setRunningSign(std::string const& projDir, std::string const& msName) {
   assert(fs::exists(msPath) &&
              "the merge scenario path should be created before setting running sign");
   // clang-format on
-  util::file_overwrite_content(msPath / "running", "1");
+  mergebot::util::file_overwrite_content(msPath / "running", "1");
 }
 
 void removeRunningSign(const std::string& msPath) {
@@ -166,18 +50,43 @@ void removeRunningSign(const std::string& msPath) {
   }
 }
 
+bool writeConflictFiles(const fs::path& msCacheDir,
+                        const std::string& fileList) {
+  const fs::path conflicts = msCacheDir / "conflicts" / "conflict-sources.txt";
+  spdlog::debug("about to write conflict files [\n{}\n] to {}", fileList,
+                conflicts.c_str());
+  if (!fs::exists(conflicts.parent_path())) {
+    fs::create_directories(conflicts.parent_path());
+  }
+  int fd = open(conflicts.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+  if (fd == -1) {
+    spdlog::error("fail to open file {} for write ,reason: {}",
+                  conflicts.c_str(), strerror(errno));
+    return false;
+  }
+  ssize_t bytesWritten = ::write(fd, fileList.c_str(), fileList.length());
+  if (bytesWritten == -1) {
+    spdlog::error("fail to write to file {},reason: {}", conflicts.c_str(),
+                  strerror(errno));
+    return false;
+  }
+  close(fd);
+  return true;
+}
+
 void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
                [[maybe_unused]] crow::response& res) {
-  const std::string cacheDirCheckSum = detail::calcProjChecksum(project, path);
+  const std::string cacheDirCheckSum = utils::calcProjChecksum(project, path);
   const fs::path projectCacheDir =
-      fs::path(util::toabs(MBDIR)) / cacheDirCheckSum;
+      fs::path(mergebot::util::toabs(MBDIR)) / cacheDirCheckSum;
   const fs::path msCacheDir = projectCacheDir / ms.name;
   setRunningSign(projectCacheDir, ms.name);
 
   // collect conflict files in the project
   std::string command =
       fmt::format("(cd {} && git diff --name-only --diff-filter=U)", path);
-  llvm::ErrorOr<std::string> resultOrErr = util::ExecCommand(command);
+  llvm::ErrorOr<std::string> resultOrErr =
+      ::mergebot::utils::ExecCommand(command);
   if (!resultOrErr) handleServerExecError(resultOrErr.getError(), command);
   std::string result = resultOrErr.get();
 
@@ -220,6 +129,8 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
       "current project[{}, path: {}] has {} conflict files, {} of them are "
       "C/C++ related sources",
       project, path, fileNames.size(), cppSources.size());
+  writeConflictFiles(msCacheDir, util::string_join(cppSources.begin(),
+                                                   cppSources.end(), "\n"));
   std::unique_ptr<std::string[]> conflictFiles =
       std::make_unique<std::string[]>(cppSources.size());
   std::transform(
@@ -244,7 +155,7 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
 
 bool checkAndAddProjectMetadata(const std::string& project,
                                 const std::string& path) {
-  const std::string cacheDirCheckSum = detail::calcProjChecksum(project, path);
+  const std::string cacheDirCheckSum = utils::calcProjChecksum(project, path);
   const fs::path projectCacheDir =
       fs::path(util::toabs(MBDIR)) / cacheDirCheckSum;
   const fs::path manifestPath =
@@ -254,7 +165,7 @@ bool checkAndAddProjectMetadata(const std::string& project,
       .project = project, .path = path, .cacheDir = projectCacheDir};
 
   {
-    std::lock_guard<std::mutex> lock(peekMutex);
+    std::lock_guard<std::mutex> lock(mergebot::utils::peekMutex);
     if (!fs::exists(manifestPath.c_str())) {
       spdlog::info("project manifest file[{}] doesn't exist, we'll create one",
                    manifestPath.c_str());
@@ -265,12 +176,12 @@ bool checkAndAddProjectMetadata(const std::string& project,
       std::string projsJsonStr = projsJson.dump(2);
       const char* buf = projsJsonStr.c_str();
 
-      auto [fd, lck] = detail::lockWRFD(manifestPath.c_str());
+      auto [fd, lck] = mergebot::utils::lockWRFD(manifestPath.c_str());
       if (fd == -1) {
         return false;
       }
       ssize_t bytesWritten = ::write(fd, buf, projsJsonStr.length());
-      detail::unlockFD(manifestPath.c_str(), fd, lck);
+      mergebot::utils::unlockFD(manifestPath.c_str(), fd, lck);
       if (bytesWritten != static_cast<ssize_t>(projsJsonStr.length())) {
         spdlog::error("write to file [{}] failed, reason: {}",
                       manifestPath.c_str(), strerror(errno));
@@ -279,7 +190,7 @@ bool checkAndAddProjectMetadata(const std::string& project,
         return true;
       }
     } else {
-      auto [fd, lck] = detail::lockRDFD(manifestPath.c_str());
+      auto [fd, lck] = mergebot::utils::lockRDFD(manifestPath.c_str());
       if (fd == -1) {
         return false;
       }
@@ -287,7 +198,7 @@ bool checkAndAddProjectMetadata(const std::string& project,
       if (!file) {
         spdlog::error("fail to convert file descriptor to FILE*, reason: {}",
                       strerror(errno));
-        detail::unlockFD(manifestPath.c_str(), fd, lck);
+        mergebot::utils::unlockFD(manifestPath.c_str(), fd, lck);
         close(fd);
         return false;
       }
@@ -310,14 +221,14 @@ bool checkAndAddProjectMetadata(const std::string& project,
       json projsJson = projList;
       std::string projsJsonStr = projsJson.dump(2);
       const char* buf = projsJsonStr.c_str();
-      auto pair = detail::lockWRFD(manifestPath.c_str());
+      auto pair = mergebot::utils::lockWRFD(manifestPath.c_str());
       fd = pair.first;
       lck = pair.second;
       if (fd == -1) {
         return false;
       }
       ssize_t bytesWritten = ::write(fd, buf, projsJsonStr.length());
-      detail::unlockFD(manifestPath.c_str(), fd, lck);
+      mergebot::utils::unlockFD(manifestPath.c_str(), fd, lck);
       close(fd);
       if (bytesWritten != static_cast<ssize_t>(projsJsonStr.length())) {
         spdlog::error("write to file [{}] failed, reason: {}",
@@ -332,7 +243,7 @@ bool checkAndAddProjectMetadata(const std::string& project,
 
 bool checkAndAddMSMetadata(const std::string& project, const std::string& path,
                            const sa::MergeScenario& ms) {
-  const std::string cacheDirCheckSum = detail::calcProjChecksum(project, path);
+  const std::string cacheDirCheckSum = utils::calcProjChecksum(project, path);
   const fs::path projectCacheDir =
       fs::path(util::toabs(MBDIR)) / cacheDirCheckSum;
   const fs::path msCacheDir = projectCacheDir / ms.name;
@@ -345,8 +256,8 @@ bool checkAndAddMSMetadata(const std::string& project, const std::string& path,
          "project manifest file should exist before write merge scenario "
          "metadata");
   {
-    std::lock_guard<std::mutex> lock(peekMutex);
-    auto [fd, lck] = detail::lockRDFD(manifestPath.c_str());
+    std::lock_guard<std::mutex> lock(mergebot::utils::peekMutex);
+    auto [fd, lck] = mergebot::utils::lockRDFD(manifestPath.c_str());
     if (fd == -1) {
       return false;
     }
@@ -354,7 +265,7 @@ bool checkAndAddMSMetadata(const std::string& project, const std::string& path,
     if (!file) {
       spdlog::error("fail to convert file descriptor to FILE*, reason: {}",
                     strerror(errno));
-      detail::unlockFD(manifestPath.c_str(), fd, lck);
+      mergebot::utils::unlockFD(manifestPath.c_str(), fd, lck);
       close(fd);
       return false;
     }
@@ -398,14 +309,14 @@ bool checkAndAddMSMetadata(const std::string& project, const std::string& path,
       projsListJSON = projsList;
       std::string content = projsListJSON.dump(2);
       const char* buf = content.c_str();
-      auto pair = detail::lockWRFD(manifestPath.c_str());
+      auto pair = mergebot::utils::lockWRFD(manifestPath.c_str());
       fd = pair.first;
       lck = pair.second;
       if (fd == -1) {
         return false;
       }
       ssize_t bytesWritten = ::write(fd, buf, content.length());
-      detail::unlockFD(manifestPath.c_str(), fd, lck);
+      mergebot::utils::unlockFD(manifestPath.c_str(), fd, lck);
       close(fd);
 
       if (bytesWritten != static_cast<ssize_t>(content.length())) {
@@ -421,7 +332,7 @@ bool checkAndAddMSMetadata(const std::string& project, const std::string& path,
 
 void handleMergeScenario(const std::string& project, const std::string& path,
                          sa::MergeScenario& ms, crow::response& res) {
-  const std::string cacheDirCheckSum = detail::calcProjChecksum(project, path);
+  const std::string cacheDirCheckSum = utils::calcProjChecksum(project, path);
   const fs::path manifestPath =
       fs::path(util::toabs(MBDIR)) /
       fmt::format("manifest-{}.json", cacheDirCheckSum.substr(0, 2));
@@ -448,8 +359,8 @@ crow::json::wvalue doPostMergeScenario(const crow::request& req,
                                        crow::response& res) {
   const auto body = crow::json::load(req.body);
   // project name is optional: if absent, fill with basename of the project path
-  if (body.error() || !detail::containKeys(body, {"path", "ms"}) ||
-      !detail::containKeys(body["ms"], {"ours", "theirs"})) {
+  if (body.error() || !utils::containKeys(body, {"path", "ms"}) ||
+      !utils::containKeys(body["ms"], {"ours", "theirs"})) {
     spdlog::error("the format of request body data is illegal");
     throw AppBaseException(ResultEnum::BAD_REQUEST);
   }
@@ -458,15 +369,15 @@ crow::json::wvalue doPostMergeScenario(const crow::request& req,
   const auto project = body.has("project")
                            ? static_cast<std::string>(body["project"])
                            : fs::path(path).filename().string();
-  detail::checkPath(path);
-  detail::checkGitRepo(path);
+  utils::checkPath(path);
+  utils::checkGitRepo(path);
 
   std::string ours = static_cast<std::string>(body["ms"]["ours"]);
   std::string theirs = static_cast<std::string>(body["ms"]["theirs"]);
   auto baseOpt = util::git_merge_base(ours, theirs, path);
   std::string base = baseOpt.has_value() ? baseOpt.value() : "";
   sa::MergeScenario ms(ours, theirs, base);
-  detail::validateAndCompleteCommitHash(ms, path);
+  utils::validateAndCompleteCommitHash(ms, path);
 
   internal::handleMergeScenario(project, path, ms, res);
   // default construct a crow::json::wvalue to indicate return successfully

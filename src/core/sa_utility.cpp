@@ -17,6 +17,7 @@
 #include <fstream>
 #include <magic_enum.hpp>
 #include <memory>
+#include <shared_mutex>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -32,7 +33,7 @@
 #include "mergebot/utils/stringop.h"
 
 namespace mergebot {
-namespace util {
+namespace utils {
 // git diff --name-only --diff-filter=U
 /// Linux specific command execution encapsulation
 /// \param cmd command to execute
@@ -113,7 +114,62 @@ hasSameElements(InputIt1 first1, InputIt1 last1, InputIt2 first2,
   }
   return false;
 }
-} // namespace util
+
+std::pair<int, struct flock> lockRDFD(std::string_view path) {
+  std::shared_lock<std::shared_mutex> lock(rwMutex);
+  int fd = -1;
+  struct flock fileLck;
+
+  fd = open(path.data(), O_RDONLY);
+  if (fd == -1) {
+    spdlog::error("fail to open file [{}] for read, reason: {}", path,
+                  strerror(errno));
+    return std::make_pair(-1, fileLck);
+  }
+
+  fileLck = {.l_type = F_RDLCK, .l_whence = SEEK_SET, .l_start = 0, .l_len = 0};
+  if (fcntl(fd, F_SETLKW, &fileLck) == -1) {
+    spdlog::error("fail to acquire read lock for file [{}]", path);
+    close(fd);
+    return std::make_pair(-1, fileLck);
+  }
+  return std::make_pair(fd, fileLck);
+}
+
+std::pair<int, struct flock> lockWRFD(std::string_view path) {
+  std::lock_guard<std::shared_mutex> lock(rwMutex);
+  int fd = -1;
+  struct flock fileLck;
+
+  // open for write
+  // didn't exist, create one
+  // exist, trunc
+  fd = open(path.data(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+  if (fd == -1) {
+    spdlog::error("fail to open file [{}] for write, reason: {}", path,
+                  strerror(errno));
+    return std::make_pair(-1, fileLck);
+  }
+
+  fileLck = {.l_type = F_WRLCK, .l_whence = SEEK_SET, .l_start = 0, .l_len = 0};
+  if (fcntl(fd, F_SETLKW, &fileLck) == -1) {
+    spdlog::error("fail to acquire write lock for file [{}]", path);
+    close(fd);
+    return std::make_pair(-1, fileLck);
+  }
+  return std::make_pair(fd, fileLck);
+}
+
+bool unlockFD(std::string_view path, int fd, struct flock &lck) {
+  std::lock_guard<std::shared_mutex> lock(rwMutex);
+  lck.l_type = F_UNLCK;
+  if (fcntl(fd, F_SETLKW, &lck) == -1) {
+    spdlog::error("fail to release lock for file {}", path);
+    return false;
+  }
+  return true;
+}
+} // namespace utils
 
 namespace sa {
 namespace _details {
@@ -294,7 +350,7 @@ void marshalResolutionResult(
 #ifndef NDEBUG
     // this check is rather inefficient and the situation is almost impossible
     // to happen, so we only perform this check at debug phase
-    bool hasSame = util::hasSameElements(
+    bool hasSame = utils::hasSameElements(
         Resolutions.begin(), Resolutions.end(), Results.begin(), Results.end(),
         [](server::BlockResolutionResult const &BR1,
            server::BlockResolutionResult const &BR2) {

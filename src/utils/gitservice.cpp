@@ -94,6 +94,10 @@ int dump_tree_entry(const char *root, const git_tree_entry *entry,
       return error;
     }
   } else if (object_type == GIT_OBJECT_BLOB) {
+    if (fs::exists(dest_path)) {
+      return 1;
+    }
+
     git_blob *blob = nullptr;
     int error = git_blob_lookup(&blob, repo, git_tree_entry_id(entry));
     if (error < 0) {
@@ -307,7 +311,7 @@ std::optional<std::string> git_merge_base(const std::string &our,
                                           const std::string &project_path) {
   std::string cmd =
       fmt::format("(cd {} && git merge-base {} {})", project_path, our, their);
-  llvm::ErrorOr<std::string> resultOrErr = util::ExecCommand(cmd);
+  llvm::ErrorOr<std::string> resultOrErr = utils::ExecCommand(cmd);
   if (!resultOrErr) return std::nullopt;
   std::string base = resultOrErr.get();
   if (base.length() != 40) {
