@@ -17,7 +17,7 @@ namespace server {
 class AppBaseException : public std::exception {
  public:
   explicit AppBaseException(mergebot::server::Result err)
-      : code_(err.code), msg_(err.errorMsg) {}
+      : code_(err.code), msg_(err.msg) {}
 
   AppBaseException(std::string code, std::string msg)
       : code_(code), msg_(msg) {}
@@ -27,7 +27,7 @@ class AppBaseException : public std::exception {
   void handle(crow::response& res) const {
     auto buf = fmt::memory_buffer();
     fmt::format_to(std::back_inserter(buf),
-                   u8R"({{"code": "{}", "errorMsg": "{}", "data": {}}})", code_,
+                   u8R"({{"code": "{}", "msg": "{}", "data": {}}})", code_,
                    msg_, "null");
     auto body = to_string(buf);
     auto status = crow::status::INTERNAL_SERVER_ERROR;

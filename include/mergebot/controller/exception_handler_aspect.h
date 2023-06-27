@@ -54,8 +54,8 @@ class ExceptionHandlerAspect {
     } catch (const std::exception& ex) {
       auto buf = fmt::memory_buffer();
       fmt::format_to(std::back_inserter(buf),
-                     u8R"({{"code": "{}", "errorMsg": "{}", "data": {}}})",
-                     "S0000", ex.what(), nullptr);
+                     u8R"({{"code": "{}", "msg": "{}", "data": {}}})", "S0000",
+                     ex.what(), nullptr);
       auto body = to_string(buf);
       res_.code = crow::status::INTERNAL_SERVER_ERROR;
       res_.body = body;

@@ -16,33 +16,31 @@ namespace mergebot {
 namespace server {
 struct Result {
   std::string code{"00000"};
-  std::string errorMsg{""};
+  std::string msg{""};
 
-  Result(std::string code, std::string errorMsg)
-      : code(code), errorMsg(errorMsg) {}
+  Result(std::string code, std::string msg) : code(code), msg(msg) {}
 };
 
 struct ResultVO : public crow::returnable {
   std::string code{"00000"};
-  std::string errorMsg{""};
+  std::string msg{""};
   crow::json::wvalue data{nullptr};
 
   ResultVO() : crow::returnable("application/json") {}
 
-  ResultVO(std::string code, std::string errorMsg)
-      : ResultVO(code, errorMsg, nullptr) {}
+  ResultVO(std::string code, std::string msg) : ResultVO(code, msg, nullptr) {}
 
-  ResultVO(std::string code, std::string errorMsg, crow::json::wvalue data)
+  ResultVO(std::string code, std::string msg, crow::json::wvalue data)
       : crow::returnable("application/json"),
         code(code),
-        errorMsg(errorMsg),
+        msg(msg),
         data(std::move(data)) {}
 
   std::string dump() const override {
     auto buf = fmt::memory_buffer();
     fmt::format_to(std::back_inserter(buf),
-                   u8R"({{"code": "{}", "errorMsg": "{}", "data": {}}})", code,
-                   errorMsg, data.dump());
+                   u8R"({{"code": "{}", "msg": "{}", "data": {}}})", code, msg,
+                   data.dump());
     return to_string(buf);
   }
 };

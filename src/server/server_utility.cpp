@@ -55,7 +55,7 @@ void return_success(crow::response& res,
 }
 
 void return_error(crow::response& res, const server::Result& result) {
-  server::ResultVO rv(result.code, result.errorMsg, nullptr);
+  server::ResultVO rv(result.code, result.msg, nullptr);
   const auto code = result.code;
   auto status = crow::status::INTERNAL_SERVER_ERROR;
   if (code.length() && code[0] == 'C') {
@@ -69,9 +69,9 @@ void return_error(crow::response& res, const server::Result& result) {
 }
 
 void return_error(crow::response& res, const std::string& code,
-                  const std::string& errorMsg) {
-  SPDLOG_INFO("code: {}, errorMsg: {}", code, errorMsg);
-  server::ResultVO rv(code, errorMsg, nullptr);
+                  const std::string& msg) {
+  SPDLOG_INFO("code: {}, msg: {}", code, msg);
+  server::ResultVO rv(code, msg, nullptr);
   auto status = crow::status::INTERNAL_SERVER_ERROR;
   if (code.length() && code[0] == 'C') {
     status = crow::status::BAD_REQUEST;

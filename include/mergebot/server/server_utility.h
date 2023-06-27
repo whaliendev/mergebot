@@ -38,7 +38,7 @@ void return_success(crow::response& res, const crow::json::wvalue& data);
 void return_error(crow::response& res, const server::Result& result);
 
 void return_error(crow::response& res, const std::string& code,
-                  const std::string& errorMsg);
+                  const std::string& msg);
 }  // namespace ResultVOUtil
 }  // namespace server
 }  // namespace mergebot
