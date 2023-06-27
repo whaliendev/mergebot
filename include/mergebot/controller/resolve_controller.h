@@ -11,7 +11,7 @@
 
 namespace mergebot {
 namespace server {
-ResultVO DoFileResolution(const crow::request& req);
+void GetFileResolution(const crow::request& req, crow::response& res);
 }
 }  // namespace mergebot
 

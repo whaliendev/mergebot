@@ -206,7 +206,8 @@ void ConfigBPRoutes(crow::Blueprint& bp) {
 
   // resolution result of specified file
   CROW_BP_ROUTE(bp, "/resolve")
-      .methods(crow::HTTPMethod::POST)([](const crow::request& req) {
-        return server::DoFileResolution(req);
-      });
+      .methods(crow::HTTPMethod::POST)(
+          [](const crow::request& req, crow::response& res) {
+            server::GetFileResolution(req, res);
+          });
 }
