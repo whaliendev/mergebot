@@ -36,11 +36,11 @@ void checkPath(std::string const& pathStr) {
                         (fs::perms::owner_read | fs::perms::owner_write)));
   if (fs::exists(dirPath)) {
     if (!fs::is_directory(dirPath) || !rwPerms) {
-      spdlog::warn(fmt::format("no permission to access path [{}]", pathStr));
+      spdlog::warn("no permission to access path [{}]", pathStr);
       throw AppBaseException("U1000", fmt::format("无权限访问 [{}]", pathStr));
     }
   } else {
-    spdlog::warn(fmt::format("project path [{}] doesn't exist", pathStr));
+    spdlog::warn("project path [{}] doesn't exist", pathStr);
     throw AppBaseException("U1000",
                            fmt::format("项目路径[{}] 不存在", pathStr));
   }
@@ -50,7 +50,7 @@ void checkGitRepo(std::string const& path) {
   const fs::path gitDirPath = fs::path(path) / ".git";
   const auto repoPtr = util::GitRepository::create(gitDirPath.c_str());
   if (!repoPtr) {
-    spdlog::warn(fmt::format("project path[{}] is not a valid git repo", path));
+    spdlog::warn("project path[{}] is not a valid git repo", path);
     throw AppBaseException("U1000",
                            fmt::format("路径[{}]不是一个git仓库", path));
   }
@@ -159,11 +159,19 @@ void setRunningSign(std::string const& projDir, std::string const& msName) {
   util::file_overwrite_content(msPath / "running", "1");
 }
 
+void removeRunningSign(const std::string& msPath) {
+  const fs::path runningSign = fs::path(msPath) / "running";
+  if (fs::exists(runningSign)) {
+    fs::remove(runningSign);
+  }
+}
+
 void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
                [[maybe_unused]] crow::response& res) {
   const std::string cacheDirCheckSum = detail::calcProjChecksum(project, path);
   const fs::path projectCacheDir =
       fs::path(util::toabs(MBDIR)) / cacheDirCheckSum;
+  const fs::path msCacheDir = projectCacheDir / ms.name;
   setRunningSign(projectCacheDir, ms.name);
 
   // collect conflict files in the project
@@ -176,6 +184,7 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
   // get c/cpp related source files
   std::vector<std::string_view> fileNames = util::string_split(result, "\n");
   if (fileNames.size() == 0) {
+    removeRunningSign(msCacheDir);
     throw AppBaseException(
         "U1000",
         fmt::format(
@@ -200,6 +209,7 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
         "current project[{}] has {} conflict files, but none of them are c/cpp "
         "sources, we cannot handle them at this stage",
         project, fileNames.size());
+    removeRunningSign(msCacheDir);
     throw AppBaseException(
         "U1000", fmt::format("当前项目[{}]有{}个冲突文件，但由于都不是C/"
                              "C++相关的源文件，mergebot-sa当前阶段无法处理",
@@ -225,13 +235,9 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
     // call its async doResolution method to do resolution
     resolutionManager->doResolution();
   } catch (const std::exception& ex) {
-    const fs::path runningSign =
-        fs::path(resolutionManager->mergeScenarioPath()) / "running";
-    if (fs::exists(runningSign)) {
-      fs::remove(runningSign);
-      spdlog::info("unexpected error caught: {}, unlock merge scenario\n\n\n",
-                   ex.what());
-    }
+    removeRunningSign(resolutionManager->mergeScenarioPath());
+    spdlog::info("unexpected error caught: {}, unlock merge scenario\n\n\n",
+                 ex.what());
     throw ex;
   }
 }
@@ -378,8 +384,9 @@ bool checkAndAddMSMetadata(const std::string& project, const std::string& path,
           ms.name, manifestPath.c_str());
       if (fs::exists(msCacheDir / "running")) {
         spdlog::info("the resolution algorithm is running, we'll do nothing");
-        throw AppBaseException("C1000",
-                               "合并场景[{}]的冲突解决算法正在运行中...");
+        throw AppBaseException(
+            "C1000",
+            fmt::format("合并场景[{}]的冲突解决算法正在运行中...", ms.name));
       } else {
         spdlog::info(
             "the resolution algorithm is not running, we'll start it soon");
