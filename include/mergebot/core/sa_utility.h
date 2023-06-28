@@ -64,7 +64,7 @@ void tidyUpConflictFiles(std::vector<ConflictFile> &ConflictFiles);
 
 std::string pathToName(std::string_view path);
 
-std::string nameToPath(std::string_view name);
+std::string nameToPath(const std::string &name);
 
 /// extract code between two markers in conflict code range, note that the
 /// marker line will be discarded from code

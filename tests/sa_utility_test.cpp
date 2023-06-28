@@ -1,11 +1,12 @@
 //
 // Created by whalien on 28/03/23.
 //
+#include "mergebot/core/sa_utility.h"
+
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
 #include "mergebot/core/model/ConflictFile.h"
-#include "mergebot/core/sa_utility.h"
 #include "mergebot/filesystem.h"
 
 TEST(UtilityTest, ExtractOneConflictFile) {
@@ -125,4 +126,72 @@ TEST(UtilityTest, ExtractOneConflictFile) {
       mergebot::sa::constructConflictFiles(ConflictFilePaths);
 
   ASSERT_EQ(ExpectedConflictFiles, ConflictFiles);
+}
+
+TEST(SAUtilityTest, pathToNameTransformation) {
+  // Windows paths
+  const std::string absolutePath = "C:\\path\\to\\file.txt";
+  std::string expected = "C#@path@to@file.txt";
+  std::string result = mergebot::sa::pathToName(absolutePath);
+  EXPECT_EQ(result, expected);
+
+  const std::string pathWithSpaces = "C:\\folder with spaces\\file.txt";
+  expected = "C#@folder with spaces@file.txt";
+  result = mergebot::sa::pathToName(pathWithSpaces);
+  EXPECT_EQ(result, expected);
+
+  const std::string hiddenFile = "C:\\hiddenfolder\\.hiddenfile";
+  expected = "C#@hiddenfolder@.hiddenfile";
+  result = mergebot::sa::pathToName(hiddenFile);
+  EXPECT_EQ(result, expected);
+
+  const std::string networkPath = "\\\\server\\share\\file.txt";
+  expected = "@@server@share@file.txt";
+  result = mergebot::sa::pathToName(networkPath);
+  EXPECT_EQ(result, expected);
+
+  const std::string rootName = "C:";
+  expected = "C#";
+  result = mergebot::sa::pathToName(rootName);
+  EXPECT_EQ(result, expected);
+
+  // posix
+  const std::string path = "/home/user/documents/file.txt";
+  expected = "@home@user@documents@file.txt";
+  result = mergebot::sa::pathToName(path);
+  EXPECT_EQ(result, expected);
+}
+
+TEST(SAUtilityTest, nameToPathTransformation) {
+  // Windows paths
+  const std::string absoluteName = "C#@path@to@file.txt";
+  std::string expected = "C:\\path\\to\\file.txt";
+  std::string result = mergebot::sa::nameToPath(absoluteName);
+  EXPECT_EQ(result, expected);
+
+  const std::string nameWithSpaces = "C#@folder with spaces@file.txt";
+  expected = "C:\\folder with spaces\\file.txt";
+  result = mergebot::sa::nameToPath(nameWithSpaces);
+  EXPECT_EQ(result, expected);
+
+  const std::string hiddenFileName = "C#@hiddenfolder@.hiddenfile";
+  expected = "C:\\hiddenfolder\\.hiddenfile";
+  result = mergebot::sa::nameToPath(hiddenFileName);
+  EXPECT_EQ(result, expected);
+
+  const std::string networkPathName = "@@server@share@file.txt";
+  expected = "\\\\server\\share\\file.txt";
+  result = mergebot::sa::nameToPath(networkPathName);
+  EXPECT_EQ(result, expected);
+
+  const std::string rootName = "C#";
+  expected = "C:";
+  result = mergebot::sa::nameToPath(rootName);
+  EXPECT_EQ(result, expected);
+
+  // posix
+  const std::string path = "@home@user@documents@file.txt";
+  expected = "/home/user/documents/file.txt";
+  result = mergebot::sa::nameToPath(path);
+  EXPECT_EQ(result, expected);
 }

@@ -333,22 +333,27 @@ void marshalResolutionResult(
   fs::path ResolutionFilePath = fs::path(DestPath);
   std::ifstream ResolutionFS(ResolutionFilePath.string());
   // file not exists or do exist but is illegal, marshal directly
+  // FIXME(hwa): when two MS API requests occur simultaneously,
+  // there may be a data race
   if (!fs::exists(ResolutionFilePath) ||
       (fs::exists(ResolutionFilePath) &&
        !nlohmann::json::accept(ResolutionFS))) {
     server::FileResolutionResult FR{.filepath = std::string(FileName),
                                     .resolutions = Results};
     nlohmann::json JsonToDump = FR;
-    util::file_overwrite_content(ResolutionFilePath, JsonToDump.dump(2));
+    bool Success = util::file_overwrite_content_sync(ResolutionFilePath,
+                                                     JsonToDump.dump(2));
+    if (!Success) {
+      spdlog::warn("fail to write resolution result to file [{}]", DestPath);
+    }
   } else { // merge resolution results
     std::ifstream ResolvedFS(ResolutionFilePath.string());
     nlohmann::json ResolvedJson = nlohmann::json::parse(ResolvedFS);
     server::FileResolutionResult FileResolved = ResolvedJson;
     std::vector<server::BlockResolutionResult> &Resolutions =
         FileResolved.resolutions;
-    // TODO(whalien): fix overlap
 #ifndef NDEBUG
-    // this check is rather inefficient and the situation is almost impossible
+    // this check is rather inefficient, and the situation is almost impossible
     // to happen, so we only perform this check at debug phase
     bool hasSame = utils::hasSameElements(
         Resolutions.begin(), Resolutions.end(), Results.begin(), Results.end(),
@@ -365,22 +370,55 @@ void marshalResolutionResult(
     Resolutions.reserve(Resolutions.size() + Results.size());
     std::copy(Results.begin(), Results.end(), std::back_inserter(Resolutions));
     nlohmann::json JsonToDump = FileResolved;
-    util::file_overwrite_content(ResolutionFilePath, JsonToDump.dump(2));
+    bool Success = util::file_overwrite_content_sync(ResolutionFilePath,
+                                                     JsonToDump.dump(2));
+    if (!Success) {
+      spdlog::warn("fail to write resolution result to file [{}]", DestPath);
+    }
   }
 }
 
 std::string pathToName(std::string_view path) {
-  // FIX(hwa): use a less common path separator
-  return util::string_join(util::string_split(path, "/"), "-");
+  std::string sep = path.find('/') != std::string_view ::npos ? "/" : "\\";
+  const std::string genericPath = fs::path(path).generic_string();
+
+  std::vector<std::string> split;
+  for (auto first = genericPath.data(), second = genericPath.data(),
+            last = first + genericPath.size();
+       second != last && first != last; first = second + 1) {
+    second = std::find_first_of(first, last, std::cbegin(sep), std::cend(sep));
+
+    if (first == second) {
+      split.push_back("");
+    } else {
+      split.emplace_back(first, second - first);
+    }
+  }
+
+  std::string replaced = util::string_join(split.begin(), split.end(), "@");
+  std::replace(replaced.begin(), replaced.end(), ':', '#');
+  return replaced;
 }
 
-std::string nameToPath(std::string_view name) {
-  std::vector<std::string_view> Segs = util::string_split(name, "-");
-  return std::accumulate(Segs.begin(), Segs.end(), fs::path("/"),
-                         [](fs::path const &P, std::string_view seg) {
-                           return P / fs::path(seg);
-                         })
-      .string();
+std::string nameToPath(const std::string &name) {
+  std::string sep = name.find('#') != std::string::npos ||
+                            name.find("@@") != std::string::npos
+                        ? "\\"
+                        : "/";
+
+  std::string replaced = name;
+  std::replace(replaced.begin(), replaced.end(), '@',
+               '/'); // Replace '@' with '/'
+  std::replace(replaced.begin(), replaced.end(), '#',
+               ':'); // Replace '~' with ':'
+
+  std::vector<std::string> split;
+  std::istringstream iss(replaced);
+  std::string token;
+  while (std::getline(iss, token, '/')) {
+    split.push_back(token);
+  }
+  return util::string_join(split.begin(), split.end(), sep);
 }
 
 std::string_view extractCodeFromConflictRange(std::string_view Source,

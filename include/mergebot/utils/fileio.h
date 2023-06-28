@@ -68,8 +68,7 @@ static bool file_put_binary(Arr const &arr, std::string const &path) {
   return file_put_binary(std::data(arr), std::size(arr), path);
 }
 
-static bool copy_file(const std::string &source,
-                      const std::string &destination);
+bool copy_file(const std::string &source, const std::string &destination);
 }  // namespace util
 }  // namespace mergebot
 

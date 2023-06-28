@@ -57,8 +57,7 @@ bool file_put_binary(char const *arr_data, size_t arr_size,
   return true;
 }
 
-static bool copy_file(const std::string &source,
-                      const std::string &destination) {
+bool copy_file(const std::string &source, const std::string &destination) {
   int srcFd = open(source.c_str(), O_RDONLY);
   if (srcFd == -1) {
     spdlog::error("failed to open source file: {}", source);
