@@ -382,18 +382,8 @@ std::string pathToName(std::string_view path) {
   std::string sep = path.find('/') != std::string_view ::npos ? "/" : "\\";
   const std::string genericPath = fs::path(path).generic_string();
 
-  std::vector<std::string> split;
-  for (auto first = genericPath.data(), second = genericPath.data(),
-            last = first + genericPath.size();
-       second != last && first != last; first = second + 1) {
-    second = std::find_first_of(first, last, std::cbegin(sep), std::cend(sep));
-
-    if (first == second) {
-      split.push_back("");
-    } else {
-      split.emplace_back(first, second - first);
-    }
-  }
+  std::vector<std::string_view> split =
+      util::string_split(genericPath, sep, true);
 
   std::string replaced = util::string_join(split.begin(), split.end(), "@");
   std::replace(replaced.begin(), replaced.end(), ':', '#');

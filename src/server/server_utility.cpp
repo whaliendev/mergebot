@@ -90,7 +90,7 @@ void checkConflictFile(const std::string& project, const std::string& path,
         path);
     throw AppBaseException(
         "C1000",
-        fmt::format("待获取冲突消解结果的文件[{}]不存在于Git仓库", file));
+        fmt::format("待获取冲突消解结果的文件[{}]不存在于Git仓库中", file));
   }
 
   const std::string cacheDirCheckSum = utils::calcProjChecksum(project, path);

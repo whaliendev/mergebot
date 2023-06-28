@@ -43,6 +43,17 @@ struct FileResolutionResult {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(FileResolutionResult, filepath,
                                                 resolutions);
+
+struct ResolutionBlockVO {
+  std::vector<std::string> code = {};
+  int index = 0;
+  std::string label = "";
+  std::string desc = "";
+  double confidence = 0;
+};
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ResolutionBlockVO, code, index,
+                                                label, confidence);
 }  // namespace server
 }  // namespace mergebot
 #endif  // MB_RESOLUTIONRESULTVO_H

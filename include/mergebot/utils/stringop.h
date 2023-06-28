@@ -87,7 +87,8 @@ inline uint8_t hexFromNibbles(char MSB, char LSB) {
 /// \return a vector of string_view with split string_view
 /// segments filled
 std::vector<std::string_view> string_split(std::string_view str,
-                                           std::string_view delims);
+                                           std::string_view delims,
+                                           bool with_empty = false);
 
 template <typename InputIt>
 std::string string_join(InputIt begin, InputIt end,

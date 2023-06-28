@@ -6,11 +6,11 @@
 #define MB_RESULT_VO_UTILS_H
 #include <crow/http_response.h>
 #include <crow/json.h>
+#include <crow/returnable.h>
 #include <fmt/format.h>
 
 #include <iomanip>
-
-#include "crow/returnable.h"
+#include <nlohmann/json.hpp>
 
 namespace mergebot {
 namespace server {
@@ -44,7 +44,6 @@ struct ResultVO : public crow::returnable {
     return to_string(buf);
   }
 };
-
 }  // namespace server
 }  // namespace mergebot
 

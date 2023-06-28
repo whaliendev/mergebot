@@ -37,7 +37,7 @@ inline bool err(crow::json::wvalue& rv) {
   return rv.t() == crow::json::type::Object &&
          std::find(rv.keys().begin(), rv.keys().end(), "error") !=
              rv.keys().end() &&
-         rv["error"].dump().size();
+         rv["error"].dump() != "null";
 }
 
 namespace ResultEnum {
