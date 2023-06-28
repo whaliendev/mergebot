@@ -113,12 +113,14 @@ void StyleBasedHandler::resolveConflictFiles(
                   });
     // update resolved flag of ConflictFile
     CF.Resolved = AllResolved;
-    // check any of blocks is resolved, if true, marshal resolution result to
+    // check any of blocks is resolved, if true, marshal resolution results to
     // MSCache dir; if false, do nothing
     if (EverResolved) {
+      const std::string RelativePath =
+          fs::relative(CF.Filename, Meta.ProjectPath).string();
       fs::path ResolutionDest =
-          fs::path(Meta.MSCacheDir) / "resolutions" / pathToName(CF.Filename);
-      marshalResolutionResult(ResolutionDest.string(), CF.Filename,
+          fs::path(Meta.MSCacheDir) / "resolutions" / pathToName(RelativePath);
+      marshalResolutionResult(ResolutionDest.string(), RelativePath,
                               ResolvedBlocks);
     }
 
