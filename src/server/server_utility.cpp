@@ -185,7 +185,7 @@ void validateAndCompleteCommitHash(sa::MergeScenario& ms,
   const auto ourFullHash = util::full_commit_hash(ms.ours, projectPath);
   const auto theirFullHash = util::full_commit_hash(ms.theirs, projectPath);
   if (!ourFullHash.has_value() || !theirFullHash.has_value()) {
-    throw AppBaseException("C1000", "commit hash is illegal or non unique");
+    throw AppBaseException("C1000", "合并场景哈希值不合法或不唯一");
   }
   ms.ours = ourFullHash.value();
   ms.theirs = theirFullHash.value();
