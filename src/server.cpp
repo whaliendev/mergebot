@@ -52,17 +52,18 @@ void InitThreadPool();
   crow::logger::setHandler(&subLogger);
 
   crow::App<crow::CORSHandler> app;
-  auto& cors = app.get_middleware<crow::CORSHandler>();
   crow::Blueprint subApiBP("api/sa");
 
-  cors.global()
-      .headers("X-Custom-Header", "Upgrade-Insecure-Requests",
-               "X-Requested-With")
-      .origin("http://127.0.0.1:80")
-      .methods(crow::HTTPMethod::GET, crow::HTTPMethod::POST,
-               crow::HTTPMethod::PUT)
-      .max_age(10000)
-      .allow_credentials();
+  auto& cors = app.get_middleware<crow::CORSHandler>();
+
+  cors.blueprint(subApiBP).origin("*").headers("*").methods(
+      "POST"_method, "GET"_method, "PUT"_method, "DELETE"_method,
+      "PATCH"_method, "OPTIONS"_method);
+
+  //  cors.global()
+  //      .methods("POST"_method, "GET"_method, "PUT"_method, "DELETE"_method,
+  //               "PATCH"_method, "OPTIONS"_method)
+  //      .origin("*");
 
   ConfigBPRoutes(subApiBP);
 
@@ -198,10 +199,20 @@ void ConfigBPRoutes(crow::Blueprint& bp) {
       .methods(crow::HTTPMethod::GET)(
           [](const crow::request& req) { return "list configuration"; });
 
+  CROW_BP_ROUTE(bp, "/ms").methods(crow::HTTPMethod::OPTIONS)(
+      [](const crow::request& req) {
+        return crow::response(crow::status::OK);
+      });
+
   // post merge scenario information
   CROW_BP_ROUTE(bp, "/ms").methods(crow::HTTPMethod::POST)(
       [](const crow::request& req, crow::response& res) {
         server::PostMergeScenario(req, res);
+      });
+
+  CROW_BP_ROUTE(bp, "/resolve")
+      .methods(crow::HTTPMethod::OPTIONS)([](const crow::request& req) {
+        return crow::response(crow::status::OK);
       });
 
   // resolution result of specified file
