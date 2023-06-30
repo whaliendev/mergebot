@@ -6,6 +6,7 @@
 #define MB_INCLUDE_MERGEBOT_LSP_PROTOCOL_H
 
 #include <magic_enum.hpp>
+#include <nlohmann/json.hpp>
 
 #include "mergebot/utils/stringop.h"
 #include "uri.h"

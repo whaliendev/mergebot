@@ -313,7 +313,7 @@ std::vector<std::string> ResolutionManager::_extractCppSources() {
 }
 
 bool ResolutionManager::fineTuneCompDB(const std::string &CompDBPath,
-                                       std::string_view ProjPath,
+                                       const std::string& ProjPath,
                                        const std::string &OrigPath) {
   std::ifstream CompDB(CompDBPath);
   if (!CompDB.is_open()) {

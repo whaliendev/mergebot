@@ -87,7 +87,7 @@ private:
   const static std::string CompDBRelative;
 
   static bool fineTuneCompDB(const std::string &CompDBPath,
-                             std::string_view ProjPath,
+                             const std::string& ProjPath,
                              const std::string &OrigPath);
   static void
   _doResolutionAsync(std::shared_ptr<ResolutionManager> const &Self);

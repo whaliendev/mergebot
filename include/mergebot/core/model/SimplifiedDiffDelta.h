@@ -53,10 +53,14 @@ struct SimplifiedDiffDelta {
 
   friend std::ostream &operator<<(std::ostream &OS,
                                   SimplifiedDiffDelta const &SDD) {
-    return OS << fmt::format("SimplifiedDiffDelta(oldPath={}, newPath={}, "
-                             "deltaType={}, similarity={})",
-                             SDD.OldPath, SDD.NewPath, SDD.Type,
-                             SDD.Similarity);
+    return OS << "SimplifiedDiffDelta(oldPath=" << SDD.OldPath
+              << ", newPath=" << SDD.NewPath << ", deltaType=" << SDD.Type
+              << ", similarity" << SDD.Similarity << ")";
+    //    return OS << fmt::format("SimplifiedDiffDelta(oldPath={}, newPath={},
+    //    "
+    //                             "deltaType={}, similarity={})",
+    //                             SDD.OldPath, SDD.NewPath, SDD.Type,
+    //                             SDD.Similarity);
   }
 
   bool operator==(SimplifiedDiffDelta const &SDD) const noexcept {

@@ -144,7 +144,7 @@ endif (BUILD_SHARED_LIBS)
 
 
 ## configure conan
-include(cmake/conaninstall.cmake)
+#include(cmake/conaninstall.cmake)
 
 ### find packages go here.
 ## use conan to manage all the packages it contains
