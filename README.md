@@ -1,5 +1,27 @@
 <h2 align="center">mergebot</h2>
 
+### Build
+
+#### Dependencies
+
+1. Crow (build from code)
+2. re2 (build from code)
+3. nlohmann_json (build from code)
+4. fmt (build from code)
+5. spdlog (build from code)
+6. magic_enum (build from code)
+7. TBB (build from code)
+8. Boost (bgl, build from code)
+9. TreeSitter(tree-sitter tree-sitter-cpp, build from code)
+10. LibGit2 (build from code)
+11. LLVM (build from code)
+12. ZLIB (installed with package manager)
+13. git (installed with package manager)
+
+#### Tools
+
+cmake > 3.15
+
 ### Develop
 
 #### Source tree
