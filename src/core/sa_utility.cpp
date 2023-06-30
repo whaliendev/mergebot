@@ -180,7 +180,7 @@ constructConflictFile(std::unique_ptr<llvm::MemoryBuffer> &File) {
   const char *Start = File->getBufferStart();
   const char *End = File->getBufferEnd();
   for (const char *Pos = Start, *LineStart = Start, *BlockStart = Start;
-       Pos != End; LineStart = ++Pos) {
+       Pos < End; LineStart = ++Pos) {
     Pos = std::find(Pos, End, '\n');
     std::string_view Line(LineStart, Pos - LineStart);
     if (Line.size() < 7)
