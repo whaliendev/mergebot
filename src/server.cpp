@@ -60,11 +60,6 @@ void InitThreadPool();
       "POST"_method, "GET"_method, "PUT"_method, "DELETE"_method,
       "PATCH"_method, "OPTIONS"_method);
 
-  //  cors.global()
-  //      .methods("POST"_method, "GET"_method, "PUT"_method, "DELETE"_method,
-  //               "PATCH"_method, "OPTIONS"_method)
-  //      .origin("*");
-
   ConfigBPRoutes(subApiBP);
 
   // handler for no route matching
