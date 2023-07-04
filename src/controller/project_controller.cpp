@@ -129,8 +129,8 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
       "current project[{}, path: {}] has {} conflict files, {} of them are "
       "C/C++ related sources",
       project, path, fileNames.size(), cppSources.size());
-  writeConflictFiles(msCacheDir, "\t" + util::string_join(cppSources.begin(),
-                                                   cppSources.end(), "\n\t"));
+  writeConflictFiles(msCacheDir, util::string_join(cppSources.begin(),
+                                                   cppSources.end(), "\n"));
   std::unique_ptr<std::string[]> conflictFiles =
       std::make_unique<std::string[]>(cppSources.size());
   std::transform(
