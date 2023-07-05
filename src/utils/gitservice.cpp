@@ -28,6 +28,53 @@ bool is_cpp_file(std::string_view path) {
 }
 
 namespace detail {
+std::string corresponding_commit_hash(
+    std::string_view hash, const std::unique_ptr<GitRepository> &repo_ptr) {
+  git_object *obj = nullptr;
+  git_oid oid;
+  int error = git_oid_fromstr(&oid, hash.data());
+  if (error != 0) {
+    const git_error *e = git_error_last();
+    spdlog::debug("fail to parse hash [{}] into oid, error {}/{}: {}", hash,
+                  error, e->klass, e->message);
+    return "";
+  }
+
+  error = git_object_lookup(&obj, repo_ptr->unwrap(), &oid, GIT_OBJECT_ANY);
+  if (error != 0) {
+    const git_error *e = git_error_last();
+    spdlog::debug("error to parse hash [{}] into git object, error {}/{}: {}",
+                  hash, error, e->klass, e->message);
+    return "";
+  }
+
+  git_otype obj_type = git_object_type(obj);
+  if (obj_type == GIT_OBJECT_TAG) {
+    git_tag *tag = nullptr;
+    error = git_tag_lookup(&tag, repo_ptr->unwrap(), &oid);
+    if (error != 0) {
+      const git_error *e = git_error_last();
+      spdlog::debug("error to parse hash [{}] into git object, error {}/{}: {}",
+                    hash, error, e->klass, e->message);
+      git_object_free(obj);
+      return "";
+    }
+
+    const git_oid *target_oid = git_tag_target_id(tag);
+    char full_hash[GIT_OID_MAX_HEXSIZE + 1];
+    full_hash[GIT_OID_MAX_HEXSIZE] = '\0';
+    git_oid_fmt(full_hash, target_oid);
+
+    git_tag_free(tag);
+    git_object_free(obj);
+    spdlog::debug("hash [{}] is a tag object, its commit hash is [{}]", hash,
+                  full_hash);
+    return std::string(full_hash);
+  }
+
+  return std::string(hash);
+}
+
 typedef struct {
   std::string_view dest;
   git_repository *repo;
@@ -154,7 +201,7 @@ std::unique_ptr<GitCommit> GitRepository::lookupCommit(
   git_oid_fromstr(&oid, commit_hash.data());
   err = git_commit_lookup(&commit, repo, &oid);
   if (err < 0) {
-    return std::make_unique<GitCommit>(nullptr);
+    return nullptr;
   }
   return std::make_unique<GitCommit>(commit);
 }
@@ -233,7 +280,7 @@ handle:
   return diff_set;
 }
 
-bool dump_tree_object_to(std::string_view dest, std::string_view commit_hash,
+bool dump_tree_object_to(std::string_view dest, std::string_view hash,
                          std::string_view repo_path) {
   fs::path dest_path = fs::path(dest);
   if (fs::exists(dest) && !fs::is_directory(dest)) {
@@ -252,6 +299,8 @@ bool dump_tree_object_to(std::string_view dest, std::string_view commit_hash,
     return false;
   }
 
+  std::string commit_hash = detail::corresponding_commit_hash(hash, repo_ptr);
+
   std::unique_ptr<GitCommit> commit_ptr = repo_ptr->lookupCommit(commit_hash);
   if (!commit_ptr) {
     const git_error *e = git_error_last();
@@ -266,17 +315,20 @@ bool dump_tree_object_to(std::string_view dest, std::string_view commit_hash,
     return false;
   }
 
-  size_t num_entries = git_tree_entrycount(tree_ptr->get());
+  size_t num_entries = git_tree_entrycount(tree_ptr->unwrap());
+  spdlog::debug("there are {} tree entries of commit {} in {}", num_entries,
+                commit_hash, repo_path);
   auto start = std::chrono::high_resolution_clock ::now();
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, num_entries),
-                    [&](const tbb::blocked_range<size_t> &range) {
-                      detail::DumpTreePayload payload = {dest, repo_ptr->get()};
-                      for (auto i = range.begin(); i != range.end(); ++i) {
-                        const git_tree_entry *entry =
-                            git_tree_entry_byindex(tree_ptr->get(), i);
-                        detail::dump_tree_entry("", entry, &payload);
-                      }
-                    });
+  tbb::parallel_for(
+      tbb::blocked_range<size_t>(0, num_entries),
+      [&](const tbb::blocked_range<size_t> &range) {
+        detail::DumpTreePayload payload = {dest, repo_ptr->unwrap()};
+        for (auto i = range.begin(); i != range.end(); ++i) {
+          const git_tree_entry *entry =
+              git_tree_entry_byindex(tree_ptr->unwrap(), i);
+          detail::dump_tree_entry("", entry, &payload);
+        }
+      });
   auto end = std::chrono::high_resolution_clock ::now();
   spdlog::debug(
       "it takes {}ms to dump commit tree object {} to {}",
@@ -302,7 +354,7 @@ std::optional<std::string> full_commit_hash(const std::string &hash,
 
   char full_hash[GIT_OID_MAX_HEXSIZE + 1];
   full_hash[GIT_OID_MAX_HEXSIZE] = '\0';
-  git_oid_fmt(full_hash, git_commit_id(commit_ptr->get()));
+  git_oid_fmt(full_hash, git_commit_id(commit_ptr->unwrap()));
   return std::string(full_hash);
 }
 
@@ -315,13 +367,13 @@ std::optional<std::string> commit_hash_of_branch(
   repo_ptr = GitRepository::create(project_path);
   if (!repo_ptr) return std::nullopt;
 
-  int res = git_branch_lookup(&ref, repo_ptr->get(), branch_name.c_str(),
+  int res = git_branch_lookup(&ref, repo_ptr->unwrap(), branch_name.c_str(),
                               GIT_BRANCH_ALL);
   if (res != 0) return std::nullopt;
 
   std::string ref_name = git_reference_name(ref);
   int error =
-      git_reference_name_to_id(&full_oid, repo_ptr->get(), ref_name.c_str());
+      git_reference_name_to_id(&full_oid, repo_ptr->unwrap(), ref_name.c_str());
   if (error < 0) {
     git_reference_free(ref);
     return std::nullopt;
@@ -356,7 +408,7 @@ std::optional<std::string> commit_hash_of_rev(const std::string &revision,
   git_object *obj;
 
   std::unique_ptr<GitRepository> repo_ptr = GitRepository::create(project_path);
-  int res = git_revparse_single(&obj, repo_ptr->get(), revision.c_str());
+  int res = git_revparse_single(&obj, repo_ptr->unwrap(), revision.c_str());
   if (res != 0) {
     const git_error *err = git_error_last();
     spdlog::error(

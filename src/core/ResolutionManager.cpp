@@ -160,7 +160,6 @@ void ResolutionManager::_doResolutionAsync(
       [](std::string pre, std::string_view const cur) {
         return std::move(pre) + " " + std::string(cur);
       });
-  spdlog::debug("conflict file list: {}", FileList);
 
   spdlog::info("copying conflict files to destination directory {}",
                ConflictDest.string());
@@ -313,7 +312,7 @@ std::vector<std::string> ResolutionManager::_extractCppSources() {
 }
 
 bool ResolutionManager::fineTuneCompDB(const std::string &CompDBPath,
-                                       const std::string& ProjPath,
+                                       const std::string &ProjPath,
                                        const std::string &OrigPath) {
   std::ifstream CompDB(CompDBPath);
   if (!CompDB.is_open()) {

@@ -49,7 +49,7 @@ class GitTree {
     return *this;
   }
 
-  git_tree* get() noexcept { return tree; }
+  git_tree* unwrap() noexcept { return tree; }
 
  private:
   git_tree* tree;
@@ -92,11 +92,11 @@ class GitCommit {
   std::unique_ptr<GitTree> tree() const {
     git_tree* tree = nullptr;
     int error = git_commit_tree(&tree, commit);
-    if (error < 0) return std::make_unique<GitTree>(nullptr);
+    if (error < 0) return nullptr;
     return std::make_unique<GitTree>(tree);
   }
 
-  git_commit* get() noexcept { return commit; }
+  git_commit* unwrap() noexcept { return commit; }
 
  private:
   git_commit* commit;
@@ -159,7 +159,7 @@ class GitRepository {
     return std::make_unique<GitRepository>(repo);
   }
 
-  git_repository* get() noexcept { return repo; }
+  git_repository* unwrap() noexcept { return repo; }
 
   std::unique_ptr<GitCommit> lookupCommit(std::string_view commit_hash) const;
 
@@ -176,7 +176,7 @@ std::unordered_set<sa::SimplifiedDiffDelta> list_cpp_diff_files(
     std::string_view repo_path, std::string_view old_commit,
     std::string_view new_commit);
 
-bool dump_tree_object_to(std::string_view dest, std::string_view commit_hash,
+bool dump_tree_object_to(std::string_view dest, std::string_view hash,
                          std::string_view repo_path);
 
 std::optional<std::string> full_commit_hash(const std::string& hash,

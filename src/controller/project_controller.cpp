@@ -53,8 +53,6 @@ void removeRunningSign(const std::string& msPath) {
 bool writeConflictFiles(const fs::path& msCacheDir,
                         const std::string& fileList) {
   const fs::path conflicts = msCacheDir / "conflicts" / "conflict-sources.txt";
-  spdlog::debug("about to write conflict files [\n{}\n] to {}", fileList,
-                conflicts.c_str());
   if (!fs::exists(conflicts.parent_path())) {
     fs::create_directories(conflicts.parent_path());
   }
@@ -80,6 +78,7 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
   const fs::path projectCacheDir =
       fs::path(mergebot::util::toabs(MBDIR)) / cacheDirCheckSum;
   const fs::path msCacheDir = projectCacheDir / ms.name;
+  /// !!! remember to remove running sign when jump out of control flow
   setRunningSign(projectCacheDir, ms.name);
 
   // collect conflict files in the project
