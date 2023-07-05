@@ -121,12 +121,13 @@ crow::json::wvalue doGetFileResolution(const crow::request& req,
   utils::checkPath(path);
   utils::checkGitRepo(path);
 
-  std::string ours = static_cast<std::string>(body["ms"]["ours"]);
-  std::string theirs = static_cast<std::string>(body["ms"]["theirs"]);
+  std::string ours = utils::validateAndCompleteRevision(
+      static_cast<std::string>(body["ms"]["ours"]), path);
+  std::string theirs = utils::validateAndCompleteRevision(
+      static_cast<std::string>(body["ms"]["theirs"]), path);
   auto baseOpt = util::git_merge_base(ours, theirs, path);
   std::string base = baseOpt.has_value() ? baseOpt.value() : "";
   sa::MergeScenario ms(ours, theirs, base);
-  utils::validateAndCompleteCommitHash(ms, path);
   bool success = utils::checkMSMetadata(project, path, ms);
   if (!success) {
     throw AppBaseException(

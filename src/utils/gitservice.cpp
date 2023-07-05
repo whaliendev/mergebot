@@ -306,6 +306,34 @@ std::optional<std::string> full_commit_hash(const std::string &hash,
   return std::string(full_hash);
 }
 
+std::optional<std::string> commit_hash_of_branch(
+    const std::string &branch_name, const std::string &project_path) {
+  std::unique_ptr<GitRepository> repo_ptr = nullptr;
+  git_reference *ref;
+  git_oid full_oid;
+
+  repo_ptr = GitRepository::create(project_path);
+  if (!repo_ptr) return std::nullopt;
+
+  int res = git_branch_lookup(&ref, repo_ptr->get(), branch_name.c_str(),
+                              GIT_BRANCH_ALL);
+  if (res != 0) return std::nullopt;
+
+  std::string ref_name = git_reference_name(ref);
+  int error =
+      git_reference_name_to_id(&full_oid, repo_ptr->get(), ref_name.c_str());
+  if (error < 0) {
+    git_reference_free(ref);
+    return std::nullopt;
+  }
+
+  char full_hash[GIT_OID_MAX_HEXSIZE + 1];
+  full_hash[GIT_OID_MAX_HEXSIZE] = '\0';
+  git_oid_fmt(full_hash, &full_oid);
+  git_reference_free(ref);
+  return std::string(full_hash);
+}
+
 std::optional<std::string> git_merge_base(const std::string &our,
                                           const std::string &their,
                                           const std::string &project_path) {
@@ -321,6 +349,32 @@ std::optional<std::string> git_merge_base(const std::string &our,
     return std::nullopt;
   }
   return base;
+}
+
+std::optional<std::string> commit_hash_of_rev(const std::string &revision,
+                                              const std::string &project_path) {
+  git_object *obj;
+
+  std::unique_ptr<GitRepository> repo_ptr = GitRepository::create(project_path);
+  int res = git_revparse_single(&obj, repo_ptr->get(), revision.c_str());
+  if (res != 0) {
+    const git_error *err = git_error_last();
+    spdlog::error(
+        "fail to parse revision {}, error code: {}, error: {{ klass: {}, "
+        "message: {} }}",
+        revision, res, err->klass, err->message);
+    return std::nullopt;
+  }
+
+  const git_oid *oid = git_object_id(obj);
+
+  char full_hash[GIT_OID_MAX_HEXSIZE + 1];
+  full_hash[GIT_OID_MAX_HEXSIZE] = '\0';
+  git_oid_fmt(full_hash, oid);
+
+  git_object_free(obj);
+
+  return std::string(full_hash);
 }
 }  // namespace util
 }  // namespace mergebot

@@ -28,18 +28,18 @@ bool containKeys(const crow::json::rvalue& bodyJson,
                  const std::vector<std::string>& keys);
 std::string calcProjChecksum(std::string const& project,
                              std::string const& path);
-void validateAndCompleteCommitHash(sa::MergeScenario& ms,
-                                   const std::string& projectPath);
+std::string validateAndCompleteRevision(const std::string& revision,
+                                        const std::string& projectPath);
 }  // namespace utils
 
 void handleServerExecError(std::error_code err, std::string_view cmd);
 inline bool err(crow::json::wvalue& rv) {
-//  return rv.t() == crow::json::type::Object &&
-//         std::find(rv.keys().begin(), rv.keys().end(), "error") !=
-//             rv.keys().end() &&
-//         rv["error"].dump() != "null";
-    return rv.t() == crow::json::type::Object &&
-      rv.count("error") && rv["error"].dump() != "null";
+  //  return rv.t() == crow::json::type::Object &&
+  //         std::find(rv.keys().begin(), rv.keys().end(), "error") !=
+  //             rv.keys().end() &&
+  //         rv["error"].dump() != "null";
+  return rv.t() == crow::json::type::Object && rv.count("error") &&
+         rv["error"].dump() != "null";
 }
 
 namespace ResultEnum {

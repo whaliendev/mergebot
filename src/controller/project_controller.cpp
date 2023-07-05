@@ -129,8 +129,8 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
       "current project[{}, path: {}] has {} conflict files, {} of them are "
       "C/C++ related sources",
       project, path, fileNames.size(), cppSources.size());
-  writeConflictFiles(msCacheDir, "\t" + util::string_join(cppSources.begin(),
-                                                   cppSources.end(), "\n\t"));
+  writeConflictFiles(msCacheDir, util::string_join(cppSources.begin(),
+                                                   cppSources.end(), "\n"));
   std::unique_ptr<std::string[]> conflictFiles =
       std::make_unique<std::string[]>(cppSources.size());
   std::transform(
@@ -372,13 +372,14 @@ crow::json::wvalue doPostMergeScenario(const crow::request& req,
   utils::checkPath(path);
   utils::checkGitRepo(path);
 
-  std::string ours = static_cast<std::string>(body["ms"]["ours"]);
-  std::string theirs = static_cast<std::string>(body["ms"]["theirs"]);
+  std::string ours = utils::validateAndCompleteRevision(
+      static_cast<std::string>(body["ms"]["ours"]), path);
+  std::string theirs = utils::validateAndCompleteRevision(
+      static_cast<std::string>(body["ms"]["theirs"]), path);
   auto baseOpt = util::git_merge_base(ours, theirs, path);
   std::string base = baseOpt.has_value() ? baseOpt.value() : "";
-  sa::MergeScenario ms(ours, theirs, base);
-  utils::validateAndCompleteCommitHash(ms, path);
 
+  sa::MergeScenario ms(ours, theirs, base);
   internal::handleMergeScenario(project, path, ms, res);
   // default construct a crow::json::wvalue to indicate return successfully
   return {};

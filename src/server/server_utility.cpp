@@ -180,15 +180,14 @@ std::string calcProjChecksum(std::string const& project,
   return checksum.final();
 }
 
-void validateAndCompleteCommitHash(sa::MergeScenario& ms,
-                                   const std::string& projectPath) {
-  const auto ourFullHash = util::full_commit_hash(ms.ours, projectPath);
-  const auto theirFullHash = util::full_commit_hash(ms.theirs, projectPath);
-  if (!ourFullHash.has_value() || !theirFullHash.has_value()) {
-    throw AppBaseException("C1000", "合并场景哈希值不合法或不唯一");
+std::string validateAndCompleteRevision(const std::string& revision,
+                                        const std::string& projectPath) {
+  const auto fullHash = util::commit_hash_of_rev(revision, projectPath);
+  if (!fullHash.has_value()) {
+    throw AppBaseException("C1000",
+                           fmt::format("revision name {}不合法", revision));
   }
-  ms.ours = ourFullHash.value();
-  ms.theirs = theirFullHash.value();
+  return fullHash.value();
 }
 }  // namespace utils
 

@@ -182,6 +182,12 @@ bool dump_tree_object_to(std::string_view dest, std::string_view commit_hash,
 std::optional<std::string> full_commit_hash(const std::string& hash,
                                             const std::string& project_path);
 
+std::optional<std::string> commit_hash_of_branch(
+    const std::string& branch_name, const std::string& project_path);
+
+std::optional<std::string> commit_hash_of_rev(const std::string& revision,
+                                              const std::string& project_path);
+
 std::optional<std::string> git_merge_base(const std::string& our,
                                           const std::string& their,
                                           const std::string& project_path);
