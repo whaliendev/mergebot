@@ -72,6 +72,7 @@ std::string corresponding_commit_hash(
     return std::string(full_hash);
   }
 
+  git_object_free(obj);
   return std::string(hash);
 }
 
