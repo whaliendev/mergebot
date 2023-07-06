@@ -170,24 +170,45 @@ class GitRepository {
   git_repository* repo;
 };
 
-// bool is_cpp_file(std::string_view path);
-
+/// list diff files from \p old_commit to \p new_commit in project path \p
+/// repo_path
+/// \param repo_path repo path
+/// \param old_commit old commit hash
+/// \param new_commit new commit hash
+/// \return std::unordered_set of sa::SimplifiedDiffDelta
 std::unordered_set<sa::SimplifiedDiffDelta> list_cpp_diff_files(
     std::string_view repo_path, std::string_view old_commit,
     std::string_view new_commit);
 
+/// dump commit tree object with `hash` in project `repo_path` to `dest`
+/// \param dest destination folder
+/// \param hash SHA1 hash, consists of 40 hex digits
+/// \param repo_path git repo directory
+/// \return success or fail indicated by a boolean
 bool dump_tree_object_to(std::string_view dest, std::string_view hash,
                          std::string_view repo_path);
 
-std::optional<std::string> full_commit_hash(const std::string& hash,
-                                            const std::string& project_path);
+[[deprecated("use commit_hash_of_rev instead")]] std::optional<std::string>
+full_commit_hash(const std::string& hash, const std::string& project_path);
 
-std::optional<std::string> commit_hash_of_branch(
-    const std::string& branch_name, const std::string& project_path);
+[[deprecated("use commit_hash_of_rev instead")]] std::optional<std::string>
+commit_hash_of_branch(const std::string& branch_name,
+                      const std::string& project_path);
 
+/// get full commit hash of a revision name
+/// \param revision revision name, see man gitrevisions, or
+/// http://git-scm.com/docs/git-rev-parse.html#_specifying_revisions for
+/// information on the syntax accepted.
+/// \param project_path project path
+/// \return optional of full commit hash
 std::optional<std::string> commit_hash_of_rev(const std::string& revision,
                                               const std::string& project_path);
 
+/// get merge base of two commit hash
+/// \param our our side commit hash
+/// \param their their side commit hash
+/// \param project_path project path
+/// \return optional full commit hash
 std::optional<std::string> git_merge_base(const std::string& our,
                                           const std::string& their,
                                           const std::string& project_path);

@@ -93,6 +93,10 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
   std::vector<std::string_view> fileNames = util::string_split(result, "\n");
   if (fileNames.size() == 0) {
     removeRunningSign(msCacheDir);
+    spdlog::info(
+        "there is no conflicting C/C++ sources in the project [{}] located at "
+        "[{}]. Currently, we are unable to handle this merge scenario",
+        project, path);
     throw AppBaseException(
         "U1000",
         fmt::format(
@@ -113,11 +117,11 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
     if (cppExtensions.count(ext)) cppSources.push_back(fileName);
   }
   if (fileNames.size() && !cppSources.size()) {
+    removeRunningSign(msCacheDir);
     spdlog::info(
         "current project[{}] has {} conflict files, but none of them are c/cpp "
         "sources, we cannot handle them at this stage",
         project, fileNames.size());
-    removeRunningSign(msCacheDir);
     throw AppBaseException(
         "U1000", fmt::format("当前项目[{}]有{}个冲突文件，但由于都不是C/"
                              "C++相关的源文件，mergebot-sa当前阶段无法处理",
