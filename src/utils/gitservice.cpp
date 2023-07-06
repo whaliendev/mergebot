@@ -427,7 +427,9 @@ std::optional<std::string> commit_hash_of_rev(const std::string &revision,
 
   git_object_free(obj);
 
-  return std::string(full_hash);
+  std::string commit_hash =
+      detail::corresponding_commit_hash(full_hash, repo_ptr);
+  return commit_hash;
 }
 }  // namespace util
 }  // namespace mergebot
