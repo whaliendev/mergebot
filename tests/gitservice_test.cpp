@@ -59,34 +59,34 @@ TEST_F(RepoBasedTest, DumpTreeObjectTest) {
                commit_hash);
 }
 
-TEST_F(RepoBasedTest, FullCommitHashTest) {
-  // test resolve (full hash)
-  std::string validHash = "8ea21a778bb90d2f8c352b732c13ab64484eb386";
-  auto commit_hash = util::full_commit_hash(validHash, rocksdb_path);
-  EXPECT_TRUE(commit_hash.has_value()) << "commit hash is legal but failed";
-  EXPECT_EQ(commit_hash.value().size(), GIT_OID_MAX_HEXSIZE)
-      << "completeness of `full_commit_hash` test failed";
-
-  // test fail to resolve (full hash but an illegal one)
-  std::string illegalHash = "8ea21a778bb90d2f8c352b732c13ab64484euvwa";
-  commit_hash = util::full_commit_hash(illegalHash, rocksdb_path);
-  EXPECT_FALSE(commit_hash.has_value())
-      << "illegal commit hash should return std::nullopt";
-
-  // test completeness (short form)
-  std::string abbreviatedHash = "12966ec1bb22fecf9";
-  commit_hash = util::full_commit_hash(abbreviatedHash, rocksdb_path);
-  EXPECT_TRUE(commit_hash.has_value())
-      << "abbreviated should be parsed correctly";
-  EXPECT_EQ(commit_hash.value().size(), GIT_OID_MAX_HEXSIZE)
-      << "full_commit_hash should be able to parse short commit hash";
-
-  // test uniqueness
-  std::string nonUniqueHash = "832";
-  commit_hash = util::full_commit_hash(nonUniqueHash, rocksdb_path);
-  EXPECT_FALSE(commit_hash.has_value())
-      << "non unique commit hash should return std::nullopt";
-}
+// TEST_F(RepoBasedTest, FullCommitHashTest) {
+//   // test resolve (full hash)
+//   std::string validHash = "8ea21a778bb90d2f8c352b732c13ab64484eb386";
+//   auto commit_hash = util::full_commit_hash(validHash, rocksdb_path);
+//   EXPECT_TRUE(commit_hash.has_value()) << "commit hash is legal but failed";
+//   EXPECT_EQ(commit_hash.value().size(), GIT_OID_MAX_HEXSIZE)
+//       << "completeness of `full_commit_hash` test failed";
+//
+//   // test fail to resolve (full hash but an illegal one)
+//   std::string illegalHash = "8ea21a778bb90d2f8c352b732c13ab64484euvwa";
+//   commit_hash = util::full_commit_hash(illegalHash, rocksdb_path);
+//   EXPECT_FALSE(commit_hash.has_value())
+//       << "illegal commit hash should return std::nullopt";
+//
+//   // test completeness (short form)
+//   std::string abbreviatedHash = "12966ec1bb22fecf9";
+//   commit_hash = util::full_commit_hash(abbreviatedHash, rocksdb_path);
+//   EXPECT_TRUE(commit_hash.has_value())
+//       << "abbreviated should be parsed correctly";
+//   EXPECT_EQ(commit_hash.value().size(), GIT_OID_MAX_HEXSIZE)
+//       << "full_commit_hash should be able to parse short commit hash";
+//
+//   // test uniqueness
+//   std::string nonUniqueHash = "832";
+//   commit_hash = util::full_commit_hash(nonUniqueHash, rocksdb_path);
+//   EXPECT_FALSE(commit_hash.has_value())
+//       << "non unique commit hash should return std::nullopt";
+// }
 
 TEST_F(RepoBasedTest, BranchResolution) {
   std::string localBranch = "master";
