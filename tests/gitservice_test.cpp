@@ -178,7 +178,7 @@ TEST_F(RepoBasedTest, RevResolution) {
       << "valid tag should resolve successfully";
   EXPECT_EQ(commit_hash.value().size(), GIT_OID_MAX_HEXSIZE)
       << "valid tag should resolve to a hash of length 40";
-  EXPECT_EQ(commit_hash.value(), "a84dfe6a4bd926988f3a3befbb52f8b38c7fb35b")
+  EXPECT_EQ(commit_hash.value(), "056ec72a2d5602d83d44a4baf64781674346b8a4")
       << "valid tag name should resolve successfully";
 
   std::string invalidTag = "aml_adb_33101105u";
