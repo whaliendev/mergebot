@@ -80,15 +80,37 @@ inline uint8_t hexFromNibbles(char MSB, char LSB) {
   return Hex;
 }
 
+template <
+    typename Container = std::vector<std::string_view>,
+    typename = std::enable_if_t<
+        std::is_same_v<typename Container::value_type, std::string_view> ||
+        std::is_same_v<typename Container::value_type, std::string>>>
+Container string_split(std::string_view str, std::string_view delims = " ",
+                       bool with_empty = false) {
+  Container output;
+
+  for (auto first = str.data(), second = str.data(), last = first + str.size();
+       second != last && first != last; first = second + 1) {
+    second =
+        std::find_first_of(first, last, std::cbegin(delims), std::cend(delims));
+
+    if (first != second || with_empty) {
+      output.emplace_back(first, second - first);
+    }
+  }
+
+  return output;
+}
+
 /// split string_view str by any of the elements in [ std::cbegin(delims),
 /// std::cend(delims) )
 /// \param str string_view to split
 /// \param delims delimiters used to split
 /// \return a vector of string_view with split string_view
 /// segments filled
-std::vector<std::string_view> string_split(std::string_view str,
-                                           std::string_view delims,
-                                           bool with_empty = false);
+// std::vector<std::string_view> string_split(std::string_view str,
+//                                            std::string_view delims,
+//                                            bool with_empty = false);
 
 template <typename InputIt>
 std::string string_join(InputIt begin, InputIt end,

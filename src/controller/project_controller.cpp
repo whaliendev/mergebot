@@ -73,6 +73,7 @@ bool writeConflictFiles(const fs::path& msCacheDir,
 }
 
 void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
+               std::vector<std::string>& conflicts,
                [[maybe_unused]] crow::response& res) {
   const std::string cacheDirCheckSum = utils::calcProjChecksum(project, path);
   const fs::path projectCacheDir =
@@ -82,15 +83,19 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
   setRunningSign(projectCacheDir, ms.name);
 
   // collect conflict files in the project
-  std::string command =
-      fmt::format("(cd {} && git diff --name-only --diff-filter=U)", path);
-  llvm::ErrorOr<std::string> resultOrErr =
-      ::mergebot::utils::ExecCommand(command);
-  if (!resultOrErr) handleServerExecError(resultOrErr.getError(), command);
-  std::string result = resultOrErr.get();
+  std::vector<std::string> fileNames;
+  if (conflicts.size() != 0) {
+    fileNames = std::move(conflicts);
+  } else {
+    std::string command =
+        fmt::format("(cd {} && git diff --name-only --diff-filter=U)", path);
+    llvm::ErrorOr<std::string> resultOrErr =
+        ::mergebot::utils::ExecCommand(command);
+    if (!resultOrErr) handleServerExecError(resultOrErr.getError(), command);
+    std::string result = resultOrErr.get();
 
-  // get c/cpp related source files
-  std::vector<std::string_view> fileNames = util::string_split(result, "\n");
+    fileNames = util::string_split<std::vector<std::string>>(result, "\n");
+  }
   if (fileNames.size() == 0) {
     removeRunningSign(msCacheDir);
     spdlog::info(
@@ -107,13 +112,12 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
   std::unordered_set<std::string_view> cppExtensions = {".h", ".hpp",
                             ".c", ".cc", ".cp", ".C", ".cxx", ".cpp", ".c++"};
   // clang-format on
-  std::vector<std::string_view> cppSources;
+  std::vector<std::string> cppSources;
   cppSources.reserve(fileNames.size());
   for (const auto& fileName : fileNames) {
-    using namespace std::literals;
-    auto pos = fileName.find_last_of("."sv);
+    auto pos = fileName.find_last_of(".");
     if (pos == std::string_view::npos) continue;
-    std::string_view ext = fileName.substr(pos);
+    std::string ext = fileName.substr(pos);
     if (cppExtensions.count(ext)) cppSources.push_back(fileName);
   }
   if (fileNames.size() && !cppSources.size()) {
@@ -134,17 +138,14 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
       project, path, fileNames.size(), cppSources.size());
   writeConflictFiles(msCacheDir, util::string_join(cppSources.begin(),
                                                    cppSources.end(), "\n"));
-  std::unique_ptr<std::string[]> conflictFiles =
-      std::make_unique<std::string[]>(cppSources.size());
-  std::transform(
-      cppSources.begin(), cppSources.end(), conflictFiles.get(),
-      [](const std::string_view& fileName) { return std::string(fileName); });
+  auto conflictFiles =
+      std::make_unique<std::vector<std::string>>(std::move(cppSources));
 
   // construct ResolutionManager, enable shared from this
   std::shared_ptr<sa::ResolutionManager> resolutionManager =
-      std::make_shared<sa::ResolutionManager>(
-          std::move(project), std::move(path), std::move(ms),
-          std::move(conflictFiles), cppSources.size());
+      std::make_shared<sa::ResolutionManager>(std::move(project),
+                                              std::move(path), std::move(ms),
+                                              std::move(conflictFiles));
   try {
     // call its async doResolution method to do resolution
     resolutionManager->doResolution();
@@ -334,7 +335,9 @@ bool checkAndAddMSMetadata(const std::string& project, const std::string& path,
 }
 
 void handleMergeScenario(const std::string& project, const std::string& path,
-                         sa::MergeScenario& ms, crow::response& res) {
+                         sa::MergeScenario& ms,
+                         std::vector<std::string>& conflicts,
+                         crow::response& res) {
   const std::string cacheDirCheckSum = utils::calcProjChecksum(project, path);
   const fs::path manifestPath =
       fs::path(util::toabs(MBDIR)) /
@@ -355,7 +358,7 @@ void handleMergeScenario(const std::string& project, const std::string& path,
     }
   }
 
-  goResolve(project, path, ms, res);
+  goResolve(project, path, ms, conflicts, res);
 }
 
 crow::json::wvalue doPostMergeScenario(const crow::request& req,
@@ -383,7 +386,12 @@ crow::json::wvalue doPostMergeScenario(const crow::request& req,
   std::string base = baseOpt.has_value() ? baseOpt.value() : "";
 
   sa::MergeScenario ms(ours, theirs, base);
-  internal::handleMergeScenario(project, path, ms, res);
+
+  // 07/20/23: add `files` field to ms api
+  std::vector<std::string> conflicts;
+  utils::checkFilesField(body, conflicts, ms, path);
+
+  internal::handleMergeScenario(project, path, ms, conflicts, res);
   // default construct a crow::json::wvalue to indicate return successfully
   return {};
 }

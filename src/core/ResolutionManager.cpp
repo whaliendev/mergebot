@@ -119,7 +119,7 @@ void ResolutionManager::doResolution() {
     ]
   }}
   )", Project_, ProjectPath_, MS_,
-  fmt::join(ConflictFiles_.get(), ConflictFiles_.get() + FileNum_, ",\n\t"));
+  fmt::join(ConflictFiles_->begin(), ConflictFiles_->end(), ",\n\t"));
   // clang-format on
 
   // use_count 2
@@ -206,7 +206,7 @@ void ResolutionManager::_doResolutionAsync(
   TG.wait();
   tbb::tick_count End = tbb::tick_count::now();
   spdlog::info("it takes {}ms to copy 3(or 2) versions' sources and fine tune "
-               "CompDB\n\n\n",
+               "CompDB\n",
                (End - Start).seconds() * 1000);
   assert(fs::exists(OursPath) && fs::exists(TheirsPath) &&
          "copy our version's and their version's source failed");
