@@ -86,6 +86,9 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
   std::vector<std::string> fileNames;
   if (conflicts.size() != 0) {
     fileNames = std::move(conflicts);
+    spdlog::info(
+        "files field exists and is [\n\t{}\n], we'll skip manually check",
+        fmt::join(fileNames.begin(), fileNames.end(), ",\n\t"));
   } else {
     std::string command =
         fmt::format("(cd {} && git diff --name-only --diff-filter=U)", path);

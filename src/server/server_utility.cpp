@@ -150,7 +150,7 @@ void checkPath(std::string const& pathStr) {
 }
 
 void checkAndNormalizeConflicts(crow::json::rvalue const& files,
-                                std::vector<std::string> conflicts,
+                                std::vector<std::string>& conflicts,
                                 const sa::MergeScenario& ms,
                                 std::string const& projectPath) {
   std::string firstConflict = static_cast<std::string>(files[0]);
@@ -181,7 +181,7 @@ void checkAndNormalizeConflicts(crow::json::rvalue const& files,
 }
 
 void checkFilesField(crow::json::rvalue const& body,
-                     std::vector<std::string> const& conflicts,
+                     std::vector<std::string>& conflicts,
                      const sa::MergeScenario& ms, const std::string& path) {
   if (body.has("files")) {
     const crow::json::rvalue& files = body["files"];
@@ -200,8 +200,6 @@ void checkFilesField(crow::json::rvalue const& body,
                              "files字段非法：files字段不能为空的path列表");
     }
 
-    spdlog::info(
-        "files field exists and is nonempty, we'll skip manually check");
     checkAndNormalizeConflicts(files, conflicts, ms, path);
   } else {
     spdlog::info(
