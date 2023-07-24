@@ -332,7 +332,7 @@ void marshalResolutionResult(
     std::vector<server::BlockResolutionResult> const &Results) {
   fs::path ResolutionFilePath = fs::path(DestPath);
   std::ifstream ResolutionFS(ResolutionFilePath.string());
-  // file not exists or do exist but is illegal, marshal directly
+  // file doesn't exist or do exist but is illegal, marshal directly
   // FIXME(hwa): when two MS API requests occur simultaneously,
   // there may be a data race
   if (!fs::exists(ResolutionFilePath) ||

@@ -163,21 +163,6 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
                              project, fileNames.size()));
   }
 
-#ifndef NDEBUG
-  bool conflicting = checkIsConflicting(cppSources[0], path);
-  if (!conflicting) {
-    removeRunningSign(msCacheDir);
-    spdlog::error(
-        "illegal files field: there is no conflict blocks in file [{}], "
-        "project [{}], ms [{}]",
-        cppSources[0], path, ms.name);
-    throw AppBaseException(
-        "C1000",
-        "files字段不合法：项目[{}]合并场景[{}]中的文件[{}]中不存在冲突区块",
-        path, ms.name, cppSources[0]);
-  }
-#endif
-
   spdlog::info(
       "current project[{}, path: {}] has {} conflict files, {} of them are "
       "C/C++ related sources",

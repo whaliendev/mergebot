@@ -19,7 +19,7 @@ public:
   HandlerChain(std::vector<std::unique_ptr<SAHandler>> &&Handlers,
                std::vector<std::string> ConflictFilePaths)
       : Handlers_(std::move(Handlers)) {
-    // construct handler chain
+    // construct a handler chain
     chain();
     ConflictFiles_ = constructConflictFiles(ConflictFilePaths);
   }
@@ -28,13 +28,18 @@ public:
     ConflictBlockCount = countConflictBlocks();
     spdlog::info("there are {} conflict blocks in this merge scenario",
                  ConflictBlockCount);
-    Handlers_[0]->handle(ConflictFiles_);
+    if (ConflictBlockCount) {
+      Handlers_[0]->handle(ConflictFiles_);
+    }
     int AfterResolveCount = countConflictBlocks();
     spdlog::info("there are still {} conflict blocks in this merge scenario",
                  AfterResolveCount);
-    double Ratio = ((ConflictBlockCount - AfterResolveCount) /
-                    static_cast<double>(ConflictBlockCount)) *
-                   100;
+    double Ratio = 0;
+    if (ConflictBlockCount != 0) {
+      Ratio = ((ConflictBlockCount - AfterResolveCount) /
+               static_cast<double>(ConflictBlockCount)) *
+              100;
+    }
     std::stringstream SS;
     SS << std::fixed << std::setprecision(2) << Ratio << " %";
     spdlog::info("resolve ratio at this merge scenario is: {}", SS.str());
