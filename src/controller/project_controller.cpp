@@ -6,6 +6,7 @@
 #include <crow/http_response.h>
 #include <crow/json.h>
 #include <llvm/Support/ErrorOr.h>
+#include <llvm/Support/MemoryBuffer.h>
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
@@ -15,6 +16,8 @@
 
 #include "mergebot/controller/exception_handler_aspect.h"
 #include "mergebot/core/ResolutionManager.h"
+#include "mergebot/core/magic_enum_customization.h"
+#include "mergebot/core/model/ConflictMark.h"
 #include "mergebot/core/model/Project.h"
 #include "mergebot/core/sa_utility.h"
 #include "mergebot/filesystem.h"
@@ -70,6 +73,31 @@ bool writeConflictFiles(const fs::path& msCacheDir,
   }
   close(fd);
   return true;
+}
+
+[[nodiscard("no conflicting blocks will cause SEGV")]] bool checkIsConflicting(
+    std::string const& relFirstFile, std::string const& path) {
+  using namespace llvm;
+  std::string firstFile = fs::path(path) / relFirstFile;
+  ErrorOr<std::unique_ptr<MemoryBuffer>> fileOrErr =
+      MemoryBuffer::getFile(firstFile);
+  if (auto err = fileOrErr.getError()) {
+    spdlog::warn(
+        "failed to open file [{}] for checking conflicting status, err msg: {}",
+        firstFile, err.message());
+    return false;
+  }
+  std::unique_ptr<MemoryBuffer> file = std::move(fileOrErr.get());
+  const char* start = file->getBufferStart();
+  const char* end = file->getBufferEnd();
+  const std::string_view marker = magic_enum::enum_name(sa::ConflictMark::OURS);
+  while (start + marker.size() <= end) {
+    if (std::memcmp(start, marker.data(), marker.size()) == 0) {
+      return true;
+    }
+    ++start;
+  }
+  return false;
 }
 
 void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
@@ -134,6 +162,21 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
                              "C++相关的源文件，mergebot-sa当前阶段无法处理",
                              project, fileNames.size()));
   }
+
+#ifndef NDEBUG
+  bool conflicting = checkIsConflicting(cppSources[0], path);
+  if (!conflicting) {
+    removeRunningSign(msCacheDir);
+    spdlog::error(
+        "illegal files field: there is no conflict blocks in file [{}], "
+        "project [{}], ms [{}]",
+        cppSources[0], path, ms.name);
+    throw AppBaseException(
+        "C1000",
+        "files字段不合法：项目[{}]合并场景[{}]中的文件[{}]中不存在冲突区块",
+        path, ms.name, cppSources[0]);
+  }
+#endif
 
   spdlog::info(
       "current project[{}, path: {}] has {} conflict files, {} of them are "
