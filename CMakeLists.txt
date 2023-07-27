@@ -23,11 +23,13 @@ project(
 ### options go here
 option(MB_OUT_TO_BIN "Output all target files to build/bin" ON)
 option(MB_BUILD_SHARED "Build shared library for mergebot" OFF)
+option(MB_BUILD_TEST "Build tests for mergebot" OFF)
 if (PROJECT_NAME STREQUAL CMAKE_PROJECT_NAME)
-    option(MB_BUILD_TESTS "Build mergebot's unit tests" ON)
+    set(MB_BUILD_TEST ON)
 endif (PROJECT_NAME STREQUAL CMAKE_PROJECT_NAME)
 option(MB_USE_CCACHE "Use ccache to accelerate compilation if ccache found in path" ON)
 option(MB_INSTALL_TARGET "Enable installation targets" OFF)
+option(MB_INSTALL_TARGET "Install targets to prefix dir" OFF)
 
 ### if you set any CMAKE_ variables, that can go here.
 # (But usually don't do this, except maybe for C++ standard)
@@ -129,33 +131,29 @@ if (CMAKE_BUILD_TYPE STREQUAL "DEBUG" OR CMAKE_BUILD_TYPE STREQUAL "Debug")
     endif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif (CMAKE_BUILD_TYPE STREQUAL "DEBUG" OR CMAKE_BUILD_TYPE STREQUAL "Debug")
 
-if (BUILD_SHARED_LIBS)
+if (MB_BUILD_SHARED)
     # Only export MB_EXPORT symbols from the shared library.
     add_compile_options(-fvisibility=hidden)
-endif (BUILD_SHARED_LIBS)
-
-if (BUILD_SHARED_LIBS)
     target_compile_definitions(mergebot
             PUBLIC
             # Used by include/export.h.
             MB_SHARED_LIBRARY
             )
-endif (BUILD_SHARED_LIBS)
-
+endif (MB_BUILD_SHARED)
 
 ## configure conan
 #include(cmake/conaninstall.cmake)
 
 ### find packages go here.
 ## use conan to manage all the packages it contains
-find_package(ZLIB)
-if (ZLIB_FOUND)
-    set(ZLIB_LIBRARY ${ZLIB_LIBRARIES})
-    #  add_definitions(-DMB_HAVE_ZLIB)
-    # TODO(hwa): fix the error of undefined reference to deflate
-else ()
-    message("ZLIB can't be found. MergeBot configured without zlib support")
-endif ()
+#find_package(ZLIB)
+#if (ZLIB_FOUND)
+#    set(ZLIB_LIBRARY ${ZLIB_LIBRARIES})
+#    #  add_definitions(-DMB_HAVE_ZLIB)
+#    # TODO(hwa): fix the error of undefined reference to deflate
+#else ()
+#    message("ZLIB can't be found. MergeBot configured without zlib support")
+#endif ()
 
 ## check linter tools goes here
 include(cmake/checklinter.cmake)
