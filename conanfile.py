@@ -17,7 +17,6 @@ class MergebotConan(ConanFile):
     generators = "CMakeToolchain", "CMakeDeps"
 
     options = {
-        # "shared": [True, False],
         "fPIC": [True, False],
     }
 
@@ -43,7 +42,8 @@ class MergebotConan(ConanFile):
         "fPIC": True,
 
         "re2/*:shared": False,
-        "fmt/9.1.0:shared": True,
+        # enable fmt to be referenced
+        "fmt/*:shared": True,
         "spdlog/*:shared": False,
         "onetbb/*:shared": True,
         "boost/*:shared": False,
@@ -140,7 +140,8 @@ class MergebotConan(ConanFile):
         # set it to False is mandatory, or it will fail on some platforms
         "llvm/*:with_z3": False,
         "llvm/*:with_zlib": True,
-        "llvm/*:with_xml2": True,
+        # fails with gcc9 on ubuntu
+        "llvm/*:with_xml2": False,
         # the recipe needs gcc10 to build llvm, while C++17 is supported in gcc9
         "llvm/*:enable_unsafe_mode": True
     }
