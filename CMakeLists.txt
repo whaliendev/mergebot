@@ -23,9 +23,9 @@ project(
 ### options go here
 option(MB_OUT_TO_BIN "Output all target files to build/bin" ON)
 option(MB_BUILD_SHARED "Build shared library for mergebot" OFF)
-option(MB_BUILD_TEST "Build tests for mergebot" OFF)
+option(MB_BUILD_TESTS "Build tests for mergebot" OFF)
 if (PROJECT_NAME STREQUAL CMAKE_PROJECT_NAME)
-    set(MB_BUILD_TEST ON)
+    set(MB_BUILD_TESTS ON)
 endif (PROJECT_NAME STREQUAL CMAKE_PROJECT_NAME)
 option(MB_USE_CCACHE "Use ccache to accelerate compilation if ccache found in path" ON)
 option(MB_INSTALL_TARGET "Enable installation targets" OFF)
@@ -102,7 +102,7 @@ endif ()
 
 # global include directories
 include_directories(${PROJECT_NAME} PUBLIC
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
+        ${PROJECT_SOURCE_DIR}/include)
 
 ### our preferences
 # make compiler be a grudge in debug mode

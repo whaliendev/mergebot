@@ -1,34 +1,32 @@
-# we don't use conan actually
 find_package(Crow REQUIRED)
-find_package(re2 REQUIRED CONFIG)
+find_package(re2 REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(magic_enum REQUIRED)
-find_package(Clang REQUIRED)
+#find_package(Clang REQUIRED)
 find_package(TBB REQUIRED)
 find_package(Boost 1.71 REQUIRED
         COMPONENTS
         graph)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-find_package(TreeSitter MODULE REQUIRED)
-find_package(LibGit2 MODULE REQUIRED)
+find_package(tree-sitter REQUIRED)
+find_package(tree-sitter-cpp REQUIRED)
+find_package(libgit2 REQUIRED)
 
-if (Clang_FOUND)
-    message(STATUS " Found Clang ${Clang_PACKAGE_VERSION} ")
-    message(STATUS " Clang found at ${Clang_DIR} ")
-    include_directories(${CLANG_INCLUDE_DIRS})
-endif (Clang_FOUND)
+#if (Clang_FOUND)
+#    message(STATUS " Found Clang ${Clang_PACKAGE_VERSION} ")
+#    message(STATUS " Clang found at ${Clang_DIR} ")
+#    include_directories(${CLANG_INCLUDE_DIRS})
+#endif (Clang_FOUND)
 
-find_package(LLVM REQUIRED CONFIG)
-message(STATUS " Found LLVM ${LLVM_PACKAGE_VERSION} ")
-message(STATUS " Using LLVMConfig.cmake in: ${LLVM_DIR} ")
-
+#message(STATUS " Found LLVM ${LLVM_PACKAGE_VERSION} ")
+#message(STATUS " Using LLVMConfig.cmake in: ${LLVM_DIR} ")
+#message(STATUS " LLVM_LIBRARIES: ${LLVM_LIBRARIES}")
+find_package(LLVM REQUIRED)
 include_directories(${LLVM_INCLUDE_DIRS})
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
-llvm_map_components_to_libnames(llvm_libs support)
 
 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ./*.cpp ./*.hpp)
 list(FILTER SRC_FILES EXCLUDE REGEX "core/.*")
@@ -46,14 +44,27 @@ target_link_libraries(${PROJECT_NAME}-dep
         INTERFACE
         clang-cpp
         fmt::fmt
-        git2::git2
-        ${llvm_libs}
+        libgit2::libgit2
+        LLVMSupport
         magic_enum::magic_enum
         re2::re2
         TBB::tbb
         tree-sitter::tree-sitter
-        tree-sitter::tree-sitter-cpp
+        tree-sitter-cpp::tree-sitter-cpp
         Boost::graph)
+
+target_include_directories(${PROJECT_NAME}-dep
+        INTERFACE
+        ${PROJECT_SOURCE_DIR}/include
+        fmt_INCLUDE_DIRS
+        libgit2_INCLUDE_DIRS
+        magic_enum_INCLUDE_DIRS
+        re2_INCLUDE_DIRS
+        TBB_INCLUDE_DIRS
+        tree-sitter_INCLUDE_DIRS
+        tree-sitter-cpp_INCLUDE_DIRS
+        Boost_INCLUDE_DIRS
+        )
 
 add_executable(
         ${PROJECT_NAME}
@@ -64,6 +75,6 @@ target_link_libraries(
         ${PROJECT_NAME}
         PRIVATE
         ${PROJECT_NAME}-dep
-        git2::git2
+        libgit2::libgit2
 )
 

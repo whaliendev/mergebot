@@ -14,14 +14,13 @@ class MergebotConan(ConanFile):
     package_type = "application"
 
     settings = "os", "compiler", "build_type", "arch"
-    generators = "CMakeToolchain", "CMakeDeps"
 
     options = {
         "fPIC": [True, False],
     }
 
     requires = (
-        "re2/20230602",
+        "re2/20230201",
         "nlohmann_json/3.11.2",
         "fmt/9.1.0",
         # the revision is appended to make spdlog 1.11 depends on fmt 9.1.0
@@ -33,7 +32,7 @@ class MergebotConan(ConanFile):
         "tree-sitter-c/0.20.3",
         "tree-sitter-cpp/0.20.0",
         "libgit2/1.7.0",
-        "zlib/[>=1.2.10]",
+        # "zlib/[>=1.2.10]",
         "cstar-crow/4f3f5de",
         "llvm/16.0.6"
     )
@@ -51,7 +50,7 @@ class MergebotConan(ConanFile):
         "tree-sitter-c/*:shared": True,
         "tree-sitter-cpp/*:shared": True,
         "libgit2/*:shared": False,
-        "zlib/*:shared": False,
+        # "zlib/*:shared": False,
 
         "re2/*:fPIC": True,
         "fmt/*:fPIC": True,
@@ -62,7 +61,7 @@ class MergebotConan(ConanFile):
         "tree-sitter-c/*:fPIC": True,
         "tree-sitter-cpp/*:fPIC": True,
         "libgit2/*:fPIC": True,
-        "zlib/*:fPIC": True,
+        # "zlib/*:fPIC": True,
 
         "re2/*:with_icu": False,
 
@@ -143,7 +142,8 @@ class MergebotConan(ConanFile):
         # fails with gcc9 on ubuntu
         "llvm/*:with_xml2": False,
         # the recipe needs gcc10 to build llvm, while C++17 is supported in gcc9
-        "llvm/*:enable_unsafe_mode": True
+        "llvm/*:enable_unsafe_mode": True,
+        "llvm/*:conan_center_index_limits": False
     }
 
     def layout(self):

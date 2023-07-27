@@ -34,9 +34,7 @@ The dependencies of Mergebot can be divided into two specific parts:
 > USE THOSE COMMANDS AT YOUR OWN RISK. I SHALL NOT BE RESPONSIBLE FOR ANYTHING.
 > ABSOLUTELY NO WARRANTY.
 >
->If you are still reading let's carry on with the code.
->
->sudo apt-get update && \
+> sudo apt-get update && \
 > sudo apt-get install build-essential software-properties-common -y && \
 > sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
 > sudo apt-get update && \
@@ -107,11 +105,11 @@ We can install all the external libs by typing:
 
 ```shell
 cd <home of mergebot>
-conan install . -of=build --build=missing -r=conan
+conan install . --build=missing -r=conan -s build_type=<Release> | <RelWithDebInfo> | <Debug> | <MinSizeRel>
 ```
 
 this command will take about 1.5 hours to build mergebot's dependencies on a
-12-core Intel i5 with 32GB RAM. You can of course use machines with more cores
+12-core Intel i5 with 32GB RAM. You can, of course, use machines with more cores
 and higher memory capacity to accelerate this process. Fortunately, we only need
 to go through this process once. In the future, we can directly build without
 repeating these steps.
@@ -121,18 +119,14 @@ repeating these steps.
 + Build
 
 ```shell
-cd <home of mergebot>
-conan install . -of=build --build=missing -r=conan
-source ./build/conanbuild.sh
-cmake --preset conan-release
+cmake --preset conan-debug
 cmake --build build
 ```
 
 + Run
 
 ```shell
-# make sure you are in the home directory of mergebot
-cmake --build build
+# TODO: 
 ```
 
 
