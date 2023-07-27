@@ -1,114 +1,163 @@
 from conan import ConanFile
-from conan.tools.scm.git import Git
+from conan.tools.cmake import cmake_layout, CMakeToolchain, CMakeDeps, CMake
 
 
 class MergebotConan(ConanFile):
     name = "mergebot-sa"
-    version = "0.1"
-    license = "[Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0)"
+    version = "0.5-beta"
+    license = "Apache-2.0"
     author = "Hwa He (hwahe.cs@gmail.com)"
-    url = "https://github.com/whaliendev/mergebot"
+    url = "https://github.com/conan-io/conan-center-index"
     description = "auto resolve merge conflicts for C/C++ semantically"
     topics = ("git", "vcs", "merge", "conflicts", "semantic")
+
+    package_type = "application"
 
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeToolchain", "CMakeDeps"
 
     options = {
-        "shared": [True, False],
+        # "shared": [True, False],
         "fPIC": [True, False],
     }
 
-    requires = [
+    requires = (
         "re2/20230602",
         "nlohmann_json/3.11.2",
         "fmt/9.1.0",
-        "spdlog/1.11.0",
+        # the revision is appended to make spdlog 1.11 depends on fmt 9.1.0
+        "spdlog/1.11.0#d0fdbaa523550b89156084bf42b41c90",
         "magic_enum/0.9.2",
         "onetbb/2021.9.0",
-        "boost/[>=1.80.0]",
-        "tree-sitter/0.20.6",
-        "libgit2/1.5.0",
+        "boost/1.81.0",
+        "tree-sitter/0.20.8",
+        "tree-sitter-c/0.20.3",
+        "tree-sitter-cpp/0.20.0",
+        "libgit2/1.7.0",
         "zlib/[>=1.2.10]",
-    ]
+        "cstar-crow/4f3f5de",
+        "llvm/16.0.6"
+    )
 
     default_options = {
-        "re2:shared": False,
-        "fmt2:shared": False,
-        "spdlog:shared": False,
-        "onetbb:shared": False,
-        "boost:shared": False,
-        "tree-sitter:shared": False,
-        "libgit2:shared": False,
-        "zlib:shared": False,
+        "fPIC": True,
 
-        "re2:fPIC": True,
-        "fmt:fPIC": True,
-        "spdlog:fPIC": True,
-        "onetbb:fPIC": True,
-        "boost:fPIC": True,
-        "tree-sitter:fPIC": True,
-        "libgit2:fPIC": True,
-        "zlib:fPIC": True,
+        "re2/*:shared": False,
+        "fmt/9.1.0:shared": True,
+        "spdlog/*:shared": False,
+        "onetbb/*:shared": True,
+        "boost/*:shared": False,
+        "tree-sitter/*:shared": True,
+        "tree-sitter-c/*:shared": True,
+        "tree-sitter-cpp/*:shared": True,
+        "libgit2/*:shared": False,
+        "zlib/*:shared": False,
 
-        "re2:with_icu": False,
-        "fmt:header_only": False,
+        "re2/*:fPIC": True,
+        "fmt/*:fPIC": True,
+        "spdlog/*:fPIC": True,
+        "onetbb/*:fPIC": True,
+        "boost/*:fPIC": True,
+        "tree-sitter/*:fPIC": True,
+        "tree-sitter-c/*:fPIC": True,
+        "tree-sitter-cpp/*:fPIC": True,
+        "libgit2/*:fPIC": True,
+        "zlib/*:fPIC": True,
 
-        "fmt:with_fmt_alias": False,
-        "fmt:with_os_api": True,
+        "re2/*:with_icu": False,
 
-        "spdlog:header_only": False,
-        "spdlog:wchar_support": False,
-        "spdlog:wchar_filenames": False,
-        "spdlog:no_exceptions": False,
+        "fmt/*:header_only": False,
+        "fmt/*:with_fmt_alias": False,
+        "fmt/*:with_os_api": True,
 
-        "onetbb:tbbmalloc": True,
-        "onetbb:tbbproxy": True,
-        "onetbb:interprocedural_optimization": True,
+        "spdlog/*:header_only": False,
+        "spdlog/*:wchar_support": False,
+        "spdlog/*:wchar_filenames": False,
+        "spdlog/*:no_exceptions": False,
+
+        "onetbb/*:tbbmalloc": True,
+        "onetbb/*:tbbproxy": True,
+        "onetbb/*:interprocedural_optimization": True,
 
         # for boost, we apply default options, remove unnecessary dependencies
-        "boost:without_graph": False,
-        "boost:without_regex": False,
-        "boost:without_atomic": True,
-        "boost:without_chrono": True,
-        "boost:without_container": True,
-        "boost:without_context": True,
-        "boost:without_contract": True,
-        "boost:without_coroutine": True,
-        "boost:without_date_time": True,
-        "boost:without_exception": True,
-        "boost:without_fiber": True,
-        "boost:without_filesystem": True,
-        "boost:without_graph_parallel": True,
-        "boost:without_iostreams": True,
-        "boost:without_json": True,
-        "boost:without_locale": True,
-        "boost:without_log": True,
-        "boost:without_math": True,
-        "boost:without_mpi": True,
-        "boost:without_nowide": True,
-        "boost:without_program_options": True,
-        "boost:without_python": True,
-        "boost:without_random": True,
-        "boost:without_serialization": True,
-        "boost:without_stacktrace": True,
-        "boost:without_system": True,
-        "boost:without_test": True,
-        "boost:without_thread": True,
-        "boost:without_timer": True,
-        "boost:without_type_erasure": True,
-        "boost:without_url": True,
-        "boost:without_wave": True,
+        "boost/*:without_graph": False,
+        "boost/*:without_math": False,
+        "boost/*:without_random": False,
+        "boost/*:without_regex": False,
+        "boost/*:without_serialization": False,
+        "boost/*:without_system": False,
+
+        "boost/*:without_atomic": True,
+        "boost/*:without_chrono": True,
+        "boost/*:without_container": True,
+        "boost/*:without_context": True,
+        "boost/*:without_contract": True,
+        "boost/*:without_coroutine": True,
+        "boost/*:without_date_time": True,
+        "boost/*:without_exception": True,
+        "boost/*:without_fiber": True,
+        "boost/*:without_filesystem": True,
+        "boost/*:without_graph_parallel": True,
+        "boost/*:without_iostreams": True,
+        "boost/*:without_json": True,
+        "boost/*:without_locale": True,
+        "boost/*:without_log": True,
+        "boost/*:without_mpi": True,
+        "boost/*:without_nowide": True,
+        "boost/*:without_program_options": True,
+        "boost/*:without_python": True,
+        "boost/*:without_stacktrace": True,
+        "boost/*:without_test": True,
+        "boost/*:without_thread": True,
+        "boost/*:without_timer": True,
+        "boost/*:without_type_erasure": True,
+        "boost/*:without_url": True,
+        "boost/*:without_wave": True,
+
+        "libgit2/*:threadsafe": True,
+        "libgit2/*:with_iconv": False,
+        "libgit2/*:with_libssh2": True,
+        "libgit2/*:with_https": "openssl",
+        "libgit2/*:with_sha1": "collisiondetection",
+        "libgit2/*:with_ntlmclient": True,
+        "libgit2/*:with_regex": "builtin",
+
+        "crowcpp-crow/*:amalgamation": False,
+        "crowcpp-crow/*:with_ssl": False,
+        "crowcpp-crow/*:with_compression": True,
+
+        "llvm/*:with_project_clang": True,
+        "llvm/*:with_runtime_libcxx": False,
+        "llvm/*:with_runtime_libcxxabi": False,
+        "llvm/*:with_runtime_libunwind": False,
+        "llvm/*:shared": False,
+        "llvm/*:llvm_build_llvm_dylib": False,
+        "llvm/*:llvm_link_llvm_dylib": False,
+        "llvm/*:exceptions": False,
+        "llvm/*:rtti": False,
+        # it's very time-consuming to enable lto
+        "llvm/*:lto": 'Off',
+        # set it to False is mandatory, or it will fail on some platforms
+        "llvm/*:with_z3": False,
+        "llvm/*:with_zlib": True,
+        "llvm/*:with_xml2": True,
+        # the recipe needs gcc10 to build llvm, while C++17 is supported in gcc9
+        "llvm/*:enable_unsafe_mode": True
     }
 
-    def config_options(self):
-        if self.settings.os == "Windows":
-            self.options.rm_safe("fPIC")
+    def layout(self):
+        cmake_layout(self)
 
-    # def configure(self):
-    #     if self.options.shared:
-    #         self.options.rm_safe("fPIC")
+    def generate(self):
+        tc = CMakeToolchain(self, "Ninja")
+        tc.generate()
+        deps = CMakeDeps(self)
+        deps.generate()
+
+    def build(self):
+        cmake = CMake(self)
+        cmake.build()
 
     def build_requirements(self):
-        self.system_requires("cmake/[>=3.26.4]")
-        self.system_requires("ninja/[>=1.10.0]")
+        self.tool_requires("cmake/[>=3.21.3 <4.0.0]")
+        self.tool_requires("ninja/[>=1.10.0 <2.0.0]")
