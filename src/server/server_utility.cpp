@@ -149,6 +149,68 @@ void checkPath(std::string const& pathStr) {
   }
 }
 
+void checkAndNormalizeConflicts(crow::json::rvalue const& files,
+                                std::vector<std::string> conflicts,
+                                const sa::MergeScenario& ms,
+                                std::string const& projectPath) {
+  std::string firstConflict = static_cast<std::string>(files[0]);
+  fs::path firstFile = fs::path(firstConflict);
+  bool isAbsPath = firstFile.is_absolute();
+#ifndef NDEBUG
+  {
+    std::string filePath = static_cast<std::string>(files[0]);
+    fs::path fullPath =
+        isAbsPath ? fs::path(filePath) : fs::path(projectPath) / filePath;
+    if (!fs::exists(fullPath)) {
+      spdlog::debug("file[{}] doesn't exist in ms[{}] of project[{}]", filePath,
+                    ms.name, projectPath);
+      throw AppBaseException("C1000",
+                             "文件[{}]不存在于项目[{}]的合并场景[{}]中",
+                             filePath, projectPath, ms.name);
+    }
+  }
+#endif
+  for (size_t i = 0; i < files.size(); ++i) {
+    std::string filePath = static_cast<std::string>(files[i]);
+    if (isAbsPath) {
+      conflicts.push_back(fs::relative(filePath, projectPath));
+    } else {
+      conflicts.push_back(filePath);
+    }
+  }
+}
+
+void checkFilesField(crow::json::rvalue const& body,
+                     std::vector<std::string> const& conflicts,
+                     const sa::MergeScenario& ms, const std::string& path) {
+  if (body.has("files")) {
+    const crow::json::rvalue& files = body["files"];
+    if (files.t() != crow::json::type::List) {
+      spdlog::error("files field illegal: files filed is not a path list");
+      throw AppBaseException(
+          "C1000", "files字段非法：files字段只接受冲突文件的path列表");
+    }
+
+    // files is a list
+    if (files.size() == 0) {
+      spdlog::error(
+          "files field illegal: files field should not be an empty path list",
+          ms.name);
+      throw AppBaseException("C1000",
+                             "files字段非法：files字段不能为空的path列表");
+    }
+
+    spdlog::info(
+        "files field exists and is nonempty, we'll skip manually check");
+    checkAndNormalizeConflicts(files, conflicts, ms, path);
+  } else {
+    spdlog::info(
+        "no files field found, we'll automatically check for conflicting "
+        "sources in the current merge scenario[{}]",
+        ms.name);
+  }
+}
+
 void checkGitRepo(std::string const& path) {
   const fs::path gitDirPath = fs::path(path) / ".git";
   const auto repoPtr = util::GitRepository::create(gitDirPath.c_str());

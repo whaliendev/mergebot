@@ -23,6 +23,9 @@ bool checkMSMetadata(const std::string& project, const std::string& path,
 void checkConflictFile(const std::string& project, const std::string& path,
                        const sa::MergeScenario& ms, const std::string& file);
 void checkPath(std::string const& pathStr);
+void checkFilesField(crow::json::rvalue const& body,
+                     std::vector<std::string> const& conflicts,
+                     const sa::MergeScenario& ms, const std::string& path);
 void checkGitRepo(std::string const& path);
 bool containKeys(const crow::json::rvalue& bodyJson,
                  const std::vector<std::string>& keys);

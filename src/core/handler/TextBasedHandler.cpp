@@ -273,8 +273,8 @@ bool TextBasedHandler::checkOneSideDelta(std::string_view Our,
   llvm::ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
       MemoryBuffer::getFile(ConflictFile.string());
   if (auto Err = FileOrErr.getError()) {
-    spdlog::error("fail to read conflict file [{}], err message: {}",
-                  ConflictFile.string(), Err.message());
+    spdlog::info("fail to read conflict file [{}], err message: {}",
+                 ConflictFile.string(), Err.message());
     return false;
   }
 
@@ -620,8 +620,8 @@ bool TextBasedHandler::checkDeletion(std::string_view Our,
   llvm::ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
       MemoryBuffer::getFile(ConflictFile.string());
   if (auto Err = FileOrErr.getError()) {
-    spdlog::error("fail to read conflict file [{}], err message: {}",
-                  ConflictFile.string(), Err.message());
+    spdlog::info("fail to read conflict file [{}], err message: {}",
+                 ConflictFile.string(), Err.message());
     return false;
   }
 

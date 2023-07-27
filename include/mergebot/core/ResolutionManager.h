@@ -26,11 +26,9 @@ public:
   friend class HandlerChain;
   ResolutionManager(std::string &&Project_, std::string &&ProjectPath_,
                     sa::MergeScenario &&MS_,
-                    std::unique_ptr<std::string[]> &&ConflictFiles_,
-                    int FileNum)
+                    std::unique_ptr<std::vector<std::string>> &&ConflictFiles_)
       : Project_(std::move(Project_)), MS_(std::move(MS_)),
-        ConflictFiles_(std::move(ConflictFiles_)), CurrIdx_(0),
-        FileNum_(FileNum) {
+        ConflictFiles_(std::move(ConflictFiles_)), CurrIdx_(0) {
     if (!ProjectPath_.empty() && ProjectPath_[ProjectPath_.size() - 1] !=
                                      fs::path::preferred_separator) {
       ProjectPath_ += fs::path::preferred_separator;
@@ -87,7 +85,7 @@ private:
   const static std::string CompDBRelative;
 
   static bool fineTuneCompDB(const std::string &CompDBPath,
-                             const std::string& ProjPath,
+                             const std::string &ProjPath,
                              const std::string &OrigPath);
   static void
   _doResolutionAsync(std::shared_ptr<ResolutionManager> const &Self);
@@ -105,9 +103,8 @@ private:
 
   // conflict files list, use [`ConflictFiles_.get()`, `ConflictFiles_.get() +
   // FileNum_`) to iterate over the files
-  std::unique_ptr<std::string[]> ConflictFiles_;
+  std::unique_ptr<std::vector<std::string>> ConflictFiles_;
   int CurrIdx_;
-  int FileNum_;
 
   // resolved files set and mutex. Do we really need it?
   llvm::StringSet<> ResolvedFiles_;

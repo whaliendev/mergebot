@@ -15,12 +15,20 @@
 namespace mergebot {
 namespace server {
 class AppBaseException : public std::exception {
+  template <typename... Args>
+  using format_string_t = fmt::format_string<Args...>;
+
  public:
   explicit AppBaseException(mergebot::server::Result err)
       : code_(err.code), msg_(err.msg) {}
 
   AppBaseException(std::string code, std::string msg)
       : code_(code), msg_(msg) {}
+
+  template <typename... Args>
+  AppBaseException(std::string code, format_string_t<Args...> fmt,
+                   Args&&... args)
+      : code_(code), msg_(fmt::format(fmt, std::forward<Args>(args)...)) {}
 
   const char* what() const noexcept override { return msg_.c_str(); }
 
