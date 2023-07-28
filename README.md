@@ -1,39 +1,44 @@
 <h2 align="center">mergebot</h2>
+<p align="center">a structured git conflicts analysis tool</p>
+
+<a href="./docs/README.zh-CN.md">简体中文</a>&nbsp;|&nbsp;<a href="./README.md">
+English</a>
 
 ### Build
 
-Before we build mergebot, some tools and libs are needed.
+> **Note:**
+>
+> mergebot can only be built and run on Unix-like systems.
 
-The dependencies of Mergebot can be divided into two specific parts:
+#### Dependencies
 
-1. basic environment dependencies, such as Python and CMake. These are essential
-   tools and environments required for building and running mergebot.
+Before building mergebot, you need to install some tools and libraries.
 
-2. external dependency packages or frameworks, such as onetbb and Boost::Graph.
-   These are additional software packages or libraries that mergebot requires
-   for executing specific tasks. These dependencies may be introduced to support
-   particular functionalities or perform specific computational tasks.
+mergebot has two categories of dependencies:
 
-> **Note**
-> currently mergebot can only be build and run on a Unix-like system.
+1. Base environment, such as Python and CMake. These are essential tools and
+   environments required for building and running modern C++ projects.
 
-#### Basic Environment
+2. External dependency packages or frameworks, such as onetbb and Boost::Graph.
+   These are additional software packages or libraries needed for mergebot to
+   perform specific tasks.
 
-| Package | Version   | What                         | Notes                                                                                                            |
-|---------|:----------|:-----------------------------|:-----------------------------------------------------------------------------------------------------------------|
-| GCC     | \>=9      | C/C++ compiler               | at least gcc/g++9 is needed to support stdc++17                                                                  |
-| python  | \>=3.6    | scripts and pacakge manager  | python 3.6 is needed                                                                                             |
-| CMake   | \>=3.21.3 | Makefile/workspace generator | CMake is the de facto build system generator tool for C++, we use a rather new one to assure toolchains and deps |
+**1. Base Environment**
+
+| Package | Version   | What                         | Notes                                                                                                                              |
+|---------|-----------|------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
+| GCC     | \>=9      | C/C++ compiler               | mergebot requires a C++17 compliant compiler for building                                                                          |
+| python  | \>=3.6    | scripts and package manager  | We use Python and conan2 for managing third-party dependencies                                                                     |
+| CMake   | \>=3.21.3 | Makefile/workspace generator | CMake is the de facto standard build system generator for C++ projects. We use a relatively new version to utilize modern features |
 
 **Installation**
 
-+ gcc >= 9 on ubuntu:
++ Install gcc >= 9 on Ubuntu 16.04
 
-> These commands are based on a askubuntu answer http://askubuntu.com/a/581497
-> To install gcc-6 (gcc-6.1.1), I had to do more stuff as shown below.
-> USE THOSE COMMANDS AT YOUR OWN RISK. I SHALL NOT BE RESPONSIBLE FOR ANYTHING.
-> ABSOLUTELY NO WARRANTY.
+> The following commands are taken
+> from: [askubuntu](http://askubuntu.com/a/581497)
 >
+> ```shell
 > sudo apt-get update && \
 > sudo apt-get install build-essential software-properties-common -y && \
 > sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
@@ -41,38 +46,40 @@ The dependencies of Mergebot can be divided into two specific parts:
 > sudo apt-get install gcc-snapshot -y && \
 > sudo apt-get update && \
 > sudo apt-get install gcc-6 g++-6 -y && \
-> sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-6 60 --slave
-> /usr/bin/g++ g++ /usr/bin/g++-6 && \
+> sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-6 60 --slave /usr/bin/g++ g++ /usr/bin/g++-6 && \
 > sudo apt-get install gcc-4.8 g++-4.8 -y && \
-> sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 60
-> --slave
-> /usr/bin/g++ g++ /usr/bin/g++-4.8;
+> sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-4.8
+> ```
 >
->When completed, you must change to the gcc you want to work with by default.
-> Type in your terminal:
-`sudo update-alternatives --config gcc`
+> After completion, you must switch to the desired gcc version by entering the
+> following in the terminal:
+> `sudo update-alternatives --config gcc`
 >
->To verify if it worked. Just type in your terminal
-> gcc -v
+> To verify if the switch was successful, simply type in the terminal:
+> `gcc -v`
 
-+ python 3.6/3.7:
-  Through official website of python or install a miniconda or Anaconda.
++ Python 3.6/3.7:
 
-+ CMake
+Install from the [Python official website](https://www.python.org/downloads/),
+or install [Miniconda](https://docs.conda.io/en/main/miniconda.html) or
+[Anaconda](https://www.anaconda.com/download).
+
++ CMake:
 
 ```shell
 pip install cmake
 ```
 
-+ Ninja
++ Ninja:
 
 ```shell
 pip install ninja
 ```
 
-#### External Dependencies
+2. External Dependencies
 
-After mergebot-v0.5, we introduced conan2 to manage external dependencies.
+Starting from mergebot-v0.5, we introduced conan2 to manage external
+dependencies.
 Before using conan2 to manage external dependencies, we need to install and
 initialize it:
 
@@ -88,46 +95,44 @@ pip install conan
 conan profile detect --force
 ```
 
-+ Adding the Wuhan University source
++ Adding the WHU conan repository
 
 ```shell
 conan remote add conan http://43.156.250.168:8081/artifactory/api/conan/conan
 conan remote login conan oppo
 ```
 
-After running `conan remote login conan oppo`, you will be prompted to enter a
+After running `conan remote login conan oppo`, you will be prompted to enter the
 password to continue. The password is: xxxxxxxxxxxxxxxx.
 
-Once these steps are completed, we can use conan to manage our project's
+Once these steps are completed, we can use conan to manage the project's
 dependencies.
 
-We can install all the external libs by typing:
+We can install all external libraries using the following command:
 
 ```shell
-cd <home of mergebot>
-conan install . --build=missing -r=conan -s build_type=<Release> | <RelWithDebInfo> | <Debug> | <MinSizeRel>
+cd <mergebot's base directory>
+conan install . --build=missing -r=conan -s build_type=[Release | RelWithDebInfo | Debug | MinSizeRel]
 ```
 
-this command will take about 1.5 hours to build mergebot's dependencies on a
-12-core Intel i5 with 32GB RAM. You can, of course, use machines with more cores
-and higher memory capacity to accelerate this process. Fortunately, we only need
-to go through this process once. In the future, we can directly build without
-repeating these steps.
+On a machine with a 6-core Intel i5 and 32GB RAM, this command takes
+approximately 1.5 hours to install mergebot's dependencies. Of course, you can
+use a machine with more cores and larger memory capacity to speed up this
+process. Fortunately, we only need to perform this process once, and subsequent
+builds will not take as long.
 
-### Build & Run
+#### Build & Run
 
 + Build
 
 ```shell
-cmake --preset conan-debug
-cmake --build build
+cmake --preset [conan-debug | conan-release]
+cmake --build build/[Debug | Release]
 ```
 
 + Run
 
 ```shell
-# TODO: 
+source build/[Debug | Release]/generators/conanrun.sh
+./build/[Debug | Release]/bin/mergebot
 ```
-
-
-
