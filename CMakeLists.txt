@@ -5,19 +5,13 @@
 # Update the version of cmake on your system to use modern cmake features.
 cmake_minimum_required(VERSION 3.21)
 
-### optional: C and CXX compiler
-# Note that these two lines must go before enable language, or conan's check
-# will fail
-#set(CMAKE_C_COMPILER "clang")
-#set(CMAKE_CXX_COMPILER "clang++")
-
 ### the project statement
 # Note that after we call this line in the top level project, we can use
 # variables like PROJECT_VERSION_MAJOR,
 # <PROJECT-NAME>_VERSION_{MAJOR, MINOR, PATCH, TWEAK} and CMAKE_PROJECT_VERSION
 project(
         mergebot
-        VERSION 0.1.0
+        VERSION 0.5.0
         LANGUAGES C CXX)
 
 ### options go here
@@ -62,8 +56,7 @@ endif (NOT DEFINED CMAKE_POSITION_INDEPENDENT_CODE)
 # the default build target is set to Release
 if (NOT CMAKE_BUILD_TYPE)
     # Default build target
-    # TODO(hwa): in release phase, change default build target to Release
-    set(CMAKE_BUILD_TYPE DEBUG)
+    set(CMAKE_BUILD_TYPE Release)
 endif (NOT CMAKE_BUILD_TYPE)
 message(STATUS "Build directory: ${PROJECT_BINARY_DIR}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
@@ -126,8 +119,6 @@ if (CMAKE_BUILD_TYPE STREQUAL "DEBUG" OR CMAKE_BUILD_TYPE STREQUAL "Debug")
             -Wold-style-cast -Woverloaded-virtual -Wnull-dereference\
             -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function\
             -Wno-unknown-pragmas -Wno-unused-private-field")
-        # TODO(hwa): in release phase, remove the following line
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
     endif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif (CMAKE_BUILD_TYPE STREQUAL "DEBUG" OR CMAKE_BUILD_TYPE STREQUAL "Debug")
 
@@ -140,20 +131,6 @@ if (MB_BUILD_SHARED)
             MB_SHARED_LIBRARY
             )
 endif (MB_BUILD_SHARED)
-
-## configure conan
-#include(cmake/conaninstall.cmake)
-
-### find packages go here.
-## use conan to manage all the packages it contains
-#find_package(ZLIB)
-#if (ZLIB_FOUND)
-#    set(ZLIB_LIBRARY ${ZLIB_LIBRARIES})
-#    #  add_definitions(-DMB_HAVE_ZLIB)
-#    # TODO(hwa): fix the error of undefined reference to deflate
-#else ()
-#    message("ZLIB can't be found. MergeBot configured without zlib support")
-#endif ()
 
 ## check linter tools goes here
 include(cmake/checklinter.cmake)
