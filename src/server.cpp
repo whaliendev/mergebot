@@ -40,7 +40,7 @@ void InitLogger();
 void InitMergebot();
 void InitThreadPool();
 
-[[noreturn]] int main() {
+int main() {
   InitLogger();
 
   InitMergebot();
@@ -71,6 +71,8 @@ void InitThreadPool();
   app.register_blueprint(subApiBP);
 
   app.loglevel(crow::LogLevel::INFO).port(18080).run();
+
+  return 0;
 }
 
 void InitThreadPool() {
