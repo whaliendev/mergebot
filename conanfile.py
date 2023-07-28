@@ -34,7 +34,8 @@ class MergebotConan(ConanFile):
         "libgit2/1.7.0",
         # "zlib/[>=1.2.10]",
         "cstar-crow/4f3f5de",
-        "llvm/16.0.6"
+        "llvm/16.0.6",
+        "zstd/1.5.5"
     )
 
     default_options = {

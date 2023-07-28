@@ -23,6 +23,8 @@ find_package(libgit2 REQUIRED)
 #message(STATUS " Found LLVM ${LLVM_PACKAGE_VERSION} ")
 #message(STATUS " Using LLVMConfig.cmake in: ${LLVM_DIR} ")
 #message(STATUS " LLVM_LIBRARIES: ${LLVM_LIBRARIES}")
+find_package(zstd REQUIRED)
+
 find_package(LLVM REQUIRED)
 include_directories(${LLVM_INCLUDE_DIRS})
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
@@ -42,10 +44,16 @@ list(REMOVE_ITEM SRC_FILES ${PROJECT_SOURCE_DIR}/src/server.cpp)
 add_library(${PROJECT_NAME}-dep SHARED ${SRC_FILES} ${RTTI_DISABLED_SRCS})
 target_link_libraries(${PROJECT_NAME}-dep
         INTERFACE
+        LLVMSupport
+        #        clangBasic
+        #        clangFormat
+        #        clangFrontend
+        #        clangLex
+        #        clangTooling
         clang-cpp
+        zstd::libzstd_static
         fmt::fmt
         libgit2::libgit2
-        LLVMSupport
         magic_enum::magic_enum
         re2::re2
         TBB::tbb
@@ -56,6 +64,7 @@ target_link_libraries(${PROJECT_NAME}-dep
 target_include_directories(${PROJECT_NAME}-dep
         INTERFACE
         ${PROJECT_SOURCE_DIR}/include
+        zstd_INCLUDE_DIRS
         fmt_INCLUDE_DIRS
         libgit2_INCLUDE_DIRS
         magic_enum_INCLUDE_DIRS
