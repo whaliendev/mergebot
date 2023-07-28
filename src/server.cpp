@@ -137,8 +137,8 @@ void InitLogger() {
     // files, with a file size limit of 1024M
     // TODO: refactor log file destination to ~/.local/logs/mergebot/<file>.log
     auto rotateFileSink =
-        std::make_shared<spdlog::sinks::rotating_file_sink_mt>("logs/mergebot",
-                                                               1024 * M, 3);
+        std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+            "logs/mergebot.log", 1024 * M, 3);
     rotateFileSink->set_level(spdlog::level::info);
     rotateFileSink->set_pattern("[%Y-%H-%M %T.%e] [%t] [%l] %@: %v");
 

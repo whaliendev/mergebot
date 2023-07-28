@@ -3,7 +3,7 @@
 ### the cmake version we accepted. Don't modify this, we've been pretty
 # restrained about the version of cmake we use.
 # Update the version of cmake on your system to use modern cmake features.
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.21)
 
 ### optional: C and CXX compiler
 # Note that these two lines must go before enable language, or conan's check
