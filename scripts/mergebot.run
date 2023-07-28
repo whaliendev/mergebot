@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -euo pipefail
+
+# get the directory where mergebot.run script is located
+script_dir="$(dirname "$0")"
+
+# call setup.sh in --dir-only mode to get MB_BIN_DIR
+MB_BIN_DIR=$("$script_dir/setup.sh" --dir-only)
+
+if [ -z "$MB_BIN_DIR" ]; then
+  echo "Error: mergebot binary directory not found"
+  exit 1
+fi
+
+echo "-- mergebot dir: $MB_BIN_DIR"
+# run mergebot with LD_LIBRARY_PATH modified
+LD_LIBRARY_PATH="$MB_BIN_DIR:$MB_BIN_DIR/dylib" "$MB_BIN_DIR/mergebot"
