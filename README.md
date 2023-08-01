@@ -130,18 +130,38 @@ use a machine with more cores and larger memory capacity to speed up this
 process. Fortunately, we only need to perform this process once, and subsequent
 builds will not take as long.
 
-#### Build & Run
-
-+ Build
+#### Build
 
 ```shell
 cmake --preset [conan-debug | conan-release]
 cmake --build build/[Debug | Release]
 ```
 
+### Run or Package
+
 + Run
+
+If all you want is to run the program during development:
 
 ```shell
 source build/[Debug | Release]/generators/conanrun.sh
 ./build/[Debug | Release]/bin/mergebot
 ```
+
++ Package
+
+After a successful build, the `{MB_BIN_DIR}` will be populated with utility
+scripts and mergebot binaries. You can directly
+package or move this directory to deploy it on any Unix system with the same
+distribution and major version by running:
+
+```shell
+cd {mergebot dir}/build/[Debug | Release]/bin
+./mergebot.run
+```
+
+> **Notes**
+>
+> When you need to deploy to production, it is recommended to set
+> the `build_type` to `Release` in the `conan install ...` command mentioned
+> above.

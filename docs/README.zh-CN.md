@@ -120,18 +120,38 @@ build_type=[Release | RelWithDebInfo | Debug | MinSizeRel]
 在具有 6核12线程的Intel i5 和 32GB RAM 的机器上，该命令大约需要 1.5 小时来安装
 mergebot 的依赖项。您当然也可以使用具有更多核心和更大内存容量的机器来加快此过程。幸运的是，我们只需要执行此过程一次，后续再次构建无需再安装依赖。
 
-#### 构建与运行
-
-+ 构建
+#### 构建
 
 ```shell
 cmake --preset [conan-debug | conan-release]
 cmake --build build/[Debug | Release]
 ```
 
+### 运行或打包
+
 + 运行
+
+如果你只想以测试的形式运行程序：
 
 ```shell
 source build/[Debug | Release]/generators/conanrun.sh
 ./build/[Debug | Release]/bin/mergebot
 ```
+
++ 打包
+
+在成功构建后，`{MB_BIN_DIR}` 目录将包含一些脚本和 mergebot
+可执行文件。你可以直接将该目录打包或移动到任何使用相同发行版和主要版本的 Unix
+系统上进行部署，方法如下：
+
+```shell
+cd {mergebot dir}/build/[Debug | Release]/bin
+./mergebot.run
+```
+
+> **Notes**
+>
+> 当需要落地部署的时候，推荐将上文提到的`conan install ...`
+> 命令中的build_type设置成`Release`
+
+

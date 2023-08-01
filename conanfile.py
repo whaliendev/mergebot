@@ -1,4 +1,8 @@
+import os
+import shutil
+
 from conan import ConanFile
+from conan.api.output import ConanOutput
 from conan.tools.cmake import cmake_layout, CMakeToolchain, CMakeDeps, CMake
 
 
@@ -147,14 +151,52 @@ class MergebotConan(ConanFile):
         "llvm/*:conan_center_index_limits": False
     }
 
+    _mergebot_scripts = [
+        'mergebot.run',
+        'setup.sh'
+    ]
+
+    _mergebot_docs = [
+        'README.zh-CN.md',
+        'api-mergebot-sa_v1.1.md'
+    ]
+
     def layout(self):
         cmake_layout(self)
+
+    def _package_scripts(self):
+        scripts_folder = os.path.join(self.source_folder, "scripts")
+        bin_out_folder = os.path.join(self.build_folder, "bin")
+        if not os.path.exists(bin_out_folder):
+            os.makedirs(bin_out_folder)
+
+        for script in self._mergebot_scripts:
+            source_file = os.path.join(scripts_folder, script)
+            dest_file = os.path.join(bin_out_folder, script)
+            ConanOutput(str(self)).info(f'copying {source_file} to {dest_file}')
+            shutil.copy2(source_file, dest_file)
+
+    def _package_docs(self):
+        docs_folder = os.path.join(self.source_folder, "docs")
+        bin_out_folder = os.path.join(self.build_folder, "bin")
+        if not os.path.exists(bin_out_folder):
+            os.makedirs(bin_out_folder)
+
+        for doc in self._mergebot_docs:
+            source_file = os.path.join(docs_folder, doc)
+            dest_file = os.path.join(bin_out_folder, doc)
+            ConanOutput(str(self)).info(f'copying {source_file} to {dest_file}')
+            shutil.copy2(source_file, dest_file)
 
     def generate(self):
         tc = CMakeToolchain(self, "Ninja")
         tc.generate()
         deps = CMakeDeps(self)
         deps.generate()
+
+        # package misc files
+        self._package_scripts()
+        self._package_docs()
 
     def build(self):
         cmake = CMake(self)

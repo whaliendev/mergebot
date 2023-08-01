@@ -5,7 +5,7 @@ set -euo pipefail
 
 function find_mergebot_binary() {
   local mergebot_dir=""
-  if [ -x "$(command -v mergebot)" ]; then
+  if [ -x "./mergebot" ] || [ -x "$(command -v mergebot)" ]; then
     mergebot_dir="$(dirname "$(command -v mergebot)")"
     echo "-- mergebot binary found in current dir: $mergebot_dir" >&2
   else
