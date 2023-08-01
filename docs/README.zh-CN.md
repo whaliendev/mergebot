@@ -86,8 +86,16 @@ pip install conan
 
 + 初始化
 
+首先，为conan2产生一个默认的profile：
+
 ```shell
 conan profile detect --force
+```
+
+然后，将conan2默认profile中的C++ compiler standard修改为gnu17：
+
+```shell
+sed -i 's/compiler.cppstd=[^ ]*/compiler.cppstd=gnu17/' ~/.conan2/profiles/default
 ```
 
 + 添加 WHU conan 存储库
@@ -105,7 +113,7 @@ conan remote login conan oppo
 
 ```shell
 cd <mergebot 的基础目录>
-conan install . --build=missing -r=conan -s
+conan install . --build=missing -r=conan -r=conancenter -s
 build_type=[Release | RelWithDebInfo | Debug | MinSizeRel]
 ```
 

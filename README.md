@@ -91,8 +91,17 @@ pip install conan
 
 + Initialization
 
+Generate a default conan2 profile first:
+
 ```shell
 conan profile detect --force
+```
+
+Then, modify the C++ compiler standard to gnu17 in the default profile of
+conan2:
+
+```shell
+sed -i 's/compiler.cppstd=[^ ]*/compiler.cppstd=gnu17/' ~/.conan2/profiles/default
 ```
 
 + Adding the WHU conan repository
@@ -112,7 +121,7 @@ We can install all external libraries using the following command:
 
 ```shell
 cd <mergebot's base directory>
-conan install . --build=missing -r=conan -s build_type=[Release | RelWithDebInfo | Debug | MinSizeRel]
+conan install . --build=missing -r=conan -r=conancenter -s build_type=[Release | RelWithDebInfo | Debug | MinSizeRel]
 ```
 
 On a machine with a 6-core Intel i5 and 32GB RAM, this command takes

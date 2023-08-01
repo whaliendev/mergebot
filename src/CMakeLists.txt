@@ -4,25 +4,13 @@ find_package(nlohmann_json REQUIRED)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(magic_enum REQUIRED)
-#find_package(Clang REQUIRED)
 find_package(TBB REQUIRED)
 find_package(Boost 1.71 REQUIRED
         COMPONENTS
         graph)
-
 find_package(tree-sitter REQUIRED)
 find_package(tree-sitter-cpp REQUIRED)
 find_package(libgit2 REQUIRED)
-
-#if (Clang_FOUND)
-#    message(STATUS " Found Clang ${Clang_PACKAGE_VERSION} ")
-#    message(STATUS " Clang found at ${Clang_DIR} ")
-#    include_directories(${CLANG_INCLUDE_DIRS})
-#endif (Clang_FOUND)
-
-#message(STATUS " Found LLVM ${LLVM_PACKAGE_VERSION} ")
-#message(STATUS " Using LLVMConfig.cmake in: ${LLVM_DIR} ")
-#message(STATUS " LLVM_LIBRARIES: ${LLVM_LIBRARIES}")
 find_package(zstd REQUIRED)
 
 find_package(LLVM REQUIRED)
