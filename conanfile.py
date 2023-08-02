@@ -173,7 +173,8 @@ class MergebotConan(ConanFile):
         for script in self._mergebot_scripts:
             source_file = os.path.join(scripts_folder, script)
             dest_file = os.path.join(bin_out_folder, script)
-            ConanOutput(str(self)).info(f'copying {source_file} to {dest_file}')
+            ConanOutput(str(self)).info(f'copying {source_file} '
+                                        f'to {{MB_BIN_DIR}}/{script}')
             shutil.copy2(source_file, dest_file)
 
     def _package_docs(self):
@@ -185,7 +186,8 @@ class MergebotConan(ConanFile):
         for doc in self._mergebot_docs:
             source_file = os.path.join(docs_folder, doc)
             dest_file = os.path.join(bin_out_folder, doc)
-            ConanOutput(str(self)).info(f'copying {source_file} to {dest_file}')
+            ConanOutput(str(self)).info(f'copying {source_file} '
+                                        f'to {{MB_BIN_DIR}}/{doc}')
             shutil.copy2(source_file, dest_file)
 
     def generate(self):
