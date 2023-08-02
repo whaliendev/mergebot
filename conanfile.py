@@ -151,9 +151,10 @@ class MergebotConan(ConanFile):
         "llvm/*:conan_center_index_limits": False
     }
 
-    _mergebot_scripts = [
+    _mergebot_assets = [
         'mergebot.run',
-        'setup.sh'
+        'setup.sh',
+        "clangd"
     ]
 
     _mergebot_docs = [
@@ -164,17 +165,17 @@ class MergebotConan(ConanFile):
     def layout(self):
         cmake_layout(self)
 
-    def _package_scripts(self):
-        scripts_folder = os.path.join(self.source_folder, "scripts")
+    def _package_assets(self):
+        assets_folder = os.path.join(self.source_folder, "assets")
         bin_out_folder = os.path.join(self.build_folder, "bin")
         if not os.path.exists(bin_out_folder):
             os.makedirs(bin_out_folder)
 
-        for script in self._mergebot_scripts:
-            source_file = os.path.join(scripts_folder, script)
-            dest_file = os.path.join(bin_out_folder, script)
+        for asset in self._mergebot_assets:
+            source_file = os.path.join(assets_folder, asset)
+            dest_file = os.path.join(bin_out_folder, asset)
             ConanOutput(str(self)).info(f'copying {source_file} '
-                                        f'to {{MB_BIN_DIR}}/{script}')
+                                        f'to {{MB_BIN_DIR}}/{asset}')
             shutil.copy2(source_file, dest_file)
 
     def _package_docs(self):
@@ -197,7 +198,7 @@ class MergebotConan(ConanFile):
         deps.generate()
 
         # package misc files
-        self._package_scripts()
+        self._package_assets()
         self._package_docs()
 
     def build(self):

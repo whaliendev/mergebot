@@ -17,5 +17,6 @@ if [ -z "$MB_BIN_DIR" ]; then
 fi
 
 echo "-- mergebot dir: $(realpath "$MB_BIN_DIR")"
+
 # run mergebot with LD_LIBRARY_PATH modified
 LD_LIBRARY_PATH="$MB_BIN_DIR:$MB_BIN_DIR/dylib" "$MB_BIN_DIR/mergebot"
