@@ -8,55 +8,8 @@
 
 using namespace mergebot::lsp;
 TEST(LspTest, Commnucation) {
-  int pipeIn[2], pipeOut[2];
-  const char* executable = "clangd";
-  const char* args = "";
-
-  if (pipe(pipeIn) == -1) {
-    spdlog::error(
-        "failed to create pipe to communicate with {}, err message: {}",
-        executable, strerror(errno));
-    //    goto handle;
-  }
-
-  if (pipe(pipeOut) == -1) {
-    spdlog::error(
-        "failed to create pipe to communicate with {}, err message: {}",
-        executable, strerror(errno));
-    //    goto handle;
-  }
-
-  int readIn = pipeIn[0];
-  int writeIn = pipeIn[1];
-  int readOut = pipeOut[0];
-  int writeOut = pipeOut[1];
-
-  pid_t processId = fork();
-  if (processId == -1) {
-    spdlog::error("fork {} failed, err message: {}", executable,
-                  strerror(errno));
-    //    goto handle;
-  } else if (processId == 0) {
-    // child process
-    close(writeIn);
-    close(readOut);
-    dup2(readIn, STDIN_FILENO);
-    dup2(writeOut, STDOUT_FILENO);
-    close(readIn);
-    close(writeOut);
-    execl("/usr/local/bin/clangd", "clangd", NULL);
-
-    // execl returned, an error occurred
-    spdlog::error("failed to fork {}, error message: {}", executable,
-                  strerror(errno));
-  } else {
-    // parent process
-    close(readIn);
-    close(writeOut);
-  }
-
   std::unique_ptr<JSONRpcEndpoint> rpcEndpoint =
-      std::make_unique<JSONRpcEndpoint>(writeIn, readOut);
+      std::make_unique<JSONRpcEndpoint>("/usr/local/bin/clangd", "clangd");
   std::unique_ptr<LspEndpoint> lspEndpoint =
       std::make_unique<LspEndpoint>(std::move(rpcEndpoint), 20);
 
@@ -90,27 +43,4 @@ TEST(LspTest, Commnucation) {
       symbolDetails.value().size(), references.value().size(),
       declaration.value().size(), definition.value().size(),
       completion.value().size(), signature.value().size());
-
-  if (readIn != -1) {
-    close(readIn);
-  }
-
-  if (writeIn != -1) {
-    close(writeIn);
-  }
-
-  if (readOut != -1) {
-    close(readOut);
-  }
-
-  if (writeOut != -1) {
-    close(writeOut);
-  }
-
-  if (processId != -1) {
-    int status;
-    // wait processId to exit automatically (after exit request or exit
-    // accidentally)
-    waitpid(processId, &status, 0);
-  }
 }

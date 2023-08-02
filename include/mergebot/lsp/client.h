@@ -11,21 +11,44 @@
 #include <nlohmann/json.hpp>
 #include <shared_mutex>
 
+#include "communicator.h"
 #include "mergebot/utils/noncopyable.h"
 #include "protocol.h"
-#include "transport.h"
 
 namespace mergebot {
 namespace lsp {
 using json = nlohmann::json;
 using value = json;
 
+/**
+ * @class JSONRpcEndpoint
+ * @brief Handles the low-level communication details for JSON RPC.
+ *
+ * This class is responsible for sending and receiving raw messages over the
+ * network. It uses a Communicator object to abstract the details of the
+ * communication method (e.g., pipe, socket).
+ */
 class JSONRpcEndpoint final {
  public:
   using RpcResponseBody = json;
   using RpcRequestBody = json;
-  JSONRpcEndpoint(int infd, int outfd) : stdin(infd), stdout(outfd) {}
+  JSONRpcEndpoint(const char *executable, const char *args)
+      : communicator(std::make_unique<PipeCommunicator>(executable, args)) {}
+
+  /**
+   * @brief Sends a JSON RPC request over the network.
+   *
+   * This method serializes the request to a JSON string, adds the necessary
+   * headers, and sends it over the network using the Communicator.
+   */
   ssize_t SendRequest(const RpcRequestBody &json);
+
+  /**
+   * @brief Receives a JSON RPC response from the network.
+   *
+   * This method reads the headers and content of a response from the network,
+   * parses the content into a JSON object, and returns it.
+   */
   std::optional<RpcResponseBody> RecvResponse();
 
  private:
@@ -36,10 +59,19 @@ class JSONRpcEndpoint final {
   const char *LEN_HEADER = "Content-Length: ";
   const char *TYPE_HEADER = "Content-Type: ";
 
-  int stdin = -1, stdout = -1;
+  std::unique_ptr<Communicator> communicator;
   std::shared_mutex rwMutex;
 };
 
+/**
+ * @class LspEndpoint
+ * @brief Provides a high-level interface for communicating with a Language
+ * Server.
+ *
+ * This class uses a JSONRpcEndpoint to send and receive messages. It provides
+ * methods for sending notifications and calling methods on the server. It also
+ * handles the details of matching responses to requests.
+ */
 class LspEndpoint final {
  public:
   using JSONRpcResult = json;
@@ -47,7 +79,7 @@ class LspEndpoint final {
   using JSONRpcParams = json;
 
   explicit LspEndpoint(
-      std::unique_ptr<JSONRpcEndpoint> rpcEndpoint, int timeout = 3,
+      std::unique_ptr<JSONRpcEndpoint> &&rpcEndpoint, int timeout = 3,
       const std::unordered_map<std::string, std::function<void(const json &)>>
           methodCallbacks = {},
       const std::unordered_map<std::string, std::function<void(const json &)>>
@@ -58,16 +90,54 @@ class LspEndpoint final {
         timeout(timeout),
         shutdownFlag(false) {}
 
+  /**
+   * @brief Sends a notification to the Language Server.
+   *
+   * This method sends a notification to the server. Notifications are requests
+   * that do not require a response.
+   */
   void SendNotification(std::string_view method,
                         const JSONRpcParams &params = {});
 
+  /**
+   * @brief Sends a response to the Language Server.
+   *
+   * This method is used internally to send a response back to the server after
+   * a request has been processed. It is called by the handleResult method after
+   * the result of a request has been computed.
+   *
+   * @param id The ID of the request to which this is a response.
+   * @param result The result of the request, to be included in the response.
+   * @param error Any error that occurred while processing the request, to be
+   * included in the response.
+   */
   void SendResponse(int rpcId, const json &result, const json &error);
 
+  /**
+   * @brief Calls a method on the Language Server and waits for the response.
+   *
+   * This method sends a request to the server, waits for the response, and
+   * returns the result. If an error occurs, it logs the error and returns
+   * nullopt.
+   */
   std::optional<JSONRpcResult> CallMethod(std::string_view method,
                                           const json &params = {});
 
+  /**
+   * @brief Stops the LspEndpoint.
+   *
+   * This method sets a flag that causes the operator() method to return. It
+   * also wakes up any threads that are waiting for a response.
+   */
   void Stop();
 
+  /**
+   * @brief The main loop of the LspEndpoint.
+   *
+   * This method continuously receives responses from the server and handles
+   * them. It matches responses to requests and notifies the waiting threads. It
+   * also handles notifications from the server.
+   */
   void operator()();
 
  private:
@@ -93,7 +163,7 @@ class LspEndpoint final {
 class LspClient final {
  public:
   using JSONRpcResult = LspEndpoint::JSONRpcResult;
-  explicit LspClient(std::unique_ptr<LspEndpoint> lspEndpoint)
+  explicit LspClient(std::unique_ptr<LspEndpoint> &&lspEndpoint)
       : lspEndpoint(std::move(lspEndpoint)) {}
 
   ~LspClient() {

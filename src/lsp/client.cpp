@@ -17,7 +17,7 @@ ssize_t JSONRpcEndpoint::SendRequest(const RpcRequestBody& json) {
   std::unique_lock<std::shared_mutex> lock(rwMutex);
 
   spdlog::debug("--> send request to server, message: \n{}", message);
-  ssize_t bytesWritten = ::write(stdin, message.c_str(), message.size());
+  ssize_t bytesWritten = communicator->write(message);
   if (bytesWritten == -1) {
     spdlog::error("fail send request to server, error message: {}",
                   strerror(errno));
@@ -84,9 +84,7 @@ std::string JSONRpcEndpoint::readLine() {
   {
     std::unique_lock<std::shared_mutex> lock(rwMutex);
     do {
-      int flags = fcntl(stdout, F_GETFL, 0);
-      fcntl(stdout, F_SETFL, flags | O_NONBLOCK);
-      bytesRead = ::read(stdout, &buf[len], 1);
+      bytesRead = communicator->read(&buf[len], 1);
       if (bytesRead == -1) {
         if (errno == EAGAIN) {
           //          spdlog::debug("pipe is empty, return immediately");
@@ -113,7 +111,7 @@ std::string JSONRpcEndpoint::readMessageContent(size_t len) {
   std::string content;
   content.resize(len);
 
-  ssize_t bytesRead = read(stdout, content.data(), len);
+  ssize_t bytesRead = communicator->read(content.data(), len);
   if (bytesRead == -1) {
     spdlog::error("unexpected error occurred: error message: {}",
                   strerror(errno));
@@ -214,7 +212,7 @@ void LspEndpoint::operator()() {
         }
         SendResponse(rpcId, result, nullptr);
       } else {
-        // a call for notify
+        // a call for notification
         if (notifyCallbacks.count(method)) {
           notifyCallbacks[method](params);
         }
