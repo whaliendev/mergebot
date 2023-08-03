@@ -37,13 +37,13 @@ target_link_libraries(${PROJECT_NAME}-dep
         #        clangLex
         #        clangTooling
         PUBLIC LLVMSupport
-        PUBLIC clang-cpp
         PUBLIC fmt::fmt
         PUBLIC tree-sitter::tree-sitter
         PUBLIC tree-sitter-cpp::tree-sitter-cpp
         PUBLIC Crow::Crow
         PUBLIC spdlog::spdlog
         PRIVATE
+        clang-cpp
         zstd::libzstd_static
         libgit2::libgit2
         magic_enum::magic_enum
