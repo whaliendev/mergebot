@@ -41,6 +41,8 @@ target_link_libraries(${PROJECT_NAME}-dep
         PUBLIC fmt::fmt
         PUBLIC tree-sitter::tree-sitter
         PUBLIC tree-sitter-cpp::tree-sitter-cpp
+        PUBLIC Crow::Crow
+        PUBLIC spdlog::spdlog
         PRIVATE
         zstd::libzstd_static
         libgit2::libgit2
@@ -48,24 +50,25 @@ target_link_libraries(${PROJECT_NAME}-dep
         re2::re2
         TBB::tbb
         Boost::graph
-        Crow::Crow
-        spdlog::spdlog
+        asio::asio
 )
 
 target_include_directories(${PROJECT_NAME}-dep
-        PUBLIC ${PROJECT_SOURCE_DIR}/include
-        PUBLIC ${zstd_INCLUDE_DIRS}
-        PUBLIC ${fmt_INCLUDE_DIRS}
-        PUBLIC ${tree-sitter_INCLUDE_DIRS}
-        PUBLIC ${tree-sitter-cpp_INCLUDE_DIRS}
-        PRIVATE
+        PUBLIC
+        ${PROJECT_SOURCE_DIR}/include
+        ${zstd_INCLUDE_DIRS}
+        ${fmt_INCLUDE_DIRS}
+        ${tree-sitter_INCLUDE_DIRS}
+        ${tree-sitter-cpp_INCLUDE_DIRS}
+        ${Crow_INCLUDE_DIRS}
+        ${spdlog_INCLUDE_DIRS}
+        ${nlohmann_json_INCLUDE_DIRS}
+        ${re2_INCLUDE_DIRS}
         ${libgit2_INCLUDE_DIRS}
         ${magic_enum_INCLUDE_DIRS}
-        ${re2_INCLUDE_DIRS}
         ${TBB_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIRS}
-        ${Crow_INCLUDE_DIRS}
-        #        ${spdlog_INCLUDE_DIRS}
+        ${asio_INCLUDE_DIRS}
 )
 
 add_executable(
@@ -77,6 +80,5 @@ target_link_libraries(
         ${PROJECT_NAME}
         PRIVATE
         ${PROJECT_NAME}-dep
-        libgit2::libgit2
 )
 

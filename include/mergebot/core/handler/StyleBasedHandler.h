@@ -12,7 +12,7 @@ namespace sa {
 
 class StyleBasedHandler : public SAHandler {
 public:
-  explicit StyleBasedHandler(ProjectMeta Meta, std::string Name = __FILE_NAME__)
+  explicit StyleBasedHandler(ProjectMeta Meta, std::string Name = __FILE__)
       : SAHandler(Meta, Name) {}
 
 private:

@@ -7,6 +7,8 @@
 
 #include <gtest/gtest.h>
 #include <spdlog/async.h>
+#include <spdlog/sinks/ansicolor_sink.h>
+#include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/spdlog.h>
 
 #include <iostream>
@@ -32,7 +34,7 @@ void InitLogger() {
 #endif
     consoleSink->set_pattern("[%Y-%H-%M %T] [%t] %^[%l]%$ %@: %v");
 
-    spdlog::sinks_init_list sinkList = {consoleSink};
+    spdlog::sinks_init_list sinkList = {consoleSink, };
     spdlog::init_thread_pool(4096, 1);
     auto defaultLogger = std::make_shared<spdlog::async_logger>(
         "async_logger", sinkList, spdlog::thread_pool(),

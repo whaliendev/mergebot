@@ -21,7 +21,7 @@ namespace mergebot {
 namespace sa {
 class ASTBasedHandler : public SAHandler {
 public:
-  explicit ASTBasedHandler(ProjectMeta Meta, std::string Name = __FILE_NAME__)
+  explicit ASTBasedHandler(ProjectMeta Meta, std::string Name = __FILE__)
       : SAHandler(Meta, Name) {
     OurCompDB = fs::path(Meta.MSCacheDir) / "ours" / CompDBRelative;
     TheirCompDB = fs::path(Meta.MSCacheDir) / "theirs" / CompDBRelative;

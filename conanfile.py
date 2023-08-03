@@ -38,6 +38,7 @@ class MergebotConan(ConanFile):
         "libgit2/1.7.0",
         # "zlib/[>=1.2.10]",
         "cstar-crow/4f3f5de",
+        "asio/1.28.0",
         "llvm/16.0.6",
         "zstd/1.5.5"
     )

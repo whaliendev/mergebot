@@ -12,7 +12,7 @@ namespace sa {
 
 class LLVMBasedHandler : public SAHandler {
 public:
-  explicit LLVMBasedHandler(ProjectMeta Meta, std::string Name = __FILE_NAME__)
+  explicit LLVMBasedHandler(ProjectMeta Meta, std::string Name = __FILE__)
       : SAHandler(Meta, Name) {}
 
 private:

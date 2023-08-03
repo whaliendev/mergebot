@@ -28,7 +28,7 @@ struct ProjectMeta {
 /// SAHandler's ctor will take the ownership of ProjectMeta
 class SAHandler {
 public:
-  explicit SAHandler(ProjectMeta Meta, std::string Name = __FILE_NAME__)
+  explicit SAHandler(ProjectMeta Meta, std::string Name = __FILE__)
       : Meta(std::move(Meta)), Skip_(false), Name_(Name),
         NextHandler_(nullptr) {}
   virtual ~SAHandler() {}

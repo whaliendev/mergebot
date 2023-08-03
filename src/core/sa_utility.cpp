@@ -10,6 +10,7 @@
 #include <spdlog/spdlog.h>
 #include <sys/file.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 #include <algorithm>
 #include <array>
