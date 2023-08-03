@@ -4,10 +4,13 @@
 
 #include "mergebot/utils/gitservice.h"
 
+#include <fcntl.h>
 #include <git2.h>
 #include <oneapi/tbb/blocked_range.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <spdlog/spdlog.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include <fstream>
 #include <unordered_set>
@@ -186,7 +189,8 @@ int dump_tree_entry(const char *root, const git_tree_entry *entry,
       git_blob_free(blob);
     }
   } else {
-    spdlog::warn("unexpected git object type found: {}", object_type);
+    spdlog::warn("unexpected git object type found: {}",
+                 static_cast<int>(object_type));
     return 1;
   }
 

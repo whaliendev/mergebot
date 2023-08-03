@@ -31,37 +31,42 @@ list(REMOVE_ITEM SRC_FILES ${PROJECT_SOURCE_DIR}/src/server.cpp)
 
 add_library(${PROJECT_NAME}-dep SHARED ${SRC_FILES} ${RTTI_DISABLED_SRCS})
 target_link_libraries(${PROJECT_NAME}-dep
-        INTERFACE
-        LLVMSupport
         #        clangBasic
         #        clangFormat
         #        clangFrontend
         #        clangLex
         #        clangTooling
-        clang-cpp
+        PUBLIC LLVMSupport
+        PUBLIC clang-cpp
+        PUBLIC fmt::fmt
+        PUBLIC tree-sitter::tree-sitter
+        PUBLIC tree-sitter-cpp::tree-sitter-cpp
+        PRIVATE
         zstd::libzstd_static
-        fmt::fmt
         libgit2::libgit2
         magic_enum::magic_enum
         re2::re2
         TBB::tbb
-        tree-sitter::tree-sitter
-        tree-sitter-cpp::tree-sitter-cpp
-        Boost::graph)
+        Boost::graph
+        Crow::Crow
+        spdlog::spdlog
+)
 
 target_include_directories(${PROJECT_NAME}-dep
-        INTERFACE
-        ${PROJECT_SOURCE_DIR}/include
-        zstd_INCLUDE_DIRS
-        fmt_INCLUDE_DIRS
-        libgit2_INCLUDE_DIRS
-        magic_enum_INCLUDE_DIRS
-        re2_INCLUDE_DIRS
-        TBB_INCLUDE_DIRS
-        tree-sitter_INCLUDE_DIRS
-        tree-sitter-cpp_INCLUDE_DIRS
-        Boost_INCLUDE_DIRS
-        )
+        PUBLIC ${PROJECT_SOURCE_DIR}/include
+        PUBLIC ${zstd_INCLUDE_DIRS}
+        PUBLIC ${fmt_INCLUDE_DIRS}
+        PUBLIC ${tree-sitter_INCLUDE_DIRS}
+        PUBLIC ${tree-sitter-cpp_INCLUDE_DIRS}
+        PRIVATE
+        ${libgit2_INCLUDE_DIRS}
+        ${magic_enum_INCLUDE_DIRS}
+        ${re2_INCLUDE_DIRS}
+        ${TBB_INCLUDE_DIRS}
+        ${Boost_INCLUDE_DIRS}
+        ${Crow_INCLUDE_DIRS}
+        #        ${spdlog_INCLUDE_DIRS}
+)
 
 add_executable(
         ${PROJECT_NAME}

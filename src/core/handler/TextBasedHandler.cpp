@@ -549,9 +549,8 @@ void TextBasedHandler::resolveConflictFiles(
             CB.ConflictRange, magic_enum::enum_name(ConflictMark::THEIRS),
             magic_enum::enum_name(ConflictMark::END));
       }
-      assert(!OurCode.empty() ||
-             !TheirCode.empty() &&
-                 "at least one side of code should not be empty");
+      assert((!OurCode.empty() || !TheirCode.empty()) &&
+             "at least one side of code should not be empty");
       server::BlockResolutionResult BRR;
       BRR.index = CB.Index;
 

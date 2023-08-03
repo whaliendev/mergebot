@@ -114,7 +114,7 @@ bool isValidScheme(std::string_view scheme) {
   if (!isalpha(scheme[0])) return false;
   scheme = scheme.substr(1);
   return std::all_of(scheme.begin(), scheme.end(), [&](const auto& item) {
-    return isalnum(item) || item == '+' | item == '.' || item == '-';
+    return isalnum(item) || item == '+' || item == '.' || item == '-';
   });
 }
 }  // namespace _details

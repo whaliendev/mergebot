@@ -3,7 +3,10 @@
 //
 #include "mergebot/utils/fileio.h"
 
+#include <fcntl.h>
 #include <spdlog/spdlog.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "mergebot/core/sa_utility.h"
 

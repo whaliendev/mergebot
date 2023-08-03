@@ -4,6 +4,7 @@
 
 #include "mergebot/core/ResolutionManager.h"
 
+#include <fcntl.h>
 #include <filesystem>
 #include <fmt/core.h>
 #include <fmt/format.h>
@@ -11,8 +12,10 @@
 #include <oneapi/tbb/task_group.h>
 #include <oneapi/tbb/tick_count.h>
 #include <spdlog/spdlog.h>
+#include <sys/stat.h>
 #include <system_error>
 #include <thread>
+#include <unistd.h>
 #include <unordered_set>
 
 #include "mergebot/core/handler/ASTBasedHandler.h"
@@ -82,8 +85,8 @@ bool copyConflicts(const std::vector<std::string> &FileList,
       continue;
     }
 
-    while ((BytesRead = read(SrcFd, Buffer, sizeof(Buffer))) > 0) {
-      BytesWritten = write(DestFd, Buffer, BytesRead);
+    while ((BytesRead = ::read(SrcFd, Buffer, sizeof(Buffer))) > 0) {
+      BytesWritten = ::write(DestFd, Buffer, BytesRead);
       if (BytesRead != BytesWritten) {
         spdlog::error("error writing to destination file: {}, error reason: {}",
                       DestPath, strerror(errno));

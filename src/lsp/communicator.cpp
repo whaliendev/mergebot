@@ -3,9 +3,8 @@
 //
 #include "mergebot/lsp/communicator.h"
 
+#include <fcntl.h>
 #include <spdlog/spdlog.h>
-
-#include <optional>
 
 namespace mergebot {
 namespace lsp {

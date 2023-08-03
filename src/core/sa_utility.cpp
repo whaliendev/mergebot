@@ -1,12 +1,14 @@
 //
 // Created by whalien on 21/02/23.
 //
+#include <fcntl.h>
 #include <fmt/format.h>
 #include <llvm/Support/Error.h>
 #include <llvm/Support/ErrorOr.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/MemoryBuffer.h>
 #include <spdlog/spdlog.h>
+#include <sys/file.h>
 #include <sys/wait.h>
 
 #include <algorithm>
