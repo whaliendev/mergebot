@@ -204,6 +204,7 @@ class LspClient final {
                std::string_view languageId = "cpp") {
     DidOpenTextDocumentParams params;
     params.textDocument.uri = std::move(uri);
+    params.textDocument.version = 1;
     params.textDocument.languageId = languageId;
     params.textDocument.text = text;
     lspEndpoint->SendNotification("textDocument/didOpen", params);
