@@ -1,5 +1,7 @@
+import gzip
 import os
 import shutil
+import os.path as path
 
 from conan import ConanFile
 from conan.api.output import ConanOutput
@@ -155,7 +157,7 @@ class MergebotConan(ConanFile):
     _mergebot_assets = [
         'mergebot.run',
         'setup.sh',
-        "clangd"
+        "clangd.gz"
     ]
 
     _mergebot_docs = [
@@ -173,11 +175,22 @@ class MergebotConan(ConanFile):
             os.makedirs(bin_out_folder)
 
         for asset in self._mergebot_assets:
-            source_file = os.path.join(assets_folder, asset)
-            dest_file = os.path.join(bin_out_folder, asset)
-            ConanOutput(str(self)).info(f'copying {source_file} '
-                                        f'to {{MB_BIN_DIR}}/{asset}')
+            source_file = path.join(assets_folder, asset)
+            dest_file = path.join(bin_out_folder, asset)
+            asset_basename = path.basename(source_file)
+            asset_basename_without_ext = os.path.splitext(asset_basename)[0]
+            dest_basename = asset_basename if not source_file.endswith(
+                ".gz") else asset_basename_without_ext
+            ConanOutput(str(self)).info(
+                f'copying {{assets => build/bin}}/{dest_basename}')
+
             shutil.copy2(source_file, dest_file)
+            if dest_file.endswith(".gz"):
+                dest_file_unzipped = path.join(bin_out_folder,
+                                               asset_basename_without_ext)
+                with gzip.open(dest_file, 'rb') as f_in:
+                    with open(dest_file_unzipped, 'wb') as f_out:
+                        f_out.write(f_in.read())
 
     def _package_docs(self):
         docs_folder = os.path.join(self.source_folder, "docs")
@@ -188,8 +201,9 @@ class MergebotConan(ConanFile):
         for doc in self._mergebot_docs:
             source_file = os.path.join(docs_folder, doc)
             dest_file = os.path.join(bin_out_folder, doc)
-            ConanOutput(str(self)).info(f'copying {source_file} '
-                                        f'to {{MB_BIN_DIR}}/{doc}')
+            doc_basename = path.basename(source_file)
+            ConanOutput(str(self)).info(
+                f'copying {{docs => build/bin}}/{doc_basename}')
             shutil.copy2(source_file, dest_file)
 
     def generate(self):

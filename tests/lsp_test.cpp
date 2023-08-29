@@ -4,12 +4,16 @@
 #include <gtest/gtest.h>
 
 #include "mergebot/lsp/client.h"
+#include "mergebot/lsp/communicator.h"
 #include "mergebot/utils/fileio.h"
 
 using namespace mergebot::lsp;
 TEST(LspTest, Commnucation) {
+  auto pipeCommunicator = PipeCommunicator::create("./clangd", "clangd");
+  EXPECT_TRUE(pipeCommunicator) << "pipe to communicate with child process "
+                                   "should construct successfully";
   std::unique_ptr<JSONRpcEndpoint> rpcEndpoint =
-      std::make_unique<JSONRpcEndpoint>("/usr/local/bin/clangd", "clangd");
+      std::make_unique<JSONRpcEndpoint>(std::move(pipeCommunicator));
   std::unique_ptr<LspEndpoint> lspEndpoint =
       std::make_unique<LspEndpoint>(std::move(rpcEndpoint), 3);
 
