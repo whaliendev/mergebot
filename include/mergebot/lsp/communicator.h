@@ -40,12 +40,15 @@ class Communicator {
 class PipeCommunicator final : public Communicator {
  public:
   /**
-   * @brief Constructor for PipeCommunicator.
+   * @brief Factory method to construct PipeCommunicator
    *
    * This method creates the pipes and forks a new process. The child process
    * executes the given executable with the given arguments.
+   * \return pointer of constructed PipeCommunicator, if the pointer is nullptr,
+   * it means the construction failed.
    */
-  PipeCommunicator(const char* executable, const char* args);
+  static std::unique_ptr<PipeCommunicator> create(const char* executable,
+                                                  const char* args);
 
   /**
    * @brief Destructor for PipeCommunicator.
@@ -71,6 +74,8 @@ class PipeCommunicator final : public Communicator {
   ssize_t read(void* buf, size_t len) override;
 
  private:
+  PipeCommunicator(int* pipeIn, int* pipeOut, pid_t processId);
+
   int pipeIn[2];
   int pipeOut[2];
   pid_t processId;

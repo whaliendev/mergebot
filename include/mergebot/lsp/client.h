@@ -32,8 +32,8 @@ class JSONRpcEndpoint final {
  public:
   using RpcResponseBody = json;
   using RpcRequestBody = json;
-  JSONRpcEndpoint(const char *executable, const char *args)
-      : communicator(std::make_unique<PipeCommunicator>(executable, args)) {}
+  explicit JSONRpcEndpoint(std::unique_ptr<Communicator> communicator)
+      : communicator{std::move(communicator)} {}
 
   /**
    * @brief Sends a JSON RPC request over the network.
@@ -79,7 +79,7 @@ class LspEndpoint final {
   using JSONRpcParams = json;
 
   explicit LspEndpoint(
-      std::unique_ptr<JSONRpcEndpoint> &&rpcEndpoint, int timeout = 3,
+      std::unique_ptr<JSONRpcEndpoint> rpcEndpoint, int timeout = 3,
       const std::unordered_map<std::string, std::function<void(const json &)>>
           methodCallbacks = {},
       const std::unordered_map<std::string, std::function<void(const json &)>>
@@ -163,7 +163,7 @@ class LspEndpoint final {
 class LspClient final {
  public:
   using JSONRpcResult = LspEndpoint::JSONRpcResult;
-  explicit LspClient(std::unique_ptr<LspEndpoint> &&lspEndpoint)
+  explicit LspClient(std::unique_ptr<LspEndpoint> lspEndpoint)
       : lspEndpoint(std::move(lspEndpoint)) {}
 
   ~LspClient() {
