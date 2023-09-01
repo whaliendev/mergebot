@@ -2,8 +2,8 @@
 // Created by whalien on 30/04/23.
 //
 
-#ifndef MB_GRAPHBUILDER_H
-#define MB_GRAPHBUILDER_H
+#ifndef MB_GRAPH_BUILDER_H
+#define MB_GRAPH_BUILDER_H
 
 #include "mergebot/core/handler/SAHandler.h"
 #include "mergebot/core/model/ConflictFile.h"
@@ -23,10 +23,14 @@ namespace sa {
 
 class GraphBuilder {
 public:
-  typedef boost::adjacency_list<boost::vecS, boost::listS,
-                                boost::bidirectionalS,
-                                std::shared_ptr<SemanticNode>, SemanticEdge>
-      Graph;
+  typedef boost::adjacency_list<
+      boost::listS,          // Store out-edges of each vertex in std::list
+      boost::vecS,           // Store vertex set in std::vector
+      boost::bidirectionalS, // The graph is bidirectional
+      std::shared_ptr<SemanticNode>, // Vertex properties
+      SemanticEdge                   // Edge properties
+      >
+      SemanticGraph;
 
   GraphBuilder(Side S, ProjectMeta const &Meta,
                std::vector<std::string> const &ConflictPaths,
@@ -36,8 +40,8 @@ public:
       : S(S), Meta(Meta), ConflictPaths(ConflictPaths), SourceList(SourceList),
         DirectIncluded(DirectIncluded) {}
 
-  void build();
-  Graph graph() const { return G; }
+  bool build();
+  SemanticGraph graph() const { return G; }
 
 private:
   void processTranslationUnit(std::string_view Path);
@@ -52,7 +56,7 @@ private:
   /// mapping of source's direct included files for each source in `SourceList`
   std::unordered_map<std::string, std::vector<std::string>> DirectIncluded;
 
-  Graph G;
+  SemanticGraph G;
 
   int NodeCount = 0;
   int EdgeCount = 0;
@@ -78,13 +82,13 @@ private:
   std::unordered_map<std::shared_ptr<SemanticNode>, std::vector<std::string>>
       FunctionCallEdges;
 
-  using edge_iterator = Graph::edge_iterator;
-  using vertex_iterator = Graph::vertex_iterator;
-  using vertex_descripor = Graph::vertex_descriptor;
-  using edge_descriptor = Graph::edge_descriptor;
+  using edge_iterator = SemanticGraph::edge_iterator;
+  using vertex_iterator = SemanticGraph::vertex_iterator;
+  using vertex_descripor = SemanticGraph::vertex_descriptor;
+  using edge_descriptor = SemanticGraph::edge_descriptor;
 };
 
 } // namespace sa
 } // namespace mergebot
 
-#endif // MB_GRAPHBUILDER_H
+#endif // MB_GRAPH_BUILDER_H

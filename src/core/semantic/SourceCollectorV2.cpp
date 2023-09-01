@@ -22,6 +22,7 @@
 namespace mergebot {
 namespace sa {
 void SourceCollectorV2::collectAnalysisSources() {
+  // retrieve concise diff deltas from the git repo
   std::unordered_set<SimplifiedDiffDelta> OurDiffDeltas =
       util::list_cpp_diff_files(Meta.ProjectPath, Meta.MS.base, Meta.MS.ours);
   std::unordered_set<SimplifiedDiffDelta> TheirDiffDeltas =
@@ -33,6 +34,7 @@ void SourceCollectorV2::collectAnalysisSources() {
     std::unordered_set<std::string> OurSourceSet;
     std::unordered_set<std::string> BaseSourceSet;
     std::unordered_set<std::string> TheirSourceSet;
+    // use diff deltas to fill source set
     diffDeltaWithHeuristic(OurSourceSet, BaseSourceSet, OurDiffDeltas);
     diffDeltaWithHeuristic(TheirSourceSet, BaseSourceSet, TheirDiffDeltas);
     SourceTuple = {
@@ -109,6 +111,7 @@ void SourceCollectorV2::diffDeltaWithHeuristic(
     }
   }
 }
+
 void SourceCollectorV2::extendIncludedSources(
     Side S, std::vector<std::string> const &SourceList,
     std::unordered_map<std::string, std::vector<std::string>> &IncludeMap,

@@ -23,6 +23,15 @@ namespace mergebot {
 namespace sa {
 class SourceCollectorV2 {
 public:
+  /**
+   * @brief \p AnalysisSourceTuple stores the source sets to be analyzed in
+   * ASTBasedHandler
+   *
+   * the fields can be classified into 3 pairs, xxxSourceList and
+   * xxxDirectIncluded are a pair, xxxSourceList represents sources to be
+   * analyzed in one revision, xxxDirectIncluded stores source's direct included
+   * source
+   */
   struct AnalysisSourceTuple {
     std::vector<std::string> OurSourceList;
     std::vector<std::string> BaseSourceList;

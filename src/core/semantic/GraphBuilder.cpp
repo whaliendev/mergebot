@@ -10,10 +10,11 @@
 
 namespace mergebot {
 namespace sa {
-void GraphBuilder::build() {
+bool GraphBuilder::build() {
   for (std::string const &Path : SourceList) {
     processTranslationUnit(Path);
   }
+  return true;
 }
 void GraphBuilder::processTranslationUnit(std::string_view Path) {}
 } // namespace sa
