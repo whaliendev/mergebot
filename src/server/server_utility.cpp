@@ -162,7 +162,7 @@ void checkAndNormalizeConflicts(crow::json::rvalue const& files,
     fs::path fullPath =
         isAbsPath ? fs::path(filePath) : fs::path(projectPath) / filePath;
     if (!fs::exists(fullPath)) {
-      spdlog::debug("file[{}] doesn't exist in ms[{}] of project[{}]", filePath,
+      spdlog::error("file[{}] doesn't exist in ms[{}] of project[{}]", filePath,
                     ms.name, projectPath);
       throw AppBaseException("C1000",
                              "文件[{}]不存在于项目[{}]的合并场景[{}]中",
