@@ -15,6 +15,9 @@
 #include <clang/Tooling/CompilationDatabase.h>
 #include <clang/Tooling/Tooling.h>
 #include <memory>
+#include <mutex>
+#include <oneapi/tbb/parallel_for.h>
+#include <oneapi/tbb/parallel_invoke.h>
 #include <spdlog/spdlog.h>
 #include <unordered_set>
 #include <vector>
@@ -48,12 +51,22 @@ void SourceCollectorV2::collectAnalysisSources() {
   if (LookupIncluded) {
     assert(OurCompilations && BaseCompilations && TheirCompilations &&
            "CompDB should not be null if we want to to deps analysis");
-    extendIncludedSources(Side::OURS, SourceTuple.OurSourceList,
-                          SourceTuple.OurDirectIncluded, OurCompilations);
-    extendIncludedSources(Side::BASE, SourceTuple.BaseSourceList,
-                          SourceTuple.BaseDirectIncluded, BaseCompilations);
-    extendIncludedSources(Side::THEIRS, SourceTuple.TheirSourceList,
-                          SourceTuple.TheirDirectIncluded, TheirCompilations);
+    // Parallel execution
+    tbb::parallel_invoke(
+        [&]() {
+          extendIncludedSources(Side::OURS, SourceTuple.OurSourceList,
+                                SourceTuple.OurDirectIncluded, OurCompilations);
+        },
+        [&]() {
+          extendIncludedSources(Side::BASE, SourceTuple.BaseSourceList,
+                                SourceTuple.BaseDirectIncluded,
+                                BaseCompilations);
+        },
+        [&]() {
+          extendIncludedSources(Side::THEIRS, SourceTuple.TheirSourceList,
+                                SourceTuple.TheirDirectIncluded,
+                                TheirCompilations);
+        });
   }
 }
 
@@ -116,22 +129,29 @@ void SourceCollectorV2::extendIncludedSources(
     Side S, std::vector<std::string> const &SourceList,
     std::unordered_map<std::string, std::vector<std::string>> &IncludeMap,
     std::shared_ptr<clang::tooling::CompilationDatabase> Compilations) const {
+
   spdlog::info(
       "we're collecting {} side's direct included headers, which may take "
       "some time...",
       magic_enum::enum_name(S));
+
   fs::path SourceDir =
       fs::path(Meta.ProjectCacheDir) / Meta.MS.name / magic_enum::enum_name(S);
+
   std::vector<std::string> SourcePaths;
   SourcePaths.reserve(SourceList.size());
+
   for (const auto &RelativeSource : SourceList) {
     SourcePaths.push_back(SourceDir / RelativeSource);
   }
 
-  for (size_t i = 0; i < SourcePaths.size(); ++i) {
+  std::mutex includeMapMutex; // Mutex for synchronizing access to IncludeMap
+
+  tbb::parallel_for(static_cast<size_t>(0), SourcePaths.size(), [&](size_t i) {
     std::string const &SourcePath = SourcePaths[i];
-    //    spdlog::debug("collecting direct included headers for file: {}",
-    //                  SourceList[i]);
+    // spdlog::debug("collecting direct included headers for file: {}",
+    // SourceList[i]);
+
     clang::tooling::ClangTool Tool(*Compilations, SourcePath);
     Tool.setPrintErrorMessage(false);
     Tool.setDiagnosticConsumer(new clang::IgnoringDiagConsumer());
@@ -139,10 +159,14 @@ void SourceCollectorV2::extendIncludedSources(
     std::unique_ptr<IncludeLookupActionFactory> ActionFactory =
         std::make_unique<IncludeLookupActionFactory>();
     Tool.run(ActionFactory.get());
-    //    spdlog::debug("{}'s direct included files: {}", SourceList[i],
-    //                 fmt::join(ActionFactory->includedFiles(), "\t"));
+
+    // spdlog::debug("{}'s direct included files: {}", SourceList[i],
+    // fmt::join(ActionFactory->includedFiles(), "\t"));
+
+    std::lock_guard<std::mutex> lock(
+        includeMapMutex); // Lock the mutex before modifying IncludeMap
     IncludeMap[SourceList[i]] = ActionFactory->includedFiles();
-  }
+  });
 }
 
 void IncludeLookupCallback::LexedFileChanged(

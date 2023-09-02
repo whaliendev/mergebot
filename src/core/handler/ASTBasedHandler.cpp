@@ -7,19 +7,14 @@
 #include "mergebot/core/semantic/GraphBuilder.h"
 #include "mergebot/core/semantic/SourceCollectorV2.h"
 #include "mergebot/filesystem.h"
-#include "mergebot/utils/fileio.h"
 #include "mergebot/utils/stringop.h"
 #include <clang/Tooling/CompilationDatabase.h>
 #include <clang/Tooling/JSONCompilationDatabase.h>
 #include <filesystem>
-#include <fstream>
-#include <iterator>
 #include <llvm/ADT/StringRef.h>
-#include <oneapi/tbb/task_group.h>
+#include <oneapi/tbb/parallel_invoke.h>
 #include <oneapi/tbb/tick_count.h>
-#include <re2/re2.h>
 #include <spdlog/spdlog.h>
-#include <sstream>
 #include <system_error>
 #include <vector>
 
@@ -60,8 +55,16 @@ void ASTBasedHandler::resolveConflictFiles(
   // disabled
   SourceCollectorV2 SC(Meta, OurCompilations, BaseCompilations,
                        TheirCompilations);
+  auto Start = tbb::tick_count::now();
   SC.collectAnalysisSources();
+  auto End = tbb::tick_count::now();
+  spdlog::info("it takes {} ms to collect collection of sources to analyze",
+               (End - Start).seconds() * 1000);
   SourceCollectorV2::AnalysisSourceTuple ST = SC.analysisSourceTuple();
+  spdlog::info("our direct included: {}, base direct included: {}, their "
+               "direct included: {}",
+               ST.OurDirectIncluded.size(), ST.BaseDirectIncluded.size(),
+               ST.TheirDirectIncluded.size());
 
   // 2. Get Graph representation of 3 commit nodes
   std::vector<std::string> ConflictPaths;
@@ -73,7 +76,7 @@ void ASTBasedHandler::resolveConflictFiles(
     }
     ConflictPaths.push_back(std::move(RelativePath));
   }
-  auto Start = tbb::tick_count::now();
+  Start = tbb::tick_count::now();
   GraphBuilder OurBuilder(Side::OURS, Meta, ConflictPaths, ST.OurSourceList,
                           ST.OurDirectIncluded);
   GraphBuilder BaseBuilder(Side::BASE, Meta, ConflictPaths, ST.BaseSourceList,
@@ -81,15 +84,13 @@ void ASTBasedHandler::resolveConflictFiles(
   GraphBuilder TheirBuilder(Side::THEIRS, Meta, ConflictPaths,
                             ST.TheirSourceList, ST.TheirDirectIncluded);
 
-  tbb::task_group TG;
   bool OurOk = false;
   bool BaseOk = false;
   bool TheirOk = false;
-  TG.run([&OurBuilder, &OurOk]() { OurOk = OurBuilder.build(); });
-  TG.run([&BaseBuilder, &BaseOk]() { BaseOk = BaseBuilder.build(); });
-  TG.run([&TheirBuilder, &TheirOk]() { TheirOk = TheirBuilder.build(); });
-  TG.wait();
-  auto End = tbb::tick_count::now();
+  tbb::parallel_invoke([&]() { OurOk = OurBuilder.build(); },
+                       [&]() { BaseOk = BaseBuilder.build(); },
+                       [&]() { TheirOk = TheirBuilder.build(); });
+  End = tbb::tick_count::now();
   if (!OurOk || !TheirOk) {
     spdlog::info("fail to construct graph representation of revisions");
     return;
@@ -103,38 +104,45 @@ void ASTBasedHandler::resolveConflictFiles(
  * JSON CDB
  */
 void ASTBasedHandler::initCompDB() {
-  std::string ErrMsg;
-  OurCompilationsPair.first = clang::tooling::inferMissingCompileCommands(
-      clang::tooling::JSONCompilationDatabase::loadFromFile(
-          OurCompDB, ErrMsg,
-          clang::tooling::JSONCommandLineSyntax::AutoDetect));
-  OurCompilationsPair.second = true;
-  if (!ErrMsg.empty()) {
-    spdlog::error(ErrMsg, OurCompDB);
-    OurCompilationsPair.second = false;
-  }
-
-  ErrMsg.clear();
-  BaseCompilationsPair.first = clang::tooling::inferMissingCompileCommands(
-      clang::tooling::JSONCompilationDatabase::loadFromFile(
-          BaseCompDB, ErrMsg,
-          clang::tooling::JSONCommandLineSyntax::AutoDetect));
-  BaseCompilationsPair.second = true;
-  if (!ErrMsg.empty()) {
-    spdlog::error(ErrMsg, BaseCompDB);
-    BaseCompilationsPair.second = false;
-  }
-
-  ErrMsg.clear();
-  TheirCompilationsPair.first = clang::tooling::inferMissingCompileCommands(
-      clang::tooling::JSONCompilationDatabase::loadFromFile(
-          OurCompDB, ErrMsg,
-          clang::tooling::JSONCommandLineSyntax::AutoDetect));
-  TheirCompilationsPair.second = true;
-  if (!ErrMsg.empty()) {
-    spdlog::error(ErrMsg, TheirCompDB);
-    TheirCompilationsPair.second = false;
-  }
+  tbb::parallel_invoke(
+      [&]() {
+        std::string ErrMsg;
+        OurCompilationsPair.first = clang::tooling::inferMissingCompileCommands(
+            clang::tooling::JSONCompilationDatabase::loadFromFile(
+                OurCompDB, ErrMsg,
+                clang::tooling::JSONCommandLineSyntax::AutoDetect));
+        OurCompilationsPair.second = true;
+        if (!ErrMsg.empty()) {
+          spdlog::error(ErrMsg, OurCompDB);
+          OurCompilationsPair.second = false;
+        }
+      },
+      [&]() {
+        std::string ErrMsg;
+        BaseCompilationsPair.first =
+            clang::tooling::inferMissingCompileCommands(
+                clang::tooling::JSONCompilationDatabase::loadFromFile(
+                    BaseCompDB, ErrMsg,
+                    clang::tooling::JSONCommandLineSyntax::AutoDetect));
+        BaseCompilationsPair.second = true;
+        if (!ErrMsg.empty()) {
+          spdlog::error(ErrMsg, BaseCompDB);
+          BaseCompilationsPair.second = false;
+        }
+      },
+      [&]() {
+        std::string ErrMsg;
+        TheirCompilationsPair.first =
+            clang::tooling::inferMissingCompileCommands(
+                clang::tooling::JSONCompilationDatabase::loadFromFile(
+                    TheirCompDB, ErrMsg,
+                    clang::tooling::JSONCommandLineSyntax::AutoDetect));
+        TheirCompilationsPair.second = true;
+        if (!ErrMsg.empty()) {
+          spdlog::error(ErrMsg, TheirCompDB);
+          TheirCompilationsPair.second = false;
+        }
+      });
 }
 
 } // namespace sa
