@@ -113,15 +113,14 @@ void ResolutionManager::doResolution() {
   // remember to clear running sign
   // clang-format off
   spdlog::info(R"(begin resolving conflicts...
-  {{
-    project: {},
-    project path: {},
-    merge scenario: {},
-    conflict files: [
-        {}
-    ]
-  }}
-  )", Project_, ProjectPath_, MS_,
+{{
+  project: {},
+  project path: {},
+  merge scenario: {},
+  conflict files: [
+    {}
+  ]
+}})", Project_, ProjectPath_, MS_.toPrettyString(),
   fmt::join(ConflictFiles_->begin(), ConflictFiles_->end(), ",\n\t"));
   // clang-format on
 

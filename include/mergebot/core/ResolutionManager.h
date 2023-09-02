@@ -76,7 +76,7 @@ public:
   /// call static_cast<std::string>(MS_) to get an identification of Merge
   /// Scenario \return string representation of MergeScenario
   std::string mergeScenario() const noexcept {
-    return static_cast<std::string>(MS_);
+    return MS_.toString();
   };
 
   void doResolution();

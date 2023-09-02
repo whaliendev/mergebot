@@ -25,7 +25,24 @@ struct MergeScenario {
     name = fmt::format("{}-{}", ours.substr(0, 6), theirs.substr(0, 6));
   }
 
-  explicit operator std::string() const {
+  //  explicit operator std::string() const {
+  //    // clang-format off
+  //    return fmt::format(
+  // R"(MergeScenario(
+  //      name = {},
+  //      ours = {},
+  //      theirs = {},
+  //      base = {}
+  //    ))", name, ours, theirs, base);
+  //    // clang-format on
+  //  }
+  std::string toString() const {
+    return fmt::format(
+        "MergeScenario(name = {}, ours = {}, theirs = {}, base = {})", name,
+        ours, theirs, base);
+  }
+
+  std::string toPrettyString() const {
     // clang-format off
     return fmt::format(
 R"(MergeScenario(
@@ -61,7 +78,7 @@ template <> struct fmt::formatter<mergebot::sa::MergeScenario> {
   auto format(const mergebot::sa::MergeScenario &ms, FormatContext &ctx) const
       -> decltype(ctx.out()) {
     // ctx.out() is an output iterator to write to.
-    return fmt::format_to(ctx.out(), "{}", static_cast<std::string>(ms));
+    return fmt::format_to(ctx.out(), "{}", ms.toString());
   }
 };
 

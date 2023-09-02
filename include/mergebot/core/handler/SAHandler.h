@@ -21,6 +21,14 @@ struct ProjectMeta {
   std::string ProjectCacheDir;
   MergeScenario MS;
   std::string MSCacheDir;
+
+  std::string toString() const {
+    std::ostringstream oss;
+    oss << "ProjectMeta(Project=" << Project << ", ProjectPath=" << ProjectPath
+        << ", ProjectCacheDir=" << ProjectCacheDir << ", MS=" << MS.toString()
+        << ", MSCacheDir=" << MSCacheDir << ")";
+    return oss.str();
+  }
 };
 
 /// virtual base handler in HandlerChain, class extends it should declare a ctor
