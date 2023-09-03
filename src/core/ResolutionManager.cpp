@@ -341,7 +341,7 @@ bool ResolutionManager::fineTuneCompDB(const std::string &CompDBPath,
   int ReplaceCnt = re2::RE2::GlobalReplace(&FileData, OriginalPath, ProjPath);
 #ifndef NDEBUG
   if (!ReplaceCnt) {
-    spdlog::warn("we replaced 0 original project path, which is weird");
+    spdlog::warn("0 original project path in {}, which is weird", CompDBPath);
   }
 #endif
 

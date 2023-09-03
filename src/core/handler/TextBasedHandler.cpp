@@ -514,7 +514,7 @@ void TextBasedHandler::resolveConflictFiles(
   assert(ConflictFiles.size() &&
          "ConflictFile sizes should be greater than zero");
 
-  spdlog::info("we are resolving conflicts using heuristic based handler...");
+  spdlog::info("Resolving conflicts using heuristic based handler...");
   // TODO(hwa): squirrel bug, find why
   bool WithBase = false;
   if (ConflictFiles[0].ConflictBlocks.size() != 0) {

@@ -11,6 +11,7 @@
 
 namespace mergebot {
 extern const std::string MBDIR;
+extern const std::string LOG_FOLDER;
 }  // namespace mergebot
 
 #endif  // MB_GLOBALS_H

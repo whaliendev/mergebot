@@ -22,6 +22,7 @@
 #include "mergebot/controller/project_controller.h"
 #include "mergebot/controller/resolve_controller.h"
 #include "mergebot/core/sa_utility.h"
+#include "mergebot/filesystem.h"
 #include "mergebot/globals.h"
 #include "mergebot/server/CrowSubLogger.h"
 #include "mergebot/server/server_utility.h"
@@ -140,7 +141,9 @@ void InitLogger() {
     // TODO: refactor log file destination to ~/.local/logs/mergebot/<file>.log
     auto rotateFileSink =
         std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
-            "logs/mergebot.log", 1024 * M, 3);
+            (mergebot::fs::path(mergebot::LOG_FOLDER) / "mergebot.log")
+                .string(),
+            1024 * M, 3);
     rotateFileSink->set_level(spdlog::level::info);
     rotateFileSink->set_pattern("[%Y-%H-%M %T.%e] [%t] [%l] %@: %v");
 

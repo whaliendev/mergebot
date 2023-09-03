@@ -36,7 +36,7 @@ void StyleBasedHandler::resolveConflictFiles(
   assert(ConflictFiles.size() &&
          "ConflictFile sizes should be greater than zero");
 
-  spdlog::info("we are resolving conflicts using style based handler...");
+  spdlog::info("Resolving conflicts using style based handler...");
 
   bool WithBase = false;
   if (ConflictFiles[0].ConflictBlocks.size() != 0) {

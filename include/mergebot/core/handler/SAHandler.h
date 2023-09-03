@@ -87,8 +87,8 @@ protected:
         [&](const ConflictFile &CF) { Filenames.push_back(CF.Filename); });
     // clang-format off
     spdlog::info(fmt::format(R"(they are respectively [
-        {}
-    ])", fmt::join(Filenames, ",\n\t")));
+    {}
+])", fmt::join(Filenames, ",\n\t")));
     // clang-format on
   }
 

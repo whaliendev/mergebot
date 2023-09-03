@@ -130,10 +130,9 @@ void SourceCollectorV2::extendIncludedSources(
     std::unordered_map<std::string, std::vector<std::string>> &IncludeMap,
     std::shared_ptr<clang::tooling::CompilationDatabase> Compilations) const {
 
-  spdlog::info(
-      "we're collecting {} side's direct included headers, which may take "
-      "some time...",
-      magic_enum::enum_name(S));
+  spdlog::info("collecting {} side's direct included headers, which may take "
+               "some time...",
+               magic_enum::enum_name(S));
 
   fs::path SourceDir =
       fs::path(Meta.ProjectCacheDir) / Meta.MS.name / magic_enum::enum_name(S);
