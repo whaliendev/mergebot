@@ -45,6 +45,33 @@ std::pair<int, struct flock> lockRDFD(std::string_view path);
 std::pair<int, struct flock> lockWRFD(std::string_view path);
 bool unlockFD(std::string_view path, int fd, struct flock &lck);
 
+template <typename Func, typename... Args>
+static auto MeasureRunningTime(Func &&func, Args &&...args) {
+  // Check if the function is invocable with the given arguments
+  static_assert(std::is_invocable_v<Func, Args...>,
+                "Func is not invocable with the provided arguments");
+
+  using FuncReturnType = std::invoke_result_t<Func, Args...>;
+
+  auto start = std::chrono::steady_clock::now();
+  if constexpr (std::is_same_v<FuncReturnType, void>) {
+    std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
+    auto end = std::chrono::steady_clock::now();
+    long elapsed_time =
+        std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+            .count();
+    return elapsed_time;
+  } else {
+    FuncReturnType result =
+        std::invoke(std::forward<Func>(func), std::forward<Args>(args)...);
+    auto end = std::chrono::steady_clock::now();
+    long elapsed_time =
+        std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+            .count();
+    return std::tuple<long, FuncReturnType>(elapsed_time, result);
+  }
+}
+
 } // namespace utils
 
 namespace sa {

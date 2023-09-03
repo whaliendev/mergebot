@@ -56,7 +56,7 @@ public:
                         &BaseCompilations,
                     std::shared_ptr<clang::tooling::CompilationDatabase> const
                         &TheirCompilations)
-      : Meta(Meta), LookupIncluded(true), OurCompilations(OurCompilations),
+      : Meta(Meta), LookupIncluded(false), OurCompilations(OurCompilations),
         BaseCompilations(BaseCompilations),
         TheirCompilations(TheirCompilations) {}
 
@@ -90,6 +90,7 @@ private:
 
   ProjectMeta Meta;
   bool LookupIncluded = false;
+  // only textual conflicts, don't consider file level
   bool OnlyBothModified = false;
   AnalysisSourceTuple SourceTuple;
   std::shared_ptr<clang::tooling::CompilationDatabase> OurCompilations;

@@ -5,6 +5,7 @@
 #include "mergebot/core/semantic/SourceCollectorV2.h"
 #include "mergebot/core/magic_enum_customization.h"
 #include "mergebot/core/model/SimplifiedDiffDelta.h"
+#include "mergebot/core/sa_utility.h"
 #include "mergebot/filesystem.h"
 #include "mergebot/utils/gitservice.h"
 #include "mergebot/utils/stringop.h"
@@ -26,10 +27,15 @@ namespace mergebot {
 namespace sa {
 void SourceCollectorV2::collectAnalysisSources() {
   // retrieve concise diff deltas from the git repo
-  std::unordered_set<SimplifiedDiffDelta> OurDiffDeltas =
-      util::list_cpp_diff_files(Meta.ProjectPath, Meta.MS.base, Meta.MS.ours);
-  std::unordered_set<SimplifiedDiffDelta> TheirDiffDeltas =
-      util::list_cpp_diff_files(Meta.ProjectPath, Meta.MS.base, Meta.MS.ours);
+  // note that git_diff_find_similar is very slow when diff deltas are large, do
+  // we really need rename/copy detection?
+  auto [OurElapsed, OurDiffDeltas] = utils::MeasureRunningTime(
+      util::list_cpp_diff_files, Meta.ProjectPath, Meta.MS.base, Meta.MS.ours);
+  spdlog::info("it takes {} ms to list cpp files in ours", OurElapsed);
+  auto [TheirElapsed, TheirDiffDeltas] =
+      utils::MeasureRunningTime(util::list_cpp_diff_files, Meta.ProjectPath,
+                                Meta.MS.base, Meta.MS.theirs);
+  spdlog::info("it takes {} ms to list cpp files in theirs", TheirElapsed);
 
   if (OnlyBothModified) {
     SourceTuple = diffDeltaIntersection(OurDiffDeltas, TheirDiffDeltas);
@@ -95,19 +101,23 @@ void SourceCollectorV2::diffDeltaWithHeuristic(
     std::unordered_set<std::string> &NewSourceSet,
     std::unordered_set<std::string> &OldSourceSet,
     std::unordered_set<SimplifiedDiffDelta> const &DiffDeltas) const {
+  int AddedCnt = 0, DeletedCnt = 0, ModifiedCnt = 0;
   for (SimplifiedDiffDelta const &SDD : DiffDeltas) {
     switch (SDD.Type) {
     case SimplifiedDiffDelta::DeltaType::ADDED:
       NewSourceSet.insert(SDD.NewPath);
+      AddedCnt++;
       break;
     case SimplifiedDiffDelta::DELETED:
       OldSourceSet.insert(SDD.OldPath);
+      DeletedCnt++;
       break;
     case SimplifiedDiffDelta::MODIFIED:
     case SimplifiedDiffDelta::RENAMED:
     case SimplifiedDiffDelta::COPIED:
       NewSourceSet.insert(SDD.NewPath);
       OldSourceSet.insert(SDD.OldPath);
+      ModifiedCnt++;
       break;
     case SimplifiedDiffDelta::UNMODIFIED:
     case SimplifiedDiffDelta::IGNORED:
@@ -123,6 +133,8 @@ void SourceCollectorV2::diffDeltaWithHeuristic(
       break;
     }
   }
+  spdlog::debug("added: {}, deleted: {}, modified: {}", AddedCnt, DeletedCnt,
+                ModifiedCnt);
 }
 
 void SourceCollectorV2::extendIncludedSources(
@@ -148,8 +160,8 @@ void SourceCollectorV2::extendIncludedSources(
 
   tbb::parallel_for(static_cast<size_t>(0), SourcePaths.size(), [&](size_t i) {
     std::string const &SourcePath = SourcePaths[i];
-    // spdlog::debug("collecting direct included headers for file: {}",
-    // SourceList[i]);
+    // spdlog::debug("collecting direct included headers for file:
+    // {}", SourceList[i]);
 
     clang::tooling::ClangTool Tool(*Compilations, SourcePath);
     Tool.setPrintErrorMessage(false);
@@ -162,8 +174,8 @@ void SourceCollectorV2::extendIncludedSources(
     // spdlog::debug("{}'s direct included files: {}", SourceList[i],
     // fmt::join(ActionFactory->includedFiles(), "\t"));
 
-    std::lock_guard<std::mutex> lock(
-        includeMapMutex); // Lock the mutex before modifying IncludeMap
+    std::lock_guard<std::mutex> lock(includeMapMutex); // Lock the mutex before
+                                                       // modifying IncludeMap
     IncludeMap[SourceList[i]] = ActionFactory->includedFiles();
   });
 }
@@ -187,10 +199,10 @@ void IncludeLookupCallback::InclusionDirective(
     clang::CharSourceRange FilenameRange, clang::OptionalFileEntryRef File,
     llvm::StringRef SearchPath, llvm::StringRef RelativePath,
     const clang::Module *Imported, clang::SrcMgr::CharacteristicKind FileType) {
-  // currently, we don't analyze system library. Besides, here we leverage a
-  // implementation detail  of clang preprocessor to perform direct included
-  // headers analysis, namely: clang preprocessor will do a DFS when
-  // preprocessing includes
+  // currently, we don't analyze system library. Besides, here we leverage
+  // a implementation detail  of clang preprocessor to perform direct
+  // included headers analysis, namely: clang preprocessor will do a DFS
+  // when preprocessing includes
   if (IsAngled || Depth != 1) {
     return;
   }
