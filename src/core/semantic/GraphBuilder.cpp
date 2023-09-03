@@ -53,6 +53,9 @@ bool GraphBuilder::initLanguageServer() {
   return true;
 }
 
-GraphBuilder::~GraphBuilder() { client.Shutdown(); }
+GraphBuilder::~GraphBuilder() {
+  client.Shutdown();
+  client.Exit();
+}
 } // namespace sa
 } // namespace mergebot

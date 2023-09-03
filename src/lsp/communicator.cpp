@@ -77,7 +77,7 @@ PipeCommunicator::~PipeCommunicator() {
   // obviously double-close
   //  close(pipeOut[1]);
   //  close(pipeIn[0]);
-  kill(processId, SIGTERM);
+  //  kill(processId, SIGTERM);
 
   int status;
   waitpid(processId, &status, 0);
