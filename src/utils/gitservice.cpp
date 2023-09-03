@@ -243,6 +243,7 @@ std::unordered_set<sa::SimplifiedDiffDelta> list_cpp_diff_files(
     std::string_view new_commit_str) {
   std::unordered_set<sa::SimplifiedDiffDelta> diff_set;
 
+  size_t diff_num = 10;
   git_oid old_oid, new_oid;
   git_commit *old_commit = nullptr, *new_commit = nullptr;
   git_tree *old_tree = nullptr, *new_tree = nullptr;
@@ -266,6 +267,10 @@ std::unordered_set<sa::SimplifiedDiffDelta> list_cpp_diff_files(
   err = git_diff_tree_to_tree(&diff, repo, old_tree, new_tree, nullptr);
   if (err < 0) goto handle;
 
+  diff_num = git_diff_num_deltas(diff);
+  diff_set.reserve(diff_num);
+
+  // Note: very slow if the number of diff deltas is large
   err = git_diff_find_similar(diff, &options);
   err = git_diff_foreach(diff, detail::fill_diff_set, nullptr, nullptr, nullptr,
                          &diff_set);
@@ -274,6 +279,7 @@ handle:
     const git_error *e = git_error_last();
     spdlog::error("Error {}/{}: {}", err, e->klass, e->message);
   }
+
   git_diff_free(diff);
   git_tree_free(old_tree);
   git_tree_free(new_tree);
