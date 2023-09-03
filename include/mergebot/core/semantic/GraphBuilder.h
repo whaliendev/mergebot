@@ -40,11 +40,19 @@ public:
       : S(S), Meta(Meta), ConflictPaths(ConflictPaths), SourceList(SourceList),
         DirectIncluded(DirectIncluded) {}
 
+  /// shutdown language server
+  ~GraphBuilder();
+
   bool build();
   SemanticGraph graph() const { return G; }
 
 private:
   void processTranslationUnit(std::string_view Path);
+
+  bool initLanguageServer();
+
+  lsp::LspClient client;
+
   /// build for which side
   Side S;
   /// for retrieving cached merge scenario sources
