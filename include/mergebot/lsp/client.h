@@ -163,9 +163,46 @@ class LspEndpoint final {
 class LspClient final {
  public:
   using JSONRpcResult = LspEndpoint::JSONRpcResult;
-  explicit LspClient(std::unique_ptr<LspEndpoint> lspEndpoint)
-      : lspEndpoint(std::move(lspEndpoint)) {}
+  /// default ctor
+  LspClient() : lspEndpoint{nullptr}, endpointThread{} {};
 
+  /// parameterized ctor
+  explicit LspClient(std::unique_ptr<LspEndpoint> lspEndpoint)
+      : lspEndpoint(std::move(lspEndpoint)) {
+    std::reference_wrapper<LspEndpoint> ref(*this->lspEndpoint);
+    endpointThread = std::thread(ref);
+  }
+
+  // deleted copy constructor and copy assignment operator for doc use
+  LspClient(const LspClient &) = delete;
+  LspClient &operator=(const LspClient &) = delete;
+
+  // move constructor
+  LspClient(LspClient &&other) noexcept
+      : lspEndpoint(std::move(other.lspEndpoint)),
+        endpointThread(std::move(other.endpointThread)) {
+    other.endpointThread = std::thread();  // Reset the other's thread
+  }
+
+  // move assignment operator
+  LspClient &operator=(LspClient &&other) noexcept {
+    if (this != &other) {
+      this->swap(other);
+    }
+    return *this;
+  }
+
+  // member swap function
+  void swap(LspClient &other) noexcept {
+    using std::swap;
+    swap(lspEndpoint, other.lspEndpoint);
+    swap(endpointThread, other.endpointThread);
+  }
+
+  // Friend swap function for std::swap overload
+  friend void swap(LspClient &lhs, LspClient &rhs) noexcept { lhs.swap(rhs); }
+
+  // dtor
   ~LspClient() {
     if (endpointThread.joinable()) {
       endpointThread.join();
@@ -173,8 +210,8 @@ class LspClient final {
   }
 
   std::optional<JSONRpcResult> Initialize(URIForFile rootUri) {
-    std::reference_wrapper<LspEndpoint> ref(*lspEndpoint);
-    endpointThread = std::thread(ref);
+    assert(lspEndpoint != nullptr && "lspEndpoint should not be nullptr");
+    assert(endpointThread.joinable() && "endpointThread should be joinable");
 
     InitializeParams params;
     params.processId = getpid();

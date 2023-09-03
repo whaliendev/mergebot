@@ -16,7 +16,7 @@ ssize_t JSONRpcEndpoint::SendRequest(const RpcRequestBody& json) {
   // obtain a unique_lock for writing
   std::unique_lock<std::shared_mutex> lock(rwMutex);
 
-  spdlog::debug("--> send request to server, message: \n{}", message);
+  spdlog::debug("--> send request to server, message: {}", jsonStr);
   ssize_t bytesWritten = communicator->write(message);
   if (bytesWritten == -1) {
     spdlog::error("fail send request to server, error message: {}",

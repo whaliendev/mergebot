@@ -6,6 +6,9 @@
 #include <fcntl.h>
 #include <spdlog/spdlog.h>
 
+#include "mergebot/filesystem.h"
+#include "mergebot/globals.h"
+
 namespace mergebot {
 namespace lsp {
 std::unique_ptr<PipeCommunicator> PipeCommunicator::create(
@@ -41,6 +44,18 @@ std::unique_ptr<PipeCommunicator> PipeCommunicator::create(
     close(pipeOut[0]);
     dup2(pipeIn[0], STDIN_FILENO);
     dup2(pipeOut[1], STDOUT_FILENO);
+
+    std::string logFileName = fmt::format("child-{}-stderr.log", getpid());
+    int logFd = open((fs::path(LOG_FOLDER) / logFileName).string().c_str(),
+                     O_WRONLY | O_CREAT, 0644);
+    if (logFd == -1) {
+      assert(
+          false &&
+          fmt::format("failed to open log file: {}", strerror(errno)).c_str());
+    }
+    dup2(logFd, STDERR_FILENO);
+    close(logFd);
+
     execl(executable, args, NULL);
     assert(false && fmt::format("failed to exec: {}", strerror(errno)).c_str());
   } else {
@@ -68,13 +83,13 @@ PipeCommunicator::~PipeCommunicator() {
   waitpid(processId, &status, 0);
   if (WIFSIGNALED(status)) {
     if (WTERMSIG(status) == SIGTERM) {
-      spdlog::info("child process was ended with a SIGTERM");
+      spdlog::debug("child process was ended with a SIGTERM");
     } else {
-      spdlog::info("child process was ended with a {} signal",
-                   WTERMSIG(status));
+      spdlog::debug("child process was ended with a {} signal",
+                    WTERMSIG(status));
     }
-  } else {
-    spdlog::info("child process was not ended with a signal");
+  } else if (WIFEXITED(status)) {
+    spdlog::debug("child process exited normally");
   }
 
   close(pipeIn[1]);

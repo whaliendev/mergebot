@@ -308,20 +308,48 @@ enum class OffsetEncoding {
   UTF32,
 };
 
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    mergebot::lsp::OffsetEncoding,
+    {
+        {mergebot::lsp::OffsetEncoding::UnsupportedEncoding, "unsupported"},
+        {mergebot::lsp::OffsetEncoding::UTF8, "utf-8"},
+        {mergebot::lsp::OffsetEncoding::UTF16, "utf-16"},
+        {mergebot::lsp::OffsetEncoding::UTF32, "utf-32"},
+    })
+
 // Describes the content type that a client supports in various result literals
 // like `Hover`, `ParameterInfo` or `CompletionItem`.
 enum class MarkupKind {
   PlainText,
   Markdown,
 };
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    mergebot::lsp::MarkupKind,
+    {
+        {mergebot::lsp::MarkupKind::PlainText, "plaintext"},
+        {mergebot::lsp::MarkupKind::Markdown, "markdown"},
+    })
 
 enum class ResourceOperationKind { Create, Rename, Delete };
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    mergebot::lsp::ResourceOperationKind,
+    {{mergebot::lsp::ResourceOperationKind::Create, "create"},
+     {mergebot::lsp::ResourceOperationKind::Rename, "rename"},
+     {mergebot::lsp::ResourceOperationKind::Delete, "delete"}})
+
 enum class FailureHandlingKind {
   Abort,
   Transactional,
   Undo,
   TextOnlyTransactional
 };
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    mergebot::lsp::FailureHandlingKind,
+    {{mergebot::lsp::FailureHandlingKind::Abort, "abort"},
+     {mergebot::lsp::FailureHandlingKind::Transactional, "transactional"},
+     {mergebot::lsp::FailureHandlingKind::Undo, "undo"},
+     {mergebot::lsp::FailureHandlingKind::TextOnlyTransactional,
+      "textOnlyTransactional"}})
 
 // This struct doesn't mirror LSP!
 // The protocol defines deeply nested structures for client capabilities.
@@ -1405,32 +1433,5 @@ JSON_SERIALIZE(mergebot::lsp::SignatureHelp, {}, {
 JSON_SERIALIZE(mergebot::lsp::ReferenceParams,
                MAP_JSON(MAP_KEY(textDocument), MAP_KEY(position)), {})
 NLOHMANN_JSON_NAMESPACE_END
-
-NLOHMANN_JSON_SERIALIZE_ENUM(
-    mergebot::lsp::OffsetEncoding,
-    {
-        {mergebot::lsp::OffsetEncoding::UnsupportedEncoding, "unsupported"},
-        {mergebot::lsp::OffsetEncoding::UTF8, "utf-8"},
-        {mergebot::lsp::OffsetEncoding::UTF16, "utf-16"},
-        {mergebot::lsp::OffsetEncoding::UTF32, "utf-32"},
-    })
-NLOHMANN_JSON_SERIALIZE_ENUM(
-    mergebot::lsp::MarkupKind,
-    {
-        {mergebot::lsp::MarkupKind::PlainText, "plaintext"},
-        {mergebot::lsp::MarkupKind::Markdown, "markdown"},
-    })
-NLOHMANN_JSON_SERIALIZE_ENUM(
-    mergebot::lsp::ResourceOperationKind,
-    {{mergebot::lsp::ResourceOperationKind::Create, "create"},
-     {mergebot::lsp::ResourceOperationKind::Rename, "rename"},
-     {mergebot::lsp::ResourceOperationKind::Delete, "delete"}})
-NLOHMANN_JSON_SERIALIZE_ENUM(
-    mergebot::lsp::FailureHandlingKind,
-    {{mergebot::lsp::FailureHandlingKind::Abort, "abort"},
-     {mergebot::lsp::FailureHandlingKind::Transactional, "transactional"},
-     {mergebot::lsp::FailureHandlingKind::Undo, "undo"},
-     {mergebot::lsp::FailureHandlingKind::TextOnlyTransactional,
-      "textOnlyTransactional"}})
 
 #endif  // MB_INCLUDE_MERGEBOT_LSP_PROTOCOL_H
