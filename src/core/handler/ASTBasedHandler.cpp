@@ -30,7 +30,7 @@ void ASTBasedHandler::resolveConflictFiles(
          "ConflictFile sizes should be greater than zero");
 
   spdlog::info("Resolving conflicts using AST based handler...");
-  spdlog::info("dependencies analysis disabled due to lack of CompDB");
+  //  spdlog::info("dependencies analysis disabled due to lack of CompDB");
 
   /// init CompDB
   if (!fs::exists(OurCompDB) || !fs::exists(TheirCompDB) ||
