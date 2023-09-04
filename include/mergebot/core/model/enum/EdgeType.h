@@ -5,6 +5,7 @@
 #ifndef MB_INCLUDE_MERGEBOT_CORE_MODEL_ENUM_EDGETYPE_H
 #define MB_INCLUDE_MERGEBOT_CORE_MODEL_ENUM_EDGETYPE_H
 
+#include <array>
 #include <cstdint>
 namespace mergebot {
 namespace sa {
@@ -36,7 +37,7 @@ struct EdgeTypeInfo {
                          const char *label)
       : type(type), isStructuralEdge(isStructuralEdge), label(label) {}
 
-  constexpr std::string_view toPrettyString() const { return label; }
+  constexpr const char *toPrettyString() const { return label; }
 };
 
 // Preallocate EdgeTypeInfo instances at compile-time in a fixed-size array
