@@ -99,6 +99,7 @@ class URI {
 struct URIForFile {
   URIForFile() = default;
   URIForFile(const std::string &file) : file(file) {}
+  URIForFile(std::string &&file) : file(std::move(file)) {}
 
   /// Canonicalizes \p AbsPath via URI.
   ///
@@ -118,6 +119,7 @@ struct URIForFile {
 
   explicit operator bool() const { return !file.empty(); }
   std::string uri() const { return URI::createFile(file).toString(); }
+  std::string path() const { return std::string(URI::createFile(file).body()); }
 
   friend bool operator==(const URIForFile &LHS, const URIForFile &RHS) {
     return LHS.file == RHS.file;
@@ -132,9 +134,6 @@ struct URIForFile {
   }
 
   std::string file;
-
- private:
-  URIForFile(std::string &&file) : file(std::move(file)) {}
 };
 }  // namespace lsp
 }  // namespace mergebot

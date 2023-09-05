@@ -359,7 +359,7 @@ class LspClient final {
   std::optional<JSONRpcResult> SwitchSourceHeader(URIForFile uri) {
     TextDocumentIdentifier params;
     params.uri = std::move(uri);
-    return lspEndpoint->CallMethod("textDocument/references",
+    return lspEndpoint->CallMethod("textDocument/switchSourceHeader",
                                    std::move(params));
   }
 

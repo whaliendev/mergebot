@@ -1193,6 +1193,7 @@ JSON_SERIALIZE(
     MAP_JSON(
         MAP_KV(
             "textDocument",
+            MAP_KV("references", MAP_TO("container", ReferenceContainer)),
             MAP_KV(
                 "publishDiagnostics",  // PublishDiagnosticsClientCapabilities
                 MAP_TO("categorySupport", DiagnosticCategory),
