@@ -1,10 +1,12 @@
 //
 // Created by whalien on 14/06/23.
 //
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "mergebot/lsp/client.h"
 #include "mergebot/lsp/communicator.h"
+#include "mergebot/lsp/protocol.h"
 #include "mergebot/utils/fileio.h"
 
 using namespace mergebot::lsp;
@@ -47,7 +49,7 @@ TEST(LSP, Commnucation) {
       "completion: {}, signature: {}",
       symbolDetails.value().size(), references.value().size(),
       declaration.value().size(), definition.value().size(),
-      /*completion.value().size(),*/ signature.value().size());
+      completion.value().size(), signature.value().size());
 }
 
 TEST(LSP, EmptyMacro) {
@@ -93,4 +95,44 @@ TEST(LSP, EmptyMacro) {
       symbolDetails.value().size(), references.value().size(),
       declaration.value().size(), definition.value().size(),
       completion.value().size(), signature.value().size());
+}
+
+TEST(Lsp, SwitchSourceHeader) {
+  auto communicator = PipeCommunicator::create("./clangd", "clangd");
+  EXPECT_TRUE(communicator) << "pipe to communicate with child process "
+                               "should construct successfully";
+  std::unique_ptr<JSONRpcEndpoint> rpcEndpoint =
+      std::make_unique<JSONRpcEndpoint>(std::move(communicator));
+  std::unique_ptr<LspEndpoint> lspEndpoint =
+      std::make_unique<LspEndpoint>(std::move(rpcEndpoint), 3);
+
+  LspClient client(std::move(lspEndpoint));
+
+  const std::string workspaceRoot = "/home/whalien/Desktop/rocksdb";
+  auto returned = client.Initialize(workspaceRoot);
+  const std::string filePath =
+      "/home/whalien/Desktop/rocksdb/db/transaction_log_impl.h";
+  URIForFile file(filePath);
+  std::string fileContent = mergebot::util::file_get_content(filePath);
+  client.DidOpen(file, fileContent);
+  //  auto sourceOrHeaderOpt = client.SwitchSourceHeader(file);
+  //  ASSERT_TRUE(sourceOrHeaderOpt.has_value());
+  //  URIForFile sourceOrHeader = sourceOrHeaderOpt.value();
+  //  std::string sourceOrHeaderContent =
+  //      mergebot::util::file_get_content(sourceOrHeader.path());
+  //  client.DidOpen(sourceOrHeader, sourceOrHeaderContent);
+
+  auto references = client.References(file, Position{60, 14});
+  ASSERT_TRUE(references.has_value());
+  std::vector<ReferenceLocation> rlocation = references.value();
+  std::vector<std::string> expectedContainerNames = {
+      "rocksdb::LogFileImpl::LogFileImpl", "rocksdb::LogFileImpl::PathName",
+      "rocksdb::LogFileImpl::Type"};
+  ASSERT_THAT(rlocation, ::testing::SizeIs(3));
+  for (size_t i = 0; i < rlocation.size(); ++i) {
+    ASSERT_EQ(expectedContainerNames[i], rlocation[i].containerName.value());
+  }
+
+  client.Shutdown();
+  client.Exit();
 }

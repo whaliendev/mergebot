@@ -15,7 +15,7 @@ file(GLOB_RECURSE TEST_SRC_FILES
 
 add_executable(runUnitTests ${TEST_SRC_FILES})
 
-target_link_libraries(runUnitTests gtest)
+target_link_libraries(runUnitTests gtest gmock)
 
 target_link_libraries(runUnitTests
         ${PROJECT_NAME}-dep)
