@@ -47,7 +47,7 @@ public:
   explicit SourceCollectorV2(ProjectMeta const &Meta) : Meta(Meta) {}
   /// only want to analysis both modified file sets
   SourceCollectorV2(ProjectMeta const &Meta, bool OnlyBothModified)
-      : Meta(Meta), OnlyBothModified(OnlyBothModified) {}
+      : Meta(Meta), OnlyBothModified(OnlyBothModified), SourceTuple{} {}
   /// when we want to collect all the included files for context analysis
   SourceCollectorV2(ProjectMeta const &Meta,
                     std::shared_ptr<clang::tooling::CompilationDatabase> const
@@ -56,7 +56,8 @@ public:
                         &BaseCompilations,
                     std::shared_ptr<clang::tooling::CompilationDatabase> const
                         &TheirCompilations)
-      : Meta(Meta), LookupIncluded(false), OurCompilations(OurCompilations),
+      : Meta(Meta), LookupIncluded(true), OnlyBothModified(false),
+        SourceTuple{}, OurCompilations(OurCompilations),
         BaseCompilations(BaseCompilations),
         TheirCompilations(TheirCompilations) {}
 
@@ -83,10 +84,7 @@ private:
       std::unordered_set<std::string> &OldSourceSet,
       std::unordered_set<SimplifiedDiffDelta> const &DiffDeltas) const;
 
-  void extendIncludedSources(
-      Side S, std::vector<std::string> const &SourceList,
-      std::unordered_map<std::string, std::vector<std::string>> &IncludeMap,
-      std::shared_ptr<clang::tooling::CompilationDatabase> Compilations) const;
+  void extendIncludedSources(Side S);
 
   ProjectMeta Meta;
   bool LookupIncluded = false;
@@ -126,7 +124,7 @@ private:
 class IncludeLookupActionFactory
     : public clang::tooling::FrontendActionFactory {
 public:
-  static std::vector<std::string> includedFiles() { return IncludedFiles; }
+  std::vector<std::string> copyIncludedFiles() { return IncludedFiles; }
   std::unique_ptr<clang::FrontendAction> create() override {
     class IncludeLookupAction : public clang::PreprocessOnlyAction {
     public:

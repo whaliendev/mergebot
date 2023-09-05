@@ -54,25 +54,17 @@ void SourceCollectorV2::collectAnalysisSources() {
             std::vector(TheirSourceSet.begin(), TheirSourceSet.end())};
   }
 
+  // heavy op for long-lived unmerged branches
   if (LookupIncluded) {
     assert(OurCompilations && BaseCompilations && TheirCompilations &&
            "CompDB should not be null if we want to to deps analysis");
-    // Parallel execution
-    tbb::parallel_invoke(
-        [&]() {
-          extendIncludedSources(Side::OURS, SourceTuple.OurSourceList,
-                                SourceTuple.OurDirectIncluded, OurCompilations);
-        },
-        [&]() {
-          extendIncludedSources(Side::BASE, SourceTuple.BaseSourceList,
-                                SourceTuple.BaseDirectIncluded,
-                                BaseCompilations);
-        },
-        [&]() {
-          extendIncludedSources(Side::THEIRS, SourceTuple.TheirSourceList,
-                                SourceTuple.TheirDirectIncluded,
-                                TheirCompilations);
-        });
+    SourceTuple.OurDirectIncluded.reserve(SourceTuple.OurSourceList.size());
+    SourceTuple.BaseDirectIncluded.reserve(SourceTuple.BaseSourceList.size());
+    SourceTuple.TheirDirectIncluded.reserve(SourceTuple.TheirSourceList.size());
+
+    tbb::parallel_invoke([this]() { extendIncludedSources(Side::OURS); },
+                         [this]() { extendIncludedSources(Side::BASE); },
+                         [this]() { extendIncludedSources(Side::THEIRS); });
   }
 }
 
@@ -137,14 +129,21 @@ void SourceCollectorV2::diffDeltaWithHeuristic(
                 ModifiedCnt);
 }
 
-void SourceCollectorV2::extendIncludedSources(
-    Side S, std::vector<std::string> const &SourceList,
-    std::unordered_map<std::string, std::vector<std::string>> &IncludeMap,
-    std::shared_ptr<clang::tooling::CompilationDatabase> Compilations) const {
+void SourceCollectorV2::extendIncludedSources(Side S) {
 
   spdlog::info("collecting {} side's direct included headers, which may take "
                "some time...",
                magic_enum::enum_name(S));
+  const auto &SourceList = S == Side::OURS   ? SourceTuple.OurSourceList
+                           : S == Side::BASE ? SourceTuple.BaseSourceList
+                                             : SourceTuple.TheirSourceList;
+  auto &IncludeMap = S == Side::OURS   ? SourceTuple.OurDirectIncluded
+                     : S == Side::BASE ? SourceTuple.BaseDirectIncluded
+                                       : SourceTuple.TheirDirectIncluded;
+  std::shared_ptr<clang::tooling::CompilationDatabase> Compilations =
+      S == Side::OURS   ? OurCompilations
+      : S == Side::BASE ? BaseCompilations
+                        : TheirCompilations;
 
   fs::path SourceDir =
       fs::path(Meta.ProjectCacheDir) / Meta.MS.name / magic_enum::enum_name(S);
@@ -156,12 +155,23 @@ void SourceCollectorV2::extendIncludedSources(
     SourcePaths.push_back(SourceDir / RelativeSource);
   }
 
+  //  for (size_t i = 0; i < SourcePaths.size(); ++i) {
+  //    std::string const &SourcePath = SourcePaths[i];
+  //    clang::tooling::ClangTool Tool(*Compilations, SourcePath);
+  //    Tool.setPrintErrorMessage(false);
+  //    Tool.setDiagnosticConsumer(new clang::IgnoringDiagConsumer());
+  //
+  //    std::unique_ptr<IncludeLookupActionFactory> ActionFactory =
+  //        std::make_unique<IncludeLookupActionFactory>();
+  //    Tool.run(ActionFactory.get());
+  //
+  //    IncludeMap.insert({SourceList[i], ActionFactory->copyIncludedFiles()});
+  //  }
+
   std::mutex includeMapMutex; // Mutex for synchronizing access to IncludeMap
 
   tbb::parallel_for(static_cast<size_t>(0), SourcePaths.size(), [&](size_t i) {
     std::string const &SourcePath = SourcePaths[i];
-    // spdlog::debug("collecting direct included headers for file:
-    // {}", SourceList[i]);
 
     clang::tooling::ClangTool Tool(*Compilations, SourcePath);
     Tool.setPrintErrorMessage(false);
@@ -171,12 +181,8 @@ void SourceCollectorV2::extendIncludedSources(
         std::make_unique<IncludeLookupActionFactory>();
     Tool.run(ActionFactory.get());
 
-    // spdlog::debug("{}'s direct included files: {}", SourceList[i],
-    // fmt::join(ActionFactory->includedFiles(), "\t"));
-
-    std::lock_guard<std::mutex> lock(includeMapMutex); // Lock the mutex before
-                                                       // modifying IncludeMap
-    IncludeMap[SourceList[i]] = ActionFactory->includedFiles();
+    std::lock_guard<std::mutex> lock(includeMapMutex);
+    IncludeMap[SourceList[i]] = ActionFactory->copyIncludedFiles();
   });
 }
 
@@ -208,9 +214,9 @@ void IncludeLookupCallback::InclusionDirective(
   }
   if (File) {
     const auto &FileEntry = File->getFileEntry();
-    if (util::starts_with(FileEntry.getName(), "./")) {
-      DirectIncludes.insert(FileEntry.getName().substr(2).str());
-    }
+    assert(!util::starts_with(FileEntry.getName(), "./") &&
+           "Direct Include Path should not be relative");
+    DirectIncludes.insert(FileEntry.getName().str());
   }
 }
 
