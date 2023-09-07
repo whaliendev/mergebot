@@ -7,5 +7,5 @@
 namespace mergebot {
 const std::string MBDIR = "~/.mergebot";
 
-const std::string LOG_FOLDER = "logs";
+const std::string LOG_FOLDER = "./logs";
 }  // namespace mergebot

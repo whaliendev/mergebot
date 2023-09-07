@@ -45,10 +45,12 @@ std::unique_ptr<PipeCommunicator> PipeCommunicator::create(
     dup2(pipeIn[0], STDIN_FILENO);
     dup2(pipeOut[1], STDOUT_FILENO);
 
-    std::string logFileName = fmt::format("child-{}-stderr.log", getpid());
-    int logFd = open((fs::path(LOG_FOLDER) / logFileName).string().c_str(),
-                     O_WRONLY | O_CREAT, 0644);
+    std::string logFileName =
+        (fs::path(LOG_FOLDER) / fmt::format("child-{}-stderr.log", getpid()))
+            .string();
+    int logFd = open(logFileName.c_str(), O_WRONLY | O_CREAT, 0644);
     if (logFd == -1) {
+      perror(logFileName.c_str());
       assert(false && "language server failed to open log file");
     }
     dup2(logFd, STDERR_FILENO);
