@@ -26,8 +26,8 @@ std::string Node::type() const { return ts_node_type(node); }
 TSSymbol Node::symbol() const { return ts_node_symbol(node); }
 size_t Node::startByte() const { return ts_node_start_byte(node); }
 size_t Node::endByte() const { return ts_node_end_byte(node); }
-ts::Point Node::startPoint() const { return ts_node_start_point(node); }
-ts::Point Node::endPoint() const { return ts_node_end_point(node); }
+Point Node::startPoint() const { return ts_node_start_point(node); }
+Point Node::endPoint() const { return ts_node_end_point(node); }
 std::string Node::sexp() const {
   char *sexp = ts_node_string(node);
   std::string ret(sexp);
@@ -45,7 +45,7 @@ std::optional<Node> Node::parent() const {
   }
   return Node(nodeOrNull, tree);
 }
-std::optional<std::string> Node::getChildFiledName(size_t index) const {
+std::optional<std::string> Node::getChildFieldName(size_t index) const {
   const char *name = ts_node_field_name_for_child(node, index);
   if (!name) {
     return std::nullopt;
@@ -58,6 +58,10 @@ size_t Node::namedChildrenCount() const {
 }
 
 std::vector<Node> Node::namedChildren() {
+  return const_cast<const Node *>(this)->namedChildren();
+}
+
+std::vector<Node> Node::namedChildren() const {
   size_t named_cnt = ts_node_named_child_count(node);
   std::vector<Node> ret;
   ret.reserve(named_cnt);
@@ -126,6 +130,10 @@ std::optional<Node> Node::getChildByFieldName(const std::string &name) const {
 }
 
 std::optional<Node> Node::nextSibling() {
+  return const_cast<const Node *>(this)->nextSibling();
+}
+
+std::optional<Node> Node::nextSibling() const {
   TSNode nodeOrNull = ts_node_next_sibling(node);
   if (ts_node_is_null(nodeOrNull)) {
     return std::nullopt;

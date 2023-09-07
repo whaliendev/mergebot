@@ -64,6 +64,7 @@ class Node {
   size_t namedChildrenCount() const;
 
   std::vector<Node> namedChildren();
+  std::vector<Node> namedChildren() const;
   std::vector<Node> childrenByFieldID(TSFieldId);
   std::vector<Node> childrenByFieldName(std::string const &name);
 
@@ -79,9 +80,11 @@ class Node {
   /// if no field is found, return empty string
   /// note that ts_node_named_child is not implemented, as it's too dangerous,
   /// use namedChildren and index it
-  std::optional<std::string> getChildFiledName(size_t index) const;
+  std::optional<std::string> getChildFieldName(size_t index) const;
 
   std::optional<Node> nextSibling();
+
+  std::optional<Node> nextSibling() const;
 
   std::optional<Node> nextNamedSibling() const;
   std::optional<Node> parent() const;
