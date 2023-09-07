@@ -496,9 +496,9 @@ void TextBasedHandler::threeWayMerge(std::vector<ConflictFile> &ConflictFiles) {
     }
     auto CMD = fmt::format("git merge-file -p --diff3 {} {} {}", ourFilePath,
                            baseFilePath, theirFilePath);
-    auto OutputOrErr = utils::ExecCommand(CMD);
+    auto OutputOrErr = utils::ExecCommand(CMD, 10, 0, false);
     if (!OutputOrErr)
-      spdlog::error("fail to merge {} {} and {}", ourFilePath, baseFilePath,
+      spdlog::error("fail to merge {}, {} and {}", ourFilePath, baseFilePath,
                     theirFilePath);
     else {
       fs::path FilePath = conflictsDir / Relative;

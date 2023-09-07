@@ -43,8 +43,9 @@ namespace utils {
 /// \param timeout timout to execute the command, the unit is second.
 /// \return `llvm::Error<std::string>`, an wrapper for std::error_code or the
 /// output of `popen` returned stream, with the last new line removed
-[[nodiscard]] llvm::ErrorOr<std::string>
-ExecCommand(std::string_view sv, int timeout, int exitCode) {
+[[nodiscard]] llvm::ErrorOr<std::string> ExecCommand(std::string_view sv,
+                                                     int timeout, int exitCode,
+                                                     bool checkExitCode) {
   std::string result;
 
   std::array<char, 128> buffer;
@@ -70,7 +71,7 @@ ExecCommand(std::string_view sv, int timeout, int exitCode) {
       return std::error_code(errno, std::generic_category());
     } else {                   // exit intentionally
       if (WIFEXITED(status)) { // subprocess exit
-        if (WEXITSTATUS(status) != 0 &&
+        if (checkExitCode && WEXITSTATUS(status) != 0 &&
             WEXITSTATUS(status) != exitCode) { // exit accidentally
           spdlog::info("exit status: {}", WEXITSTATUS(status));
           return std::error_code(status, std::generic_category());

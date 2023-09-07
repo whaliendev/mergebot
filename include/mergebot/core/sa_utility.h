@@ -29,7 +29,8 @@ static std::mutex peekMutex;
 
 // git diff --name-only --diff-filter=U
 llvm::ErrorOr<std::string> ExecCommand(std::string_view sv, int timeout = 10,
-                                       int exitCode = 0);
+                                       int exitCode = 0,
+                                       bool checkExitCode = true);
 
 template <typename InputIt1, typename InputIt2, typename Compare>
 typename std::enable_if<
