@@ -64,7 +64,9 @@ TEST(Parser, GetTranslationUnitComment) {
   std::shared_ptr<ts::Tree> tree = parser.parse(fileSource);
   ts::Node rootNode = tree->rootNode();
   ASSERT_EQ(rootNode.type(), "translation_unit");
-  ASSERT_EQ(expected, "\n" + ts::getTranslationUnitComment(rootNode));
+  auto [commentCnt, comment] = ts::getTranslationUnitComment(rootNode);
+  ASSERT_EQ(expected, "\n" + comment);
+  ASSERT_EQ(7, commentCnt);
 }
 
 TEST(Parser, GetNodeComment) {
@@ -125,6 +127,12 @@ TEST(Parser, GetNodeComment) {
   ts::Node rootNode = tree->rootNode();
   ts::Node namespaceDefi =
       rootNode.children[7].children[2 + 7];  // 2 is ifdef/ifndef and identifier
+  ts::Node preprocIfdef = rootNode.children[7];
+  ASSERT_EQ(preprocIfdef.type(), "preproc_ifdef");
+  spdlog::info("is named: {}, text: {}", preprocIfdef.children[0].isNamed(),
+               preprocIfdef.children[0].text());
+  spdlog::info("is named: {}, text: {}", preprocIfdef.children[1].isNamed(),
+               preprocIfdef.children[1].text());
   ASSERT_EQ(namespaceDefi.type(), "namespace_definition");
   ts::Node namespaceBody =
       namespaceDefi.getChildByFieldName(ts::cpp::fields::field_body.name)
@@ -132,6 +140,41 @@ TEST(Parser, GetNodeComment) {
   ts::Node classDirectoryWalker = namespaceBody.namedChildren()[44];
   std::string comment = ts::getNodeComment(classDirectoryWalker);
   ASSERT_EQ(expected, "\n" + comment);
+}
+
+TEST(Parser, Type) {
+  // clang-format off
+  std::string source = R"(
+/// comment
+/// comment
+
+#ifndef AAA
+#define AAA
+namespace mergebot {
+namespace sa {
+/// class A represents balabala
+/// balala
+/// babala
+/// lalaba
+class A {
+public:
+  A(const B& b): b(b) {}
+private:
+  B b;
+};
+} // namespace sa
+} // namespace mergebot
+
+#endif // comment
+)";
+  // clang-format on
+
+  ts::Parser parser(ts::cpp::language());
+  std::shared_ptr<ts::Tree> tree = parser.parse(source);
+  ts::Node Node = tree->rootNode().children[2].namedChildren()[2];
+  spdlog::info("node text: {}", Node.text());
+  spdlog::info("node type: {}", Node.type());
+  spdlog::info("node is named: {}", Node.isNamed());
 }
 }  // namespace sa
 }  // namespace mergebot
