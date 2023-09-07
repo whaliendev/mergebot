@@ -28,27 +28,14 @@ enum class NodeType : std::uint16_t {
 
   /// physical nodes
   //// non-terminal nodes
-
   /// @brief Represents a linkage specification.
   /// Example:
   /// @code
-  /// #ifndef cpp
-  /// #define cpp
-  /// ...
-  /// #endif
-  /// @endcode
-  IFDEF_BLOCK,
-
-  /// @brief Represents a linkage specification.
-  /// Example:
-  /// @code
-  /// extern "C" void doSomething();
-  ///
   /// extern "C" {
-  ///   // ...
   /// }
+  ///
   /// @endcode
-  LINKAGE_SPEC,
+  LINKAGE_SPEC_LIST,
 
   /// @brief Represents a namespace.
   /// Example:
@@ -64,9 +51,7 @@ enum class NodeType : std::uint16_t {
   /// @brief Represents a class.
   /// Example:
   /// @code
-  /// class MyClass {
-  ///   // ...
-  /// };
+  /// class with body, without body is a declaration
   /// @endcode
   CLASS,
 
@@ -98,6 +83,8 @@ enum class NodeType : std::uint16_t {
   ENUM,
 
   //// terminal nodes
+  // non-top level ifdef block
+  IFDEF_BLOCK,
 
   /// @brief Represents a function.
   /// Example:
@@ -188,6 +175,9 @@ enum class NodeType : std::uint16_t {
   ORPHAN_COMMENT,
 
   /// @brief Represents all other unknown textual node or error node
+  /// @code
+  /// extern "C" void strconcat(char *a, char *b);
+  /// @endcode
   TEXTUAL,
 
   /// @brief Special value to get the number of enum items.
@@ -211,7 +201,7 @@ constexpr std::array<NodeTypeInfo, static_cast<std::uint16_t>(NodeType::COUNT)>
         NodeTypeInfo(NodeType::PROJECT, 0, "project"),
         NodeTypeInfo(NodeType::TRANSLATION_UNIT, 1, "translation_unit"),
         NodeTypeInfo(NodeType::IFDEF_BLOCK, 2, "ifdef_block"),
-        NodeTypeInfo(NodeType::LINKAGE_SPEC, 2, "linkage_spec"),
+        NodeTypeInfo(NodeType::LINKAGE_SPEC_LIST, 2, "linkage_spec"),
         NodeTypeInfo(NodeType::NAMESPACE, 2, "namespace"),
         NodeTypeInfo(NodeType::CLASS, 3, "class"),
         NodeTypeInfo(NodeType::STRUCT, 3, "struct"),
@@ -236,14 +226,14 @@ constexpr const NodeTypeInfo &getNodeTypeInfo(NodeType type) {
 
 constexpr bool isCompositeNode(NodeType type) {
   return getNodeTypeInfo(type).level >=
-             getNodeTypeInfo(NodeType::IFDEF_BLOCK).level &&
+             getNodeTypeInfo(NodeType::TRANSLATION_UNIT).level &&
          getNodeTypeInfo(type).level <
-             getNodeTypeInfo(NodeType::FUNCTION).level;
+             getNodeTypeInfo(NodeType::IFDEF_BLOCK).level;
 }
 
 constexpr bool isTerminalNode(NodeType type) {
   return getNodeTypeInfo(type).level >=
-             getNodeTypeInfo(NodeType::FUNCTION).level &&
+             getNodeTypeInfo(NodeType::IFDEF_BLOCK).level &&
          getNodeTypeInfo(type).level < getNodeTypeInfo(NodeType::COUNT).level;
 }
 } // namespace sa

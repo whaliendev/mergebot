@@ -102,6 +102,16 @@ Container string_split(std::string_view str, std::string_view delims = " ",
   return output;
 }
 
+inline std::string_view string_trim(std::string_view str,
+                                    std::string_view whitespace = " \t\n\r") {
+  auto start = str.find_first_not_of(whitespace);
+  if (start == std::string_view::npos) {
+    return {};  // Empty or all space
+  }
+  auto end = str.find_last_not_of(whitespace);
+  return str.substr(start, end - start + 1);
+}
+
 /// split string_view str by any of the elements in [ std::cbegin(delims),
 /// std::cend(delims) )
 /// \param str string_view to split

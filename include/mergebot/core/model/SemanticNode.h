@@ -9,6 +9,7 @@
 #include "mergebot/core/model/enum/NodeType.h"
 #include "mergebot/core/model/mapping/NodeContext.h"
 #include "mergebot/core/sa_utility.h"
+#include "mergebot/parser/point.h"
 #include "mergebot/parser/range.h"
 #include <memory>
 #include <optional>
@@ -16,33 +17,42 @@
 #include <vector>
 namespace mergebot {
 namespace sa {
-class NodeContext;
-
 class SemanticNode {
 public:
-  int ID;
-  NodeContext Context;
-  /// for preserving original format
-  int FollowBlankLines = 1;
+  SemanticNode(int NodeId, bool NeedToMerge, NodeType Type,
+               const std::string &DisplayName, const std::string &QualifiedName,
+               const std::string &OriginalSignature, std::string &&Comment,
+               const std::optional<ts::Point> &Point, std::string &&USR);
 
   friend bool operator==(SemanticNode const &lhs, SemanticNode const &rhs);
 
-  NodeType nodeType() const { return Type; }
+  // id in graph
+  int ID;
+  bool NeedToMerge;
 
-  std::string qualifiedName() const { return QualifiedName; }
-
-private:
-  bool NeedMerge;
-  std::shared_ptr<SemanticNode> Parent;
-  std::vector<std::shared_ptr<SemanticNode>> Children;
   NodeType Type;
+  // identifier extracted
   std::string DisplayName;
+  // container qualified name, get from lsp
   std::string QualifiedName;
   /// generalization form of original signature
   std::string OriginalSignature;
-  /// whether the node is defined inside the graph or not
-  bool IsInternal;
-  std::optional<ts::Range> range;
+
+  std::string Comment;
+
+  std::optional<ts::Point> StartPoint;
+
+  // the clang-specific "unified symbol resolution" identifier(a clangd
+  // extension)
+  std::string USR;
+
+  NodeContext Context;
+  /// for preserving original format
+  int FollowingEOL = 1;
+
+  std::shared_ptr<SemanticNode> Parent;
+  std::vector<std::shared_ptr<SemanticNode>> Children;
+  // corresponding node comment
 };
 
 } // namespace sa
@@ -52,8 +62,8 @@ namespace std {
 template <> struct hash<mergebot::sa::SemanticNode> {
   size_t operator()(mergebot::sa::SemanticNode const &Node) const noexcept {
     size_t H = 1;
-    mergebot::hash_combine(H, Node.nodeType());
-    mergebot::hash_combine(H, Node.qualifiedName());
+    mergebot::hash_combine(H, Node.Type);
+    mergebot::hash_combine(H, Node.QualifiedName);
     return H;
   }
 };
