@@ -4,6 +4,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <nlohmann/json.hpp>  // for std::vector serialization and deserialization
+
 #include "mergebot/lsp/client.h"
 #include "mergebot/lsp/communicator.h"
 #include "mergebot/lsp/protocol.h"
@@ -132,6 +134,34 @@ TEST(Lsp, SwitchSourceHeader) {
   for (size_t i = 0; i < rlocation.size(); ++i) {
     ASSERT_EQ(expectedContainerNames[i], rlocation[i].containerName.value());
   }
+
+  client.Shutdown();
+  client.Exit();
+}
+
+TEST(Lsp, SymbolDetails) {
+  auto communicator = PipeCommunicator::create("./clangd", "clangd");
+  EXPECT_TRUE(communicator) << "pipe to communicate with child process "
+                               "should construct successfully";
+  std::unique_ptr<JSONRpcEndpoint> rpcEndpoint =
+      std::make_unique<JSONRpcEndpoint>(std::move(communicator));
+  std::unique_ptr<LspEndpoint> lspEndpoint =
+      std::make_unique<LspEndpoint>(std::move(rpcEndpoint), 3);
+
+  LspClient client(std::move(lspEndpoint));
+
+  const std::string workspaceRoot = "/home/whalien/Desktop/rocksdb";
+  auto returned = client.Initialize(workspaceRoot);
+  const std::string filePath =
+      "/home/whalien/Desktop/rocksdb/db/transaction_log_impl.h";
+  URIForFile file(filePath);
+  std::string fileContent = mergebot::util::file_get_content(filePath);
+  client.DidOpen(file, fileContent);
+  auto symbolOpt = client.SymbolInfo(file, Position{16, 10});
+  ASSERT_TRUE(symbolOpt.has_value());
+  spdlog::info("details: {}", symbolOpt.value().dump(2));
+
+  SymbolDetails details = symbolOpt.value();
 
   client.Shutdown();
   client.Exit();

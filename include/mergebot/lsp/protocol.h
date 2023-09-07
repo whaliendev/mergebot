@@ -832,14 +832,14 @@ struct SymbolInformation {
 
 struct SymbolDetails {
   TextType name;
-  TextType containerName;
+  std::optional<TextType> containerName;
   /// Unified Symbol Resolution identifier
   /// This is an opaque string uniquely identifying a symbol.
   /// Unlike SymbolID, it is variable-length and somewhat human-readable.
   /// It is a common representation across several clang tools.
   /// (See USRGeneration.h)
   TextType usr;
-  std::optional<TextType> id;
+  TextType id;
 };
 
 struct WorkspaceSymbolParams {
@@ -1191,31 +1191,33 @@ JSON_SERIALIZE(mergebot::lsp::TextDocumentItem,
 JSON_SERIALIZE(
     mergebot::lsp::ClientCapabilities,
     MAP_JSON(
-        MAP_KV(
-            "textDocument",
-            MAP_KV("references", MAP_TO("container", ReferenceContainer)),
-            MAP_KV(
-                "publishDiagnostics",  // PublishDiagnosticsClientCapabilities
-                MAP_TO("categorySupport", DiagnosticCategory),
-                MAP_TO("codeActionsInline", DiagnosticFixes),
-                MAP_TO("relatedInformation", DiagnosticRelatedInformation), ),
-            MAP_KV("completion",  // CompletionClientCapabilities
-                   MAP_KV("completionItem",
-                          MAP_TO("snippetSupport", CompletionSnippets)),
-                   MAP_KV("completionItemKind",
-                          MAP_TO("valueSet", CompletionItemKinds)),
-                   MAP_TO("editsNearCursor", CompletionFixes)),
-            MAP_KV("codeAction",
-                   MAP_TO("codeActionLiteralSupport", CodeActionStructure)),
-            MAP_KV("documentSymbol", MAP_TO("hierarchicalDocumentSymbolSupport",
-                                            HierarchicalDocumentSymbol)),
-            MAP_KV("hover",  // HoverClientCapabilities
-                   MAP_TO("contentFormat", HoverContentFormat)),
-            MAP_KV("signatureHelp",
-                   MAP_KV("signatureInformation",
-                          MAP_KV("parameterInformation",
-                                 MAP_TO("labelOffsetSupport",
-                                        OffsetsInSignatureHelp))))),
+        MAP_KV("textDocument",
+               MAP_KV("references", MAP_TO("container", ReferenceContainer)),
+               //            MAP_KV(
+               //                "publishDiagnostics",  //
+               //                PublishDiagnosticsClientCapabilities
+               //                MAP_TO("categorySupport", DiagnosticCategory),
+               //                MAP_TO("codeActionsInline", DiagnosticFixes),
+               //                MAP_TO("relatedInformation",
+               //                DiagnosticRelatedInformation), ),
+               MAP_KV("completion",  // CompletionClientCapabilities
+                      MAP_KV("completionItem",
+                             MAP_TO("snippetSupport", CompletionSnippets)),
+                      MAP_KV("completionItemKind",
+                             MAP_TO("valueSet", CompletionItemKinds)),
+                      MAP_TO("editsNearCursor", CompletionFixes)),
+               MAP_KV("codeAction",
+                      MAP_TO("codeActionLiteralSupport", CodeActionStructure)),
+               MAP_KV("documentSymbol",
+                      MAP_TO("hierarchicalDocumentSymbolSupport",
+                             HierarchicalDocumentSymbol)),
+               MAP_KV("hover",  // HoverClientCapabilities
+                      MAP_TO("contentFormat", HoverContentFormat)),
+               MAP_KV("signatureHelp",
+                      MAP_KV("signatureInformation",
+                             MAP_KV("parameterInformation",
+                                    MAP_TO("labelOffsetSupport",
+                                           OffsetsInSignatureHelp))))),
         MAP_KV("workspace",      // WorkspaceEditClientCapabilities
                MAP_KV("symbol",  // WorkspaceSymbolClientCapabilities
                       MAP_KV("symbolKind",
