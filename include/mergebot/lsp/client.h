@@ -216,6 +216,8 @@ class LspClient final {
     InitializeParams params;
     params.processId = getpid();
     params.rootUri = rootUri;
+    params.initializationOptions.compilationDatabasePath =
+        "build/compile_commands.json";
     return lspEndpoint->CallMethod("initialize", params);
   }
 
