@@ -12,6 +12,7 @@
 #include <shared_mutex>
 
 #include "communicator.h"
+#include "mergebot/filesystem.h"
 #include "mergebot/utils/noncopyable.h"
 #include "protocol.h"
 
@@ -216,8 +217,9 @@ class LspClient final {
     InitializeParams params;
     params.processId = getpid();
     params.rootUri = rootUri;
+    //  https://clangd.llvm.org/extensions#compilation-commands
     params.initializationOptions.compilationDatabasePath =
-        "build/compile_commands.json";
+        (fs::path(rootUri.path()) / "build").string();
     return lspEndpoint->CallMethod("initialize", params);
   }
 
