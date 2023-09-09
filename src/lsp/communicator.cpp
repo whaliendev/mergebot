@@ -48,7 +48,8 @@ std::unique_ptr<PipeCommunicator> PipeCommunicator::create(
     std::string logFileName =
         (fs::path(LOG_FOLDER) / fmt::format("child-{}-stderr.log", getpid()))
             .string();
-    int logFd = open(logFileName.c_str(), O_WRONLY | O_CREAT, 0644);
+    fs::create_directories(LOG_FOLDER);
+    int logFd = open(logFileName.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (logFd == -1) {
       perror(logFileName.c_str());
       assert(false && "language server failed to open log file");
