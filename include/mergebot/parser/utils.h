@@ -190,7 +190,6 @@ struct FuncDefInfo {
            Attrs == other.Attrs && BeforeFuncName == other.BeforeFuncName &&
            FuncName == other.FuncName && ParameterList == other.ParameterList &&
            AfterParameterList == other.AfterParameterList &&
-           TrailingReturn == other.TrailingReturn &&
            LineOffset == other.LineOffset && ColOffset == other.ColOffset;
   }
 
@@ -205,14 +204,12 @@ struct FuncDefInfo {
         "  FuncName={},\n"
         "  ParameterList={},\n"
         "  AfterParameterList={},\n"
-        "  TrailingReturn={},\n"
         "  LineOffset={},\n"
         "  ColOffset={}\n"
         ")",
         obj.OriginalSignature, obj.TemplateParameterList, obj.Attrs,
         obj.BeforeFuncName, obj.FuncName, fmt::join(obj.ParameterList, ", "),
-        obj.AfterParameterList, obj.TrailingReturn, obj.LineOffset,
-        obj.ColOffset);
+        obj.AfterParameterList, obj.LineOffset, obj.ColOffset);
     return os << formatted_output;
   }
 };
