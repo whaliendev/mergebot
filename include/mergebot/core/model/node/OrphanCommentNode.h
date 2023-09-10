@@ -9,15 +9,19 @@
 namespace mergebot::sa {
 class OrphanCommentNode : public TerminalNode {
 public:
-  OrphanCommentNode(int NodeId, bool NeedToMerge, NodeType Type,
+  OrphanCommentNode(int NodeId, bool NeedToMerge, NodeKind Kind,
                     const std::string &DisplayName,
                     const std::string &QualifiedName,
                     const std::string &OriginalSignature, std::string &&Comment,
                     const std::optional<ts::Point> &Point, std::string &&USR,
                     std::string &&Body, size_t FollowingEOL)
-      : TerminalNode(NodeId, NeedToMerge, Type, DisplayName, QualifiedName,
+      : TerminalNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
                      std::move(USR), std::move(Body), FollowingEOL) {}
+
+  static bool classof(const SemanticNode *N) {
+    return N->getKind() == NodeKind::ORPHAN_COMMENT;
+  }
 };
 } // namespace mergebot::sa
 

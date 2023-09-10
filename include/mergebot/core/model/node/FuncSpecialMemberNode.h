@@ -20,7 +20,7 @@ public:
     Plain,     // with body
   };
   FuncSpecialMemberNode(
-      int NodeId, bool NeedToMerge, NodeType Type,
+      int NodeId, bool NeedToMerge, NodeKind Kind,
       const std::string &DisplayName, const std::string &QualifiedName,
       const std::string &OriginalSignature, std::string &&Comment,
       const std::optional<ts::Point> &Point, std::string &&USR,
@@ -28,13 +28,17 @@ public:
       std::string &&TemplateParameterList, std::string &&Attrs,
       std::string &&BeforeFuncName, std::vector<std::string> &&ParameterList,
       std::vector<std::string> &&InitList)
-      : TerminalNode(NodeId, NeedToMerge, Type, DisplayName, QualifiedName,
+      : TerminalNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
                      std::move(USR), std::move(Body), FollowingEOL),
         DefType(DefType),
         TemplateParameterList(std::move(TemplateParameterList)),
         Attrs(std::move(Attrs)), BeforeFuncName(std::move(BeforeFuncName)),
         ParameterList(std::move(ParameterList)), InitList(std::move(InitList)) {
+  }
+
+  static bool classof(const SemanticNode *N) {
+    return N->getKind() == NodeKind::FUNC_SPECIAL_MEMBER;
   }
 
   DefinitionType DefType;

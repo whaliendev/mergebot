@@ -8,7 +8,7 @@
 namespace mergebot::sa {
 class FieldDeclarationNode : public TerminalNode {
 public:
-  FieldDeclarationNode(int NodeId, bool NeedToMerge, NodeType Type,
+  FieldDeclarationNode(int NodeId, bool NeedToMerge, NodeKind Kind,
                        const std::string &DisplayName,
                        const std::string &QualifiedName,
                        const std::string &OriginalSignature,
@@ -16,7 +16,7 @@ public:
                        const std::optional<ts::Point> &Point, std::string &&USR,
                        std::string &&Body, size_t FollowingEOL,
                        std::string &&Declarator, size_t ParentSignatureHash)
-      : TerminalNode(NodeId, NeedToMerge, Type, DisplayName, QualifiedName,
+      : TerminalNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
                      std::move(USR), std::move(Body), FollowingEOL),
         Declarator(std::move(Declarator)),
@@ -28,6 +28,10 @@ public:
     //    mergebot::hash_combine(H, this->Body);
     mergebot::hash_combine(H, this->Declarator);
     return H;
+  }
+
+  static bool classof(const SemanticNode *N) {
+    return N->getKind() == NodeKind::FIELD_DECLARATION;
   }
 
   std::string Declarator;

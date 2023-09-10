@@ -10,12 +10,12 @@ namespace mergebot {
 namespace sa {
 class TerminalNode : public SemanticNode {
 public:
-  TerminalNode(int NodeId, bool NeedToMerge, NodeType Type,
+  TerminalNode(int NodeId, bool NeedToMerge, NodeKind Kind,
                const std::string &DisplayName, const std::string &QualifiedName,
                const std::string &OriginalSignature, std::string &&Comment,
                const std::optional<ts::Point> &Point, std::string &&USR,
                std::string &&Body, size_t FollowingEOL)
-      : SemanticNode(NodeId, NeedToMerge, Type, DisplayName, QualifiedName,
+      : SemanticNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
                      std::move(USR)),
         Body(std::move(Body)) {
@@ -32,9 +32,10 @@ public:
     return H;
   }
 
-  std::string body() const { return Body; }
-
-  void setBody(std::string const &body) { this->Body = body; }
+  static bool classof(const SemanticNode *N) {
+    return N->getKind() >= NodeKind::TERMINAL_NODE &&
+           N->getKind() <= NodeKind::LAST_TERMINAL_NODE;
+  }
 
   std::string Body;
 };

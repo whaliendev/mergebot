@@ -7,11 +7,12 @@
 
 #include "mergebot/core/model/ConflictFile.h"
 #include "mergebot/core/model/enum/AccessSpecifierKind.h"
-#include "mergebot/core/model/enum/NodeType.h"
+#include "mergebot/core/model/enum/NodeKind.h"
 #include "mergebot/core/model/mapping/NodeContext.h"
 #include "mergebot/core/sa_utility.h"
 #include "mergebot/parser/point.h"
 #include "mergebot/parser/range.h"
+#include <llvm/Support/Casting.h> // for LLVM's RTTI template
 #include <memory>
 #include <optional>
 #include <string>
@@ -20,11 +21,11 @@ namespace mergebot {
 namespace sa {
 class SemanticNode {
 public:
-  SemanticNode(int NodeId, bool NeedToMerge, NodeType Type,
+  SemanticNode(int NodeId, bool NeedToMerge, NodeKind Kind,
                const std::string &DisplayName, const std::string &QualifiedName,
                const std::string &OriginalSignature, std::string &&Comment,
                const std::optional<ts::Point> &Point, std::string &&USR)
-      : ID(NodeId), NeedToMerge(NeedToMerge), Type(Type),
+      : ID(NodeId), NeedToMerge(NeedToMerge), Kind(Kind),
         DisplayName(DisplayName), QualifiedName(QualifiedName),
         OriginalSignature(OriginalSignature), Comment(Comment),
         StartPoint(Point), USR(USR),
@@ -42,7 +43,6 @@ public:
   int ID;
   bool NeedToMerge;
 
-  NodeType Type;
   // identifier extracted
   std::string DisplayName;
   // container qualified name, get from lsp
@@ -66,6 +66,16 @@ public:
   AccessSpecifierKind AccessSpecifier = AccessSpecifierKind::None;
 
   std::vector<std::shared_ptr<SemanticNode>> Children;
+
+protected:
+  const NodeKind Kind;
+
+public:
+  NodeKind getKind() const { return Kind; }
+
+  static bool classof(const SemanticNode *N) {
+    return N->getKind() >= NodeKind::NODE && N->getKind() <= NodeKind::COUNT;
+  }
 };
 
 } // namespace sa

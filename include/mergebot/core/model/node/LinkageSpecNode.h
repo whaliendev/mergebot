@@ -10,18 +10,16 @@
 namespace mergebot::sa {
 class LinkageSpecNode : public CompositeNode {
 public:
-  LinkageSpecNode(int NodeId, bool NeedToMerge, NodeType Type,
+  LinkageSpecNode(int NodeId, bool NeedToMerge, NodeKind Kind,
                   const std::string &DisplayName,
                   const std::string &QualifiedName,
                   const std::string &OriginalSignature, std::string &&Comment,
                   const std::optional<ts::Point> &Point, std::string &&USR,
                   size_t BeforeFirstChildEOLs, size_t ParentSignatureHash)
-      : CompositeNode(NodeId, NeedToMerge, Type, DisplayName, QualifiedName,
+      : CompositeNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                       OriginalSignature, std::move(Comment), Point,
                       std::move(USR), BeforeFirstChildEOLs),
         ParentSignatureHash(ParentSignatureHash) {}
-
-  size_t ParentSignatureHash;
 
   size_t hashSignature() const override {
     size_t H = 1;
@@ -29,6 +27,12 @@ public:
     mergebot::hash_combine(H, this->DisplayName);
     return H;
   }
+
+  static bool classof(const SemanticNode *N) {
+    return N->getKind() == NodeKind::LINKAGE_SPEC_LIST;
+  }
+
+  size_t ParentSignatureHash;
 };
 } // namespace mergebot::sa
 

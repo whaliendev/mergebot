@@ -12,13 +12,13 @@ class CompositeNode : public SemanticNode {
 public:
   size_t BeforeFirstChildEOL = 0;
 
-  CompositeNode(int NodeId, bool NeedToMerge, NodeType Type,
+  CompositeNode(int NodeId, bool NeedToMerge, NodeKind Kind,
                 const std::string &DisplayName,
                 const std::string &QualifiedName,
                 const std::string &OriginalSignature, std::string &&Comment,
                 const std::optional<ts::Point> &Point, std::string &&USR,
                 size_t BeforeFirstChildEOL)
-      : SemanticNode(NodeId, NeedToMerge, Type, DisplayName, QualifiedName,
+      : SemanticNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
                      std::move(USR)),
         BeforeFirstChildEOL(BeforeFirstChildEOL) {}
@@ -33,9 +33,14 @@ public:
     //    if (AccessSpecifier != AccessSpecifierKind::None) {
     //
     //    }
-    mergebot::hash_combine(H, this->Type);
+    mergebot::hash_combine(H, this->Kind);
     mergebot::hash_combine(H, this->QualifiedName + this->DisplayName);
     return H;
+  }
+
+  static bool classof(const SemanticNode *N) {
+    return N->getKind() >= NodeKind::COMPOSITE_NODE &&
+           N->getKind() <= NodeKind::LAST_COMPOSITE_NODE;
   }
 };
 } // namespace sa

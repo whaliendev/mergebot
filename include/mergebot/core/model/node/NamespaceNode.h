@@ -9,16 +9,20 @@ namespace mergebot {
 namespace sa {
 class NamespaceNode : public CompositeNode {
 public:
-  NamespaceNode(int NodeId, bool NeedToMerge, NodeType Type,
+  NamespaceNode(int NodeId, bool NeedToMerge, NodeKind Kind,
                 const std::string &DisplayName,
                 const std::string &QualifiedName,
                 const std::string &OriginalSignature, std::string &&Comment,
                 const std::optional<ts::Point> &Point, std::string &&USR,
                 int BeforeFirstChildEOL, std::string &&NSComment)
-      : CompositeNode(NodeId, NeedToMerge, Type, DisplayName, QualifiedName,
+      : CompositeNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                       OriginalSignature, std::move(Comment), Point,
                       std::move(USR), BeforeFirstChildEOL),
         NSComment(std::move(NSComment)) {}
+
+  static bool classof(const SemanticNode *N) {
+    return N->getKind() == NodeKind::NAMESPACE;
+  }
 
   std::string NSComment;
 };

@@ -10,13 +10,13 @@ namespace mergebot {
 namespace sa {
 class TextualNode : public TerminalNode {
 public:
-  TextualNode(int NodeId, bool NeedToMerge, NodeType Type,
+  TextualNode(int NodeId, bool NeedToMerge, NodeKind Kind,
               const std::string &DisplayName, const std::string &QualifiedName,
               const std::string &OriginalSignature, std::string &&Comment,
               const std::optional<ts::Point> &Point, std::string &&USR,
               std::string &&Body, size_t FollowingEOL,
               size_t ParentSignatureHash)
-      : TerminalNode(NodeId, NeedToMerge, Type, DisplayName, QualifiedName,
+      : TerminalNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
                      std::move(USR), std::move(Body), FollowingEOL),
         ParentSignatureHash(ParentSignatureHash) {}
@@ -28,6 +28,10 @@ public:
     mergebot::hash_combine(H, this->ParentSignatureHash);
     mergebot::hash_combine(H, this->Body);
     return H;
+  }
+
+  static bool classof(const SemanticNode *N) {
+    return N->getKind() == NodeKind::TEXTUAL;
   }
 };
 } // namespace sa

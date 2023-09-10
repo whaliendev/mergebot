@@ -11,7 +11,7 @@ namespace sa {
 /// trailing return type or plain function
 class FuncDefNode : public TerminalNode {
 public:
-  FuncDefNode(int NodeId, bool NeedToMerge, NodeType Type,
+  FuncDefNode(int NodeId, bool NeedToMerge, NodeKind Kind,
               const std::string &DisplayName, const std::string &QualifiedName,
               const std::string &OriginalSignature, std::string &&Comment,
               const std::optional<ts::Point> &Point, std::string &&USR,
@@ -20,13 +20,17 @@ public:
               std::string &&BeforeFuncName,
               std::vector<std::string> &&ParameterList,
               std::string &&AfterParameterList)
-      : TerminalNode(NodeId, NeedToMerge, Type, DisplayName, QualifiedName,
+      : TerminalNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
                      std::move(USR), std::move(Body), FollowingEOL),
         TemplateParameterList(std::move(TemplateParameterList)),
         Attrs(std::move(Attrs)), BeforeFuncName(std::move(BeforeFuncName)),
         ParameterList(std::move(ParameterList)),
         AfterParameterList(std::move(AfterParameterList)) {}
+
+  static bool classof(const SemanticNode *N) {
+    return N->getKind() == NodeKind::FUNC_DEF;
+  }
 
   std::string TemplateParameterList;
   std::string Attrs;

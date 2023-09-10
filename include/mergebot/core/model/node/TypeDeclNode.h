@@ -18,7 +18,7 @@ public:
     Union,
   };
 
-  TypeDeclNode(int NodeId, bool NeedToMerge, NodeType Type,
+  TypeDeclNode(int NodeId, bool NeedToMerge, NodeKind NKind,
                const std::string &DisplayName, const std::string &QualifiedName,
                const std::string &OriginalSignature, std::string &&Comment,
                const std::optional<ts::Point> &Point, std::string &&USR,
@@ -26,21 +26,28 @@ public:
                std::string &&Attrs, bool IsFinal, std::string &&BaseClause,
                AccessSpecifierKind FirstAccessSpecifier,
                std::string &&TemplateParameterList)
-      : CompositeNode(NodeId, NeedToMerge, Type, DisplayName, QualifiedName,
+      : CompositeNode(NodeId, NeedToMerge, NKind, DisplayName, QualifiedName,
                       OriginalSignature, std::move(Comment), Point,
                       std::move(USR), BeforeFirstChildEOL),
         Kind(Kind), Attrs(std::move(Attrs)), IsFinal(IsFinal),
         BaseClause(std::move(BaseClause)),
+        FirstAccessSpecifier(FirstAccessSpecifier),
         TemplateParameterList(std::move(TemplateParameterList)) {
     this->AccessSpecifierStack.push(std::make_pair(FirstAccessSpecifier, 0));
   }
+
+  static bool classof(const SemanticNode *N) {
+    return N->getKind() == NodeKind::TYPE;
+  }
+
+  void addVisibilityModifier() {}
 
 private:
   TypeDeclKind Kind;
   std::string Attrs;
   bool IsFinal;
   std::string BaseClause;
-  //  AccessSpecifierKind FirstAccessSpecifier;
+  AccessSpecifierKind FirstAccessSpecifier;
   std::string TemplateParameterList;
   std::stack<std::pair<AccessSpecifierKind, size_t>> AccessSpecifierStack;
 };

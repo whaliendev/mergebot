@@ -15,7 +15,7 @@ namespace mergebot::sa {
 /// @endcodes
 class FuncOperatorCastNode : public TerminalNode {
 public:
-  FuncOperatorCastNode(int NodeId, bool NeedToMerge, NodeType Type,
+  FuncOperatorCastNode(int NodeId, bool NeedToMerge, NodeKind Kind,
                        const std::string &DisplayName,
                        const std::string &QualifiedName,
                        const std::string &OriginalSignature,
@@ -25,12 +25,16 @@ public:
                        std::string &&TemplateParameterList, std::string &&Attrs,
                        std::vector<std::string> &&ParameterList,
                        std::string &&AfterParameterList)
-      : TerminalNode(NodeId, NeedToMerge, Type, DisplayName, QualifiedName,
+      : TerminalNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
                      std::move(USR), std::move(Body), FollowingEOL),
         TemplateParameterList(std::move(TemplateParameterList)),
         Attrs(std::move(Attrs)), ParameterList(std::move(ParameterList)),
         AfterParameterList(std::move(AfterParameterList)) {}
+
+  static bool classof(const SemanticNode *N) {
+    return N->getKind() == NodeKind::FUNC_OPERATOR_CAST;
+  }
 
   std::string TemplateParameterList;
   std::string Attrs;
