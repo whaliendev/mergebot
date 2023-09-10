@@ -396,7 +396,6 @@ FuncDefInfo extractFuncDefInfo(const std::string &code,
     }
     size_t last_newline =
         input.rfind('\n', func_name_pieces.data() - input.data());
-    // FIXME(hwa): fix this
     ret.ColOffset = (func_name_pieces.data() - input.data()) -
                     (last_newline == std::string::npos ? 0 : last_newline + 1) +
                     qualified_identifier_offset;
