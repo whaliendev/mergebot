@@ -14,14 +14,22 @@ public:
                const std::string &DisplayName, const std::string &QualifiedName,
                const std::string &OriginalSignature, std::string &&Comment,
                const std::optional<ts::Point> &Point, std::string &&USR,
-               std::string &&Body)
+               std::string &&Body, size_t FollowingEOL)
       : SemanticNode(NodeId, NeedToMerge, Type, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
                      std::move(USR)),
-        Body(std::move(Body)) {}
+        Body(std::move(Body)) {
+    this->FollowingEOL = FollowingEOL;
+  }
 
   friend bool operator==(TerminalNode const &lhs, TerminalNode const &rhs) {
     return lhs.Body == rhs.Body;
+  }
+
+  size_t hashSignature() const override {
+    size_t H = 1;
+    mergebot::hash_combine(H, this->Body);
+    return H;
   }
 
   std::string body() const { return Body; }

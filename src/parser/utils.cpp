@@ -15,6 +15,7 @@
 
 namespace mergebot {
 namespace ts {
+
 std::pair<size_t, std::string> getTranslationUnitComment(const ts::Node &root) {
   std::stringstream comment;
   size_t commentCnt = 0;
@@ -66,7 +67,7 @@ size_t beforeFirstChildEOLs(const ts::Node &node) {
   assert(bodyNodeOpt.has_value() &&
          "invariant: body node of node should exist");
   const ts::Node bodyNode = bodyNodeOpt.value();
-  return bodyNode.startPoint().row - node.startPoint().row - 1;
+  return bodyNode.startPoint().row - node.endPoint().row - 1;
 }
 
 std::pair<bool, std::vector<std::string>> getHeaderGuard(
@@ -172,5 +173,238 @@ std::pair<bool, std::string> getComment(const Node &commentNode,
     return {false, ret.str()};
   }
 }
+
+size_t getFollowingEOLs(const Node &node) {
+  std::optional<ts::Node> nextSiblingOpt = node.nextSibling();
+  if (!nextSiblingOpt.has_value()) {
+    return 0;
+  }
+  return nextSiblingOpt.value().startPoint().row - node.endPoint().row - 1;
+}
+
+ClassInfo extractClassInfo(const std::string &code) {
+  ClassInfo ret;
+
+  const std::string pattern =
+      R"(((template\s*<[^>]*>)?\s*(class|struct|union)\s*((\s*\[\[[^\]]+\]\])*)?\s*([a-zA-Z_][a-zA-Z0-9_:]*)?\s*(final)?\s*(:\s*[^\{]*)?)\s*\{)";
+  std::string Final;
+  re2::RE2 re(pattern);
+  re2::StringPiece input(code);
+  re2::StringPiece class_name_pieces;
+
+  if (re2::RE2::PartialMatch(input, re, &ret.OriginalSignature,
+                             &ret.TemplateParameterList, &ret.ClassKey,
+                             &ret.Attrs, nullptr, &class_name_pieces, &Final,
+                             &ret.BaseClause)) {
+    ret.IsFinal = Final.size() != 0;
+    ret.ClassName = class_name_pieces.ToString();
+    if (ret.ClassName.size() && ret.ClassName.back() == ' ') {
+      ret.ClassName.pop_back();
+    }
+    if (ret.Attrs.size() && ret.Attrs[0] == ' ') {
+      ret.Attrs = ret.Attrs.substr(1);
+    }
+
+    // 计算行偏移
+    ret.LineOffset =
+        class_name_pieces.empty()
+            ? 0
+            : std::count(
+                  input.begin(),
+                  input.begin() + (class_name_pieces.data() - input.data()),
+                  '\n');
+
+    // 补充有qualified identifier的偏移计算
+    size_t qualified_identifier_offset = 0;
+    if (!class_name_pieces.empty()) {
+      re2::StringPiece::size_type pos = class_name_pieces.rfind("::");
+      if (pos != re2::StringPiece::npos) {
+        qualified_identifier_offset = pos + 2;
+      }
+    }
+
+    // 计算列偏移
+    size_t last_newline =
+        input.rfind('\n', class_name_pieces.data() - input.data());
+    ret.ColOffset =
+        class_name_pieces.empty()
+            ? 0
+            : (class_name_pieces.data() - input.data()) -
+                  (last_newline == std::string::npos ? 0 : last_newline + 1) +
+                  qualified_identifier_offset;
+  } else {
+    assert(false && "it seems that the code is not a class");
+  }
+  return ret;
+}
+
+// TODO(hwa): refactor, pass in the func name
+FuncSpecialMemberInfo extractFuncSpecialMemberInfo(const std::string &code) {
+  FuncSpecialMemberInfo ret;
+
+  const std::string pattern =
+      R"((template\s*<[^>]*>)?\s*((\s*\[\[[^\]]+\]\])*)?\s*((extern|static|constexpr|explicit|friend)\s*)*([a-zA-Z_][a-zA-Z0-9_:]*)\s*\(([^)]*)\)\s*(:\s*[^{]*)?\s*(\{[^}]*\}|=\s*default|=\s*delete))";
+  re2::RE2 re(pattern);
+  re2::StringPiece input(code);
+  re2::StringPiece func_name_pieces;
+  re2::StringPiece body;
+  std::string params, initList;
+
+  if (re2::RE2::PartialMatch(input, re, &ret.TemplateParameterList, &ret.Attrs,
+                             nullptr, &ret.BeforeFuncName, nullptr,
+                             &func_name_pieces, &params, &initList, &body)) {
+    ret.FuncName = func_name_pieces.ToString();
+    if (ret.BeforeFuncName.size() && ret.BeforeFuncName.back() == ' ') {
+      ret.BeforeFuncName.pop_back();
+    }
+    if (ret.Attrs.size() && ret.Attrs[0] == ' ') {
+      ret.Attrs = ret.Attrs.substr(1);
+    }
+    assert(ret.FuncName.size() && "invariant: func name should not be empty");
+
+    // Handle DefinitionType
+    if (body.find("default") != std::string::npos) {
+      ret.DefType = sa::FuncSpecialMemberNode::DefinitionType::Defaulted;
+    } else if (body.find("delete") != std::string::npos) {
+      ret.DefType = sa::FuncSpecialMemberNode::DefinitionType::Deleted;
+    } else {
+      ret.DefType = sa::FuncSpecialMemberNode::DefinitionType::Plain;
+    }
+
+    // Handle ParameterList
+    std::string param;
+    re2::StringPiece params_sp(params);
+    while (RE2::Consume(&params_sp, R"(\s*([^,]+)\s*,?)", &param)) {
+      ret.ParameterList.push_back(std::string(util::string_trim(param)));
+    }
+
+    // Handle InitList
+    if (!initList.empty()) {
+      std::string init;
+      std::string InitList = initList.substr(1);
+      re2::StringPiece initList_sp(InitList);
+      while (RE2::Consume(&initList_sp, R"(\s*([^,]+)\s*,?)", &init)) {
+        ret.InitList.push_back(std::string(util::string_trim(init)));
+      }
+    }
+
+    // Handle OriginalSignature
+    ret.OriginalSignature =
+        ret.DefType == sa::FuncSpecialMemberNode::DefinitionType::Plain
+            ? code.substr(0, code.find('{'))
+            : code.substr(0, code.find('='));
+    assert(ret.OriginalSignature.size() && "invariant: signature should exist");
+
+    ret.LineOffset = std::count(
+        input.begin(), input.begin() + (func_name_pieces.data() - input.data()),
+        '\n');
+    size_t qualified_identifier_offset = 0;
+    if (!func_name_pieces.empty()) {
+      re2::StringPiece::size_type pos = func_name_pieces.rfind("::");
+      if (pos != re2::StringPiece::npos) {
+        qualified_identifier_offset = pos + 2;
+      }
+    }
+    size_t last_newline =
+        input.rfind('\n', func_name_pieces.data() - input.data());
+    ret.ColOffset = (func_name_pieces.data() - input.data()) -
+                    (last_newline == std::string::npos ? 0 : last_newline + 1) +
+                    qualified_identifier_offset;
+  } else {
+    assert(false && "it seems that the code is not a special member function");
+  }
+
+  return ret;
+}
+
+FuncOperatorCastInfo extractFuncOperatorCastInfo(const std::string &code) {
+  FuncOperatorCastInfo ret;
+  const std::string pattern =
+      R"(((template\s*<[^>]*>)?\s*((\[\[[^\]]+\]\]\s*)*)?\s*(.*)(operator\s*[a-zA-Z_][a-zA-Z0-9_:]*)\s*\(([^)]*)\)([^{]*))\{)";
+  re2::RE2 re(pattern);
+  re2::StringPiece input(code);
+  re2::StringPiece func_name_pieces;
+  std::string paramListStr;
+
+  if (re2::RE2::PartialMatch(input, re, &ret.OriginalSignature,
+                             &ret.TemplateParameterList, &ret.Attrs, nullptr,
+                             &ret.BeforeFuncName, &func_name_pieces,
+                             &paramListStr, &ret.AfterParameterList)) {
+    ret.FuncName = func_name_pieces.ToString();
+
+    // Split ParameterList by comma and trim spaces
+    std::istringstream iss(paramListStr);
+    std::string param;
+    while (std::getline(iss, param, ',')) {
+      param.erase(std::remove_if(param.begin(), param.end(), ::isspace),
+                  param.end());
+      ret.ParameterList.push_back(param);
+    }
+
+    // Calculate LineOffset
+    ret.LineOffset = std::count(
+        input.begin(), input.begin() + (func_name_pieces.data() - input.data()),
+        '\n');
+
+    // Calculate ColOffset
+    size_t last_newline =
+        input.rfind('\n', func_name_pieces.data() - input.data());
+    ret.ColOffset = (func_name_pieces.data() - input.data()) -
+                    (last_newline == std::string::npos ? 0 : last_newline + 1);
+  } else {
+    assert(false && "it seems that the code is not an operator cast");
+  }
+  return ret;
+}
+
+FuncDefInfo extractFuncDefInfo(const std::string &code,
+                               const std::string &FuncName) {
+  FuncDefInfo ret;
+  ret.FuncName = FuncName;
+
+  using namespace std::string_literals;
+
+  const std::string pattern =
+      R"(((template\s*<[^>]*>)?\s*((\[\[[^\]]+\]\]\s*)*)?(.*)\s)" + "("s +
+      FuncName + ")" + R"(\s*\(([^)]*)\)(\s*[^;{]*)))";
+
+  re2::RE2 re(pattern);
+  re2::StringPiece input(code);
+  re2::StringPiece paramList;
+  re2::StringPiece func_name_pieces;
+
+  if (re2::RE2::PartialMatch(input, re, &ret.OriginalSignature,
+                             &ret.TemplateParameterList, &ret.Attrs, nullptr,
+                             &ret.BeforeFuncName, &func_name_pieces, &paramList,
+                             &ret.AfterParameterList)) {
+    // Split parameter list
+    std::string paramStr = paramList.ToString();
+    std::vector<std::string_view> splitted = util::string_split(paramStr, ",");
+    for (auto &s : splitted) {
+      ret.ParameterList.push_back(std::string(util::string_trim(s)));
+    }
+
+    ret.LineOffset = std::count(
+        input.begin(), input.begin() + (func_name_pieces.data() - input.data()),
+        '\n');
+    size_t qualified_identifier_offset = 0;
+    if (!func_name_pieces.empty()) {
+      re2::StringPiece::size_type pos = func_name_pieces.rfind("::");
+      if (pos != re2::StringPiece::npos) {
+        qualified_identifier_offset = pos + 2;
+      }
+    }
+    size_t last_newline =
+        input.rfind('\n', func_name_pieces.data() - input.data());
+    // FIXME(hwa): fix this
+    ret.ColOffset = (func_name_pieces.data() - input.data()) -
+                    (last_newline == std::string::npos ? 0 : last_newline + 1) +
+                    qualified_identifier_offset;
+  } else {
+    assert(false && "it seems that the code is not a function definition");
+  }
+  return ret;
+}
+
 }  // namespace ts
 }  // namespace mergebot

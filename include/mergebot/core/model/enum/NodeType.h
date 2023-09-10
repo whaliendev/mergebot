@@ -53,25 +53,25 @@ enum class NodeType : std::uint16_t {
   /// @code
   /// class with body, without body is a declaration
   /// @endcode
-  CLASS,
+  Type,
 
-  /// @brief Represents a struct.
-  /// Example:
-  /// @code
-  /// struct MyStruct {
-  ///   // ...
-  /// };
-  /// @endcode
-  STRUCT,
-
-  /// @brief Represents a union.
-  /// Example:
-  /// @code
-  /// union MyUnion {
-  ///   // ...
-  /// };
-  /// @endcode
-  UNION,
+  //  /// @brief Represents a struct.
+  //  /// Example:
+  //  /// @code
+  //  /// struct MyStruct {
+  //  ///   // ...
+  //  /// };
+  //  /// @endcode
+  //  STRUCT,
+  //
+  //  /// @brief Represents a union.
+  //  /// Example:
+  //  /// @code
+  //  /// union MyUnion {
+  //  ///   // ...
+  //  /// };
+  //  /// @endcode
+  //  UNION,
 
   /// @brief Represents an enum.
   /// Example:
@@ -84,7 +84,7 @@ enum class NodeType : std::uint16_t {
 
   //// terminal nodes
   // non-top level ifdef block
-  IFDEF_BLOCK,
+  //  IFDEF_BLOCK,
 
   /// @brief Represents a function.
   /// Example:
@@ -93,14 +93,16 @@ enum class NodeType : std::uint16_t {
   ///   // ...
   /// }
   /// @endcode
-  FUNCTION,
+  FUNC_DEF,
+  FUNC_OPERATOR_CAST,
+  FUNC_SPECIAL_MEMBER,
 
   /// @brief Represents a variable.
   /// Example:
   /// @code
   /// int myVariable;
   /// @endcode
-  FIELD,
+  FIELD_DECLARATION,
 
   /// @brief Represents an enum constant.
   /// Example:
@@ -109,7 +111,7 @@ enum class NodeType : std::uint16_t {
   ///   MY_CONSTANT  // Enum constant
   /// };
   /// @endcode
-  ENUM_CONSTANT,
+  //  ENUM_CONSTANT,
 
   /// @brief Represents a constructor.
   /// Example:
@@ -142,7 +144,7 @@ enum class NodeType : std::uint16_t {
   ///   friend void myFriendFunction(MyClass&);
   /// };
   /// @endcode
-  FRIEND_FUNCTION,
+  //  FRIEND_FUNCTION,
 
   /// @brief Represents a friend class.
   /// Example:
@@ -151,21 +153,21 @@ enum class NodeType : std::uint16_t {
   ///   friend class MyFriendClass;
   /// };
   /// @endcode
-  FRIEND_CLASS,
+  //  FRIEND_CLASS,
 
   /// @brief Represents a using directive or declaration.
   /// Example:
   /// @code
   /// using namespace std;
   /// @endcode
-  USING,
+  //  USING,
 
   /// @brief Represents a typedef.
   /// Example:
   /// @code
   /// typedef int MyInt;
   /// @endcode
-  TYPEDEF,
+  //  TYPEDEF,
 
   /// @brief Represents a comment that is not associated with any code element.
   /// Example:
@@ -200,22 +202,23 @@ constexpr std::array<NodeTypeInfo, static_cast<std::uint16_t>(NodeType::COUNT)>
     NODE_TYPE_INFO_ARRAY = {
         NodeTypeInfo(NodeType::PROJECT, 0, "project"),
         NodeTypeInfo(NodeType::TRANSLATION_UNIT, 1, "translation_unit"),
-        NodeTypeInfo(NodeType::IFDEF_BLOCK, 2, "ifdef_block"),
+        //        NodeTypeInfo(NodeType::IFDEF_BLOCK, 2, "ifdef_block"),
         NodeTypeInfo(NodeType::LINKAGE_SPEC_LIST, 2, "linkage_spec"),
         NodeTypeInfo(NodeType::NAMESPACE, 2, "namespace"),
-        NodeTypeInfo(NodeType::CLASS, 3, "class"),
-        NodeTypeInfo(NodeType::STRUCT, 3, "struct"),
-        NodeTypeInfo(NodeType::UNION, 3, "union"),
+        NodeTypeInfo(NodeType::Type, 3, "class | struct | union"),
+        //        NodeTypeInfo(NodeType::CLASS, 3, "class"),
+        //        NodeTypeInfo(NodeType::STRUCT, 3, "struct"),
+        //        NodeTypeInfo(NodeType::UNION, 3, "union"),
         NodeTypeInfo(NodeType::ENUM, 3, "enum"),
         NodeTypeInfo(NodeType::FUNCTION, 3, "function"),
-        NodeTypeInfo(NodeType::FIELD, 3, "field"),
-        NodeTypeInfo(NodeType::ENUM_CONSTANT, 3, "enum_constant"),
+        NodeTypeInfo(NodeType::FIELD_DECLARATION, 3, "field"),
+        //        NodeTypeInfo(NodeType::ENUM_CONSTANT, 3, "enum_constant"),
         NodeTypeInfo(NodeType::CONSTRUCTOR, 3, "constructor"),
         //        NodeTypeInfo(NodeType::DESTRUCTOR, 3, "destructor"),
-        NodeTypeInfo(NodeType::FRIEND_FUNCTION, 3, "friend_function"),
-        NodeTypeInfo(NodeType::FRIEND_CLASS, 3, "friend_class"),
-        NodeTypeInfo(NodeType::USING, 3, "using"),
-        NodeTypeInfo(NodeType::TYPEDEF, 3, "typedef"),
+        //        NodeTypeInfo(NodeType::FRIEND_FUNCTION, 3, "friend_function"),
+        //        NodeTypeInfo(NodeType::FRIEND_CLASS, 3, "friend_class"),
+        //        NodeTypeInfo(NodeType::USING, 3, "using"),
+        //        NodeTypeInfo(NodeType::TYPEDEF, 3, "typedef"),
         NodeTypeInfo(NodeType::TEXTUAL, 3, "unknown"),
         NodeTypeInfo(NodeType::ORPHAN_COMMENT, 4, "orphan_comment")};
 
@@ -228,12 +231,12 @@ constexpr bool isCompositeNode(NodeType type) {
   return getNodeTypeInfo(type).level >=
              getNodeTypeInfo(NodeType::TRANSLATION_UNIT).level &&
          getNodeTypeInfo(type).level <
-             getNodeTypeInfo(NodeType::IFDEF_BLOCK).level;
+             getNodeTypeInfo(NodeType::FUNCTION).level;
 }
 
 constexpr bool isTerminalNode(NodeType type) {
   return getNodeTypeInfo(type).level >=
-             getNodeTypeInfo(NodeType::IFDEF_BLOCK).level &&
+             getNodeTypeInfo(NodeType::FUNCTION).level &&
          getNodeTypeInfo(type).level < getNodeTypeInfo(NodeType::COUNT).level;
 }
 } // namespace sa

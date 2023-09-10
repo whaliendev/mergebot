@@ -11,6 +11,7 @@
 #include "mergebot/core/model/SemanticEdge.h"
 #include "mergebot/core/model/SemanticNode.h"
 #include "mergebot/core/model/Side.h"
+#include "mergebot/core/model/node/TypeDeclNode.h"
 #include "mergebot/filesystem.h"
 #include "mergebot/lsp/client.h"
 #include "mergebot/parser/tree.h"
@@ -27,6 +28,15 @@ namespace mergebot {
 namespace sa {
 class NamespaceNode;
 class TranslationUnitNode;
+class TextualNode;
+// class AliasNode;
+class FieldDeclarationNode;
+class LinkageSpecNode;
+class EnumNode;
+class FuncDefNode;
+class FuncSpecialMemberNode;
+class FuncOperatorCastNode;
+// class TypeDeclNode;
 
 class GraphBuilder {
 public:
@@ -56,6 +66,10 @@ public:
   bool build();
   SemanticGraph graph() const { return G; }
 
+  static std::unordered_set<std::string> CompositeTypes;
+  static std::unordered_set<std::string> TerminalTypes;
+  static std::unordered_set<std::string> ComplexTypes;
+
 private:
   using edge_iterator = SemanticGraph::edge_iterator;
   using vertex_iterator = SemanticGraph::vertex_iterator;
@@ -67,7 +81,6 @@ private:
   void processCppTranslationUnit(const std::string &Path,
                                  const std::string &FilePath,
                                  bool IsConflicting);
-
   void parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
                           bool IsConflicting, const ts::Node &Root,
                           const std::string &Path, const int FirstChildIdx = 0);
@@ -78,6 +91,33 @@ private:
   std::shared_ptr<NamespaceNode> parseNamespaceNode(const ts::Node &Node,
                                                     bool IsConflicting,
                                                     const std::string &Path);
+  std::shared_ptr<TextualNode> parseTextualNode(const ts::Node &Node,
+                                                bool IsConflicting,
+                                                size_t ParentSignatureHash);
+  std::shared_ptr<FieldDeclarationNode>
+  parseFieldDeclarationNode(const std::string &FilePath, const ts::Node &Node,
+                            bool IsConflicting, size_t ParentSignatureHash);
+  std::shared_ptr<LinkageSpecNode>
+  parseLinkageSpecNode(const ts::Node &Node, bool IsConflicting,
+                       size_t ParentSignatureHash);
+  std::shared_ptr<EnumNode> parseEnumNode(const ts::Node &Node,
+                                          bool IsConflicting,
+                                          const std::string &FilePath);
+  std::pair<std::shared_ptr<TypeDeclNode>, TypeDeclNode::TypeDeclKind>
+  parseTypeDeclNode(const ts::Node &Node, bool IsConflicting,
+                    const std::string &Path);
+
+  std::shared_ptr<FuncDefNode> parseFuncDefNode(const ts::Node &Node,
+                                                bool IsConflicting,
+                                                const std::string &FilePath);
+
+  std::shared_ptr<FuncOperatorCastNode>
+  parseFuncOperatorCastNode(const ts::Node &Node, bool IsConflicting,
+                            const std::string &FilePath);
+
+  std::shared_ptr<FuncSpecialMemberNode>
+  parseFuncSpecialMemberNode(const ts::Node &Node, bool IsConflicting,
+                             const std::string &FilePath);
 
   bool initLanguageServer();
   std::optional<lsp::SymbolDetails> getSymbolDetails(const lsp::URIForFile &URI,
@@ -113,19 +153,19 @@ private:
   /// Inclusion analysis of conflicts caused by long-standing unmerged branches
   /// can be difficult
   std::unordered_map<std::shared_ptr<SemanticNode>, std::vector<std::string>>
-      IncludeEdges;
+      IncludeEdges; // 通过计算相对路径
 
   std::unordered_map<std::shared_ptr<SemanticNode>, std::vector<std::string>>
-      InheritEdges;
+      InheritEdges; // 通过记录继承关系 // identifier
 
   std::unordered_map<std::shared_ptr<SemanticNode>, std::vector<std::string>>
-      DeclEdges;
+      implementEdges;
 
   std::unordered_map<std::shared_ptr<SemanticNode>, std::vector<std::string>>
-      ReadFieldEdges;
+      ReadFieldEdges; // function里着重注意
 
   std::unordered_map<std::shared_ptr<SemanticNode>, std::vector<std::string>>
-      WriteFieldEdges;
+      WriteFieldEdges; // function里着重注意
 
   std::unordered_map<std::shared_ptr<SemanticNode>, std::vector<std::string>>
       FunctionCallEdges;

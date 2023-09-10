@@ -22,6 +22,21 @@ public:
                      OriginalSignature, std::move(Comment), Point,
                      std::move(USR)),
         BeforeFirstChildEOL(BeforeFirstChildEOL) {}
+
+  size_t hashSignature() const override {
+    size_t H = 1;
+    if (!this->USR.empty()) { // USR is the most important
+      mergebot::hash_combine(H, this->USR);
+      return H;
+    }
+    // visibility change is a refactoring, we intentionally don't count it
+    //    if (AccessSpecifier != AccessSpecifierKind::None) {
+    //
+    //    }
+    mergebot::hash_combine(H, this->Type);
+    mergebot::hash_combine(H, this->QualifiedName + this->DisplayName);
+    return H;
+  }
 };
 } // namespace sa
 } // namespace mergebot

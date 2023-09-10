@@ -58,7 +58,7 @@ enum struct {
 };
 
 // scoped with base
-enum class: base {
+enum class K: base {
 
 };
 
