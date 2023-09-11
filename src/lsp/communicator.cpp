@@ -39,11 +39,15 @@ std::unique_ptr<PipeCommunicator> PipeCommunicator::create(
 
     return nullptr;
   } else if (processId == 0) {
-    // child process
+    // Child process
     close(pipeIn[1]);
     close(pipeOut[0]);
-    dup2(pipeIn[0], STDIN_FILENO);
-    dup2(pipeOut[1], STDOUT_FILENO);
+
+    if (dup2(pipeIn[0], STDIN_FILENO) == -1 ||
+        dup2(pipeOut[1], STDOUT_FILENO) == -1) {
+      perror("Failed to dup2");
+      exit(EXIT_FAILURE);
+    }
 
     std::string logFileName =
         (fs::path(LOG_FOLDER) / fmt::format("child-{}-stderr.log", getpid()))
@@ -51,14 +55,20 @@ std::unique_ptr<PipeCommunicator> PipeCommunicator::create(
     fs::create_directories(LOG_FOLDER);
     int logFd = open(logFileName.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (logFd == -1) {
-      perror(logFileName.c_str());
-      assert(false && "language server failed to open log file");
+      perror("Failed to open log file");
+      exit(EXIT_FAILURE);
     }
-    dup2(logFd, STDERR_FILENO);
+
+    if (dup2(logFd, STDERR_FILENO) == -1) {
+      perror("Failed to dup2 for STDERR");
+      close(logFd);
+      exit(EXIT_FAILURE);
+    }
     close(logFd);
 
     execl(executable, args, NULL);
-    assert(false && fmt::format("failed to exec: {}", strerror(errno)).c_str());
+    perror("Failed to exec");
+    exit(EXIT_FAILURE);
   } else {
     // parent process
     close(pipeIn[0]);

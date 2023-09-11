@@ -12,25 +12,30 @@
 #include "mergebot/parser/utils.h"
 
 void ExtractNamespaceFields(std::string_view code) {
-  std::string original_signature;
-  std::string namespace_identifier;
-  int n_offset = -1;
-
-  // Adjusted regex pattern
-  RE2 pattern(R"(((inline\s+)?namespace\s*([^\s{]*))\s*\{)");
-  re2::StringPiece input(code.data(), code.size());
-
-  if (RE2::PartialMatch(input, pattern, &original_signature, nullptr,
-                        &namespace_identifier)) {
-    if (!namespace_identifier.empty()) {
-      n_offset = input.find(namespace_identifier) - 1;
+  std::string DisplayName;
+  std::string OriginalSignature;
+  std::string Inline;
+  int NOffset = 0;
+  RE2 pattern(R"(((inline\s+)?namespace\s*([^\s{]*)\s*)\{)");
+  re2::StringPiece input(code);
+  if (RE2::PartialMatch(input, pattern, &OriginalSignature, &Inline,
+                        &DisplayName)) {
+    if (!DisplayName.empty()) {
+      NOffset = input.find(DisplayName);
+      size_t QualifiedOffset = DisplayName.rfind("::");
+      if (QualifiedOffset != std::string::npos) {
+        NOffset += (QualifiedOffset + 2);  // 2 for "::"
+      }
     }
+  } else {
+    assert(false && "it seems that Node is not a namespace node");
   }
 
   // Output results
-  std::cout << "Original Signature: " << original_signature << "\n";
-  std::cout << "Namespace Identifier: " << namespace_identifier << "\n";
-  std::cout << "N Offset: " << n_offset << "\n";
+  std::cout << "Original Signature: " << OriginalSignature << "\n";
+  std::cout << "Namespace Identifier: " << DisplayName << "\n";
+  std::cout << "N Offset: " << NOffset << "\n";
+  std::cout << "inline: " << Inline << "\n";
 }
 
 TEST(Extract, ExtractNamespaceFields) {
@@ -60,6 +65,17 @@ TEST(Extract, ExtractNamespaceFields) {
   static const int a = 3;
   void dosomething();
 })");
+
+  ExtractNamespaceFields(
+      "namespace rocksdb {\n"
+      "\n"
+      "std::unique_ptr<ThreadLocalPtr::StaticMeta> "
+      "ThreadLocalPtr::StaticMeta::inst_;\n"
+      "port::Mutex ThreadLocalPtr::StaticMeta::mutex_;\n"
+      "#if !defined(OS_MACOSX)\n"
+      "__thread ThreadLocalPtr::ThreadData* ThreadLocalPtr::StaticMeta::tls_ = "
+      "nullptr;\n"
+      "#endif");
 }
 
 // TEST(Match, HeaderGuard) {

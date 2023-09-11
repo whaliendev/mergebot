@@ -55,7 +55,7 @@ class JSONRpcEndpoint final {
  private:
   std::string fillMessageHeader(const std::string &json);
   std::string readLine();
-  std::string readMessageContent(size_t len);
+  std::string readMessageContent(ssize_t len);
 
   const char *LEN_HEADER = "Content-Length: ";
   const char *TYPE_HEADER = "Content-Type: ";

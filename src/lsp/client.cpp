@@ -29,7 +29,7 @@ ssize_t JSONRpcEndpoint::SendRequest(const RpcRequestBody& json) {
 
 std::optional<JSONRpcEndpoint::RpcResponseBody>
 JSONRpcEndpoint::RecvResponse() {
-  int bodySize = -1;
+  ssize_t bodySize = -1;
   while (true) {
     std::string line = readLine();
     if (line.empty()) {
@@ -46,7 +46,8 @@ JSONRpcEndpoint::RecvResponse() {
       break;
     } else if (util::starts_with(line, LEN_HEADER)) {
       line = line.substr(strlen(LEN_HEADER));
-      bodySize = atoi(line.c_str());
+      char* end;
+      bodySize = static_cast<ssize_t>(strtoll(line.c_str(), &end, 10));
     } else if (util::starts_with(line, TYPE_HEADER)) {
       spdlog::debug("content type line found: {}", line);
     } else {
@@ -106,7 +107,7 @@ std::string JSONRpcEndpoint::readLine() {
   return std::string(buf);
 }
 
-std::string JSONRpcEndpoint::readMessageContent(size_t len) {
+std::string JSONRpcEndpoint::readMessageContent(ssize_t len) {
   std::unique_lock<std::shared_mutex> lock(rwMutex);
   std::string content;
   content.resize(len);

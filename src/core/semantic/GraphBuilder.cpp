@@ -131,12 +131,12 @@ bool GraphBuilder::build() {
     return false;
   }
 
-  //  for (std::string const &Path : SourceList) {
-  //    processTranslationUnit(Path);
-  //  }
-  for (size_t i = 0; i < 5; i++) {
-    processTranslationUnit(SourceList[i]);
+  for (std::string const &Path : SourceList) {
+    processTranslationUnit(Path);
   }
+  //  for (size_t i = 0; i < 5; i++) {
+  //    processTranslationUnit(SourceList[i]);
+  //  }
   return true;
 }
 
@@ -461,8 +461,9 @@ GraphBuilder::parseNamespaceNode(const ts::Node &Node, bool IsConflicting,
   std::string OriginalSignature;
   std::string Inline;
   int NOffset = 0;
-  RE2 pattern(R"(((inline\s+)?namespace\s*([^\s{]*))\s*\{)");
-  re2::StringPiece input(Node.text().data(), Node.text().size());
+  RE2 pattern(R"(((inline\s+)?namespace\s*([^\s{]*)\s*)\{)");
+  std::string NodeContent = Node.text();
+  re2::StringPiece input(NodeContent);
   if (RE2::PartialMatch(input, pattern, &OriginalSignature, &Inline,
                         &DisplayName)) {
     if (!DisplayName.empty()) {
@@ -527,8 +528,13 @@ std::shared_ptr<FieldDeclarationNode> GraphBuilder::parseFieldDeclarationNode(
   if (DeclaratorNodeOpt.has_value()) {
     const ts::Node &DeclaratorNode = DeclaratorNodeOpt.value();
     auto StartPoint = DeclaratorNode.startPoint();
+    const std::string DeclaratorText = DeclaratorNode.text();
+    std::vector<std::string_view> QualifiedNames =
+        util::string_split(DeclaratorText, " ", false);
+    size_t Offset = DeclaratorText.find_first_of(QualifiedNames.back());
     RowPos = StartPoint.row;
-    ColPos = StartPoint.column;
+    // FIXME(hwa): * or & col offset needs to be fixed
+    ColPos = StartPoint.column + Offset;
 
     // 查找References
     References = getReferences(
@@ -572,10 +578,11 @@ GraphBuilder::parseEnumNode(const ts::Node &Node, bool IsConflicting,
   auto [row, col] = Node.startPoint();
 
   const std::string pattern =
-      R"(((enum\s*(class|struct)?)((\s*\[\[[^\]]+\]\])*)?\s*([a-zA-Z_][a-zA-Z0-9_:]*)?\s*(:\s*[a-zA-Z_][a-zA-Z0-9_]*)?)\s*\{)";
+      R"(((enum\s*(class|struct)?)((\s*\[\[[^\]]+\]\])*)?\s*([a-zA-Z_][a-zA-Z0-9_:]*)?\s*(:\s*.*\s+)?\s*)\{)";
   re2::RE2 re(pattern);
   std::string EnumKey, Attrs, EnumName, EnumBase, OriginalSignature;
-  re2::StringPiece input(Node.text());
+  std::string EnumNodeContent = Node.text();
+  re2::StringPiece input(EnumNodeContent);
   re2::StringPiece enum_name_pieces;
   if (re2::RE2::PartialMatch(input, re, &OriginalSignature, &EnumKey, nullptr,
                              &Attrs, nullptr, &enum_name_pieces, &EnumBase)) {
@@ -673,9 +680,14 @@ GraphBuilder::parseFuncDefNode(const ts::Node &Node, bool IsConflicting,
   const ts::Node DeclaratorNode =
       FDefNode.getChildByFieldName(ts::cpp::fields::field_declarator.name)
           .value();
-  std::string FuncName =
+  std::string QualifiedFuncName =
       DeclaratorNode.text().substr(0, DeclaratorNode.text().find('('));
-  ts::FuncDefInfo DefInfo = ts::extractFuncDefInfo(FDefNode.text(), FuncName);
+  // as QualifiedFuncName may be "* funcName", tree sitter will interpret a
+  // return value pointer to declarator
+  std::vector<std::string_view> Names =
+      util::string_split(QualifiedFuncName, " ", false);
+  ts::FuncDefInfo DefInfo =
+      ts::extractFuncDefInfo(FDefNode.text(), std::string(Names.back()));
 
   std::string QualifiedName;
   std::string USR;
