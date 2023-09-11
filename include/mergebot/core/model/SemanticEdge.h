@@ -18,6 +18,9 @@ public:
   SemanticEdge(int ID, EdgeKind Kind)
       : ID(ID), Kind(Kind), Weight(1), IsPhysical(true) {}
 
+  SemanticEdge()
+      : ID(-1), Kind(EdgeKind::ILLEGAL), Weight(-1), IsPhysical(false) {}
+
   int ID;
   EdgeKind Kind;
   int Weight;      // how many times it appears

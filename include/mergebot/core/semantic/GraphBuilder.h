@@ -43,7 +43,7 @@ public:
   typedef boost::adjacency_list<
       boost::listS,     // Store out-edges of each vertex in std::list
       boost::vecS,      // Store vertex set in std::vector
-      boost::directedS, // The graph is bidirectional
+      boost::directedS, // The graph is directed
       std::shared_ptr<SemanticNode>, // Vertex properties
       SemanticEdge                   // Edge properties
       >

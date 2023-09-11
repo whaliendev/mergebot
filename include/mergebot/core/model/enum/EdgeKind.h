@@ -10,6 +10,7 @@
 namespace mergebot {
 namespace sa {
 enum class EdgeKind : uint8_t {
+  ILLEGAL,
   /**
    * file and folder level
    */

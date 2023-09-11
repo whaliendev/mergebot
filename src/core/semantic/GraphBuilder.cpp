@@ -554,6 +554,7 @@ std::shared_ptr<FieldDeclarationNode> GraphBuilder::parseFieldDeclarationNode(
           Node.startPoint(), std::move(USR), Node.text(),
           ts::getFollowingEOLs(Node), std::move(Declarator),
           ParentSignatureHash);
+  return FDNodePtr;
 }
 
 std::shared_ptr<LinkageSpecNode>

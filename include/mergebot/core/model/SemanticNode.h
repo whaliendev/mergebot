@@ -39,10 +39,15 @@ public:
 
   virtual ~SemanticNode() = default;
 
+public:
   // id in graph
   int ID;
   bool NeedToMerge;
 
+protected:
+  const NodeKind Kind;
+
+public:
   // identifier extracted
   std::string DisplayName;
   // container qualified name, get from lsp
@@ -67,10 +72,6 @@ public:
 
   std::vector<std::shared_ptr<SemanticNode>> Children;
 
-protected:
-  const NodeKind Kind;
-
-public:
   NodeKind getKind() const { return Kind; }
 
   static bool classof(const SemanticNode *N) {
