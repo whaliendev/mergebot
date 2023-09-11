@@ -29,6 +29,40 @@
 
 namespace mergebot {
 namespace details {
+
+sa::AccessSpecifierKind
+getAccessSpecifierKind(std::string_view AccessSpecifier) {
+  if (AccessSpecifier.find("public") != std::string_view::npos) {
+    return sa::AccessSpecifierKind::Public;
+  } else if (AccessSpecifier.find("protected") != std::string_view::npos) {
+    return sa::AccessSpecifierKind::Protected;
+  } else if (AccessSpecifier.find("private") != std::string_view::npos) {
+    return sa::AccessSpecifierKind::Private;
+  } else {
+    spdlog::error("unexpected access specifier: {}", AccessSpecifier);
+    return sa::AccessSpecifierKind::None;
+  }
+}
+
+bool IsClassSpecifier(std::string_view child_type) {
+  namespace symbols = ts::cpp::symbols;
+  return child_type == symbols::sym_class_specifier.name ||
+         child_type == symbols::sym_struct_specifier.name ||
+         child_type == symbols::sym_union_specifier.name;
+}
+
+bool IsTextualNode(std::string_view child_type) {
+  namespace symbols = ts::cpp::symbols;
+  return child_type == symbols::sym_preproc_ifdef.name ||
+         child_type == symbols::sym_using_declaration.name ||
+         child_type == symbols::sym_type_definition.name ||
+         child_type == symbols::sym_alias_declaration.name ||
+         child_type == symbols::sym_enumerator.name ||
+         child_type == symbols::sym_declaration.name ||
+         child_type == symbols::sym_static_assert_declaration.name ||
+         child_type == symbols::sym_friend_declaration.name;
+}
+
 bool IsCppSource(std::string_view path) {
   using namespace std::string_view_literals;
   std::unordered_set<std::string_view> cpp_exts = {
@@ -193,14 +227,7 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
       SRoot->Children.push_back(NamespacePtr);
       parseCompositeNode(NamespacePtr, IsConflicting, Child, FilePath);
     } else if (TerminalTypes.count(ChildType)) { // plain terminal
-      if (ChildType == symbols::sym_preproc_ifdef.name ||
-          ChildType == symbols::sym_using_declaration.name ||
-          ChildType == symbols::sym_type_definition.name ||
-          ChildType == symbols::sym_alias_declaration.name ||
-          ChildType == symbols::sym_enumerator.name ||
-          ChildType == symbols::sym_declaration.name ||
-          ChildType == symbols::sym_static_assert_declaration.name ||
-          ChildType == symbols::sym_friend_declaration.name) {
+      if (details::IsTextualNode(ChildType)) {
         std::shared_ptr<SemanticNode> TextualPtr =
             parseTextualNode(Child, IsConflicting, SRoot->hashSignature());
         TextualPtr->FollowingEOL = ts::getFollowingEOLs(Child);
@@ -212,7 +239,7 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
         if (Orphan) {
           std::shared_ptr<SemanticNode> OrphanCommentPtr =
               std::make_shared<OrphanCommentNode>(
-                  NodeCount++, IsConflicting, NodeType::ORPHAN_COMMENT, Comment,
+                  NodeCount++, IsConflicting, NodeKind::ORPHAN_COMMENT, Comment,
                   "", Comment, "", Child.startPoint(), "", "",
                   ts::getFollowingEOLs(Child));
           addVertex(OrphanCommentPtr);
@@ -264,13 +291,59 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
         }
       } else if (ChildType == symbols::sym_template_declaration.name) {
         // class template or function template definition
+        enum TemplateDeclKind { CLASS_TEMPLATE, FUNCTION_TEMPLATE, UNKNOWN };
+        TemplateDeclKind Kind = UNKNOWN;
+        for (const auto &ChildChild : Child.children) {
+          if (details::IsClassSpecifier(ChildChild.type())) {
+            Kind = CLASS_TEMPLATE;
+            break;
+          } else if (ChildChild.type() ==
+                     symbols::sym_function_definition.name) {
+            Kind = FUNCTION_TEMPLATE;
+            break;
+          }
+        }
+        if (Kind == FUNCTION_TEMPLATE) {
+          std::shared_ptr<SemanticNode> FuncDefNodePtr =
+              parseFuncDefNode(Child, IsConflicting, FilePath);
+          addVertex(FuncDefNodePtr);
+          SRoot->Children.push_back(FuncDefNodePtr);
+        } else if (Kind == CLASS_TEMPLATE) {
+          auto [TypeDeclNodePtr, TypeKind] =
+              parseTypeDeclNode(Child, IsConflicting, FilePath);
+          std::shared_ptr<SemanticNode> SemanticPtr = TypeDeclNodePtr;
+          addVertex(TypeDeclNodePtr);
+          SRoot->Children.push_back(TypeDeclNodePtr);
+          parseCompositeNode(SemanticPtr, IsConflicting, Child, FilePath);
+          TypeDeclNodePtr->setMemberAccessSpecifier();
+        } else {
+          spdlog::error("unexpected template declaration: file path is {}, row "
+                        "is: {}, node type is {}, isNamed is {}, text is {}",
+                        FilePath, Child.startPoint(), Child.type(),
+                        Child.isNamed(), Child.text());
+          assert(false);
+        }
       } else if (ChildType == symbols::sym_access_specifier.name) {
-        // access specifier
+        SemanticNode *ParentRawPtr = SRoot.get();
+        AccessSpecifierKind AccessKind =
+            details::getAccessSpecifierKind(Child.text());
+        // SRoot must be a class specifier type
+        if (ChildCnt != 0) {
+          if (auto *TypeDeclPtr = llvm::dyn_cast<TypeDeclNode>(ParentRawPtr)) {
+            TypeDeclPtr->AccessSpecifierQue.push({AccessKind, ChildCnt});
+          } else {
+            spdlog::error("access specifier should only appear in type decl "
+                          "node: file path is {}, location "
+                          "is: {}, node type is {}, isNamed is {}, text is {}",
+                          FilePath, Child.startPoint(), Child.type(),
+                          Child.isNamed(), Child.text());
+            assert(false &&
+                   "access specifier should only appear in type decl node");
+          }
+        }
       }
     } else if (ComplexTypes.count(ChildType)) { // complex type
-      if (ChildType == symbols::sym_class_specifier.name ||
-          ChildType == symbols::sym_struct_specifier.name ||
-          ChildType == symbols::sym_union_specifier.name) {
+      if (details::IsClassSpecifier(ChildType)) {
         const std::optional<ts::Node> TypeBodyOpt = Child.getChildByFieldName(
             fields::field_body.name); // class, struct, union body
         if (!TypeBodyOpt.has_value()) {
@@ -285,7 +358,7 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
           addVertex(TypeDeclNodePtr);
           SRoot->Children.push_back(TypeDeclNodePtr);
           parseCompositeNode(SemanticPtr, IsConflicting, Child, FilePath);
-          // TODO(hwa): 修正子结点的可见性标识
+          TypeDeclNodePtr->setMemberAccessSpecifier();
         }
       } else if (ChildType == symbols::sym_linkage_specification.name) {
         const std::optional<ts::Node> LinkageBodyOpt =
@@ -324,7 +397,7 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
       }
     } else {
       spdlog::error(
-          "unexpected node: file path is {}, row is: {}, node type is {}, "
+          "unexpected node: file path is {}, location is: {}, node type is {}, "
           "isNamed is {}, text is {}",
           FilePath, Child.startPoint(), Child.type(), Child.isNamed(),
           Child.text());
@@ -365,7 +438,7 @@ std::shared_ptr<TranslationUnitNode> GraphBuilder::parseTranslationUnit(
   }
 
   return std::make_shared<TranslationUnitNode>(
-      NodeCount++, IsConflicting, NodeType::TRANSLATION_UNIT, Path,
+      NodeCount++, IsConflicting, NodeKind::TRANSLATION_UNIT, Path,
       Meta.ProjectPath, FilePath, std::move(Comment), std::nullopt,
       std::string(Path), Path, IsHeader, TraditionGuard, std::move(HeaderGuard),
       std::move(FrontDecls), BeforeFirstChildEOL);
@@ -416,7 +489,7 @@ GraphBuilder::parseNamespaceNode(const ts::Node &Node, bool IsConflicting,
   }
 
   return std::make_shared<NamespaceNode>(
-      NodeCount++, IsConflicting, NodeType::NAMESPACE, DisplayName,
+      NodeCount++, IsConflicting, NodeKind::NAMESPACE, DisplayName,
       QualifiedName, OriginalSignature, std::move(Comment), Node.startPoint(),
       std::move(USR), BeforeFirstChildEOL, std::move(NSComment));
 }
@@ -426,7 +499,7 @@ GraphBuilder::parseTextualNode(const ts::Node &Node, bool IsConflicting,
                                size_t ParentSignatureHash) {
   std::string TextContent = Node.text();
   return std::make_shared<TextualNode>(
-      NodeCount++, IsConflicting, NodeType::TEXTUAL, TextContent, "",
+      NodeCount++, IsConflicting, NodeKind::TEXTUAL, TextContent, "",
       TextContent, ts::getNodeComment(Node), Node.startPoint(), "",
       std::move(TextContent), ts::getFollowingEOLs(Node), ParentSignatureHash);
 }
@@ -453,7 +526,7 @@ std::shared_ptr<FieldDeclarationNode> GraphBuilder::parseFieldDeclarationNode(
     QualifiedName = details.containerName.value_or("");
   }
   return std::make_shared<FieldDeclarationNode>(
-      NodeCount++, IsConflicting, NodeType::FIELD_DECLARATION,
+      NodeCount++, IsConflicting, NodeKind::FIELD_DECLARATION,
       DeclaratorNode.text(), QualifiedName, Node.text(),
       ts::getNodeComment(Node), Node.startPoint(), std::move(USR), Node.text(),
       ts::getFollowingEOLs(Node), DeclaratorNode.text(), ParentSignatureHash);
@@ -463,7 +536,7 @@ std::shared_ptr<LinkageSpecNode>
 GraphBuilder::parseLinkageSpecNode(const ts::Node &Node, bool IsConflicting,
                                    size_t ParentSignatureHash) {
   return std::make_shared<LinkageSpecNode>(
-      NodeCount++, IsConflicting, NodeType::LINKAGE_SPEC_LIST,
+      NodeCount++, IsConflicting, NodeKind::LINKAGE_SPEC_LIST,
       "extern \"C\" {}", "", "", ts::getNodeComment(Node), Node.startPoint(),
       "", ts::beforeFirstChildEOLs(Node), ParentSignatureHash);
 }
@@ -507,7 +580,7 @@ GraphBuilder::parseEnumNode(const ts::Node &Node, bool IsConflicting,
     QualifiedName = details.containerName.value_or("");
   }
   return std::make_shared<EnumNode>(
-      NodeCount++, IsConflicting, NodeType::ENUM, EnumName, QualifiedName,
+      NodeCount++, IsConflicting, NodeKind::ENUM, EnumName, QualifiedName,
       OriginalSignature, ts::getNodeComment(Node), Node.startPoint(),
       std::move(USR), ts::beforeFirstChildEOLs(Node), EnumKey, Attrs, EnumBase);
 }
@@ -550,7 +623,7 @@ GraphBuilder::parseTypeDeclNode(const ts::Node &Node, bool IsConflicting,
 
   return std::pair<std::shared_ptr<TypeDeclNode>, TypeDeclNode::TypeDeclKind>({
       std::make_shared<TypeDeclNode>(
-          NodeCount++, IsConflicting, NodeType::Type, Info.ClassName,
+          NodeCount++, IsConflicting, NodeKind::TYPE, Info.ClassName,
           QualifiedName, Info.OriginalSignature, ts::getNodeComment(Node),
           Node.startPoint(), std::move(USR), ts::beforeFirstChildEOLs(Node),
           Kind, std::move(Info.Attrs), Info.IsFinal, std::move(Info.BaseClause),
@@ -627,7 +700,7 @@ GraphBuilder::parseFuncDefNode(const ts::Node &Node, bool IsConflicting,
   std::string BodyText = BodyOpt.has_value() ? BodyOpt.value().text() : "";
 
   std::shared_ptr<FuncDefNode> FuncDefNodePtr = std::make_shared<FuncDefNode>(
-      NodeCount++, IsConflicting, NodeType::FUNC_DEF, DefInfo.FuncName,
+      NodeCount++, IsConflicting, NodeKind::FUNC_DEF, DefInfo.FuncName,
       QualifiedName, DefInfo.OriginalSignature, ts::getNodeComment(Node),
       Node.startPoint(), std::move(USR), std::move(BodyText),
       ts::getFollowingEOLs(Node), std::move(DefInfo.TemplateParameterList),
@@ -660,7 +733,7 @@ std::shared_ptr<FuncOperatorCastNode> GraphBuilder::parseFuncOperatorCastNode(
   std::string BodyText = BodyOpt.has_value() ? BodyOpt.value().text() : "";
 
   return std::make_shared<FuncOperatorCastNode>(
-      NodeCount++, IsConflicting, NodeType::FUNC_OPERATOR_CAST, Info.FuncName,
+      NodeCount++, IsConflicting, NodeKind::FUNC_OPERATOR_CAST, Info.FuncName,
       QualifiedName, Info.OriginalSignature, ts::getNodeComment(Node),
       Node.startPoint(), std::move(USR), std::move(BodyText),
       ts::getFollowingEOLs(Node), std::move(Info.TemplateParameterList),
@@ -722,7 +795,7 @@ std::shared_ptr<FuncSpecialMemberNode> GraphBuilder::parseFuncSpecialMemberNode(
 
   std::shared_ptr<FuncSpecialMemberNode> FSMPtr =
       std::make_shared<FuncSpecialMemberNode>(
-          NodeCount++, IsConflicting, NodeType::FUNC_SPECIAL_MEMBER,
+          NodeCount++, IsConflicting, NodeKind::FUNC_SPECIAL_MEMBER,
           Info.FuncName, QualifiedName, Info.OriginalSignature,
           ts::getNodeComment(Node), Node.startPoint(), std::move(USR),
           std::move(BodyText), ts::getFollowingEOLs(Node), Info.DefType,
@@ -796,7 +869,7 @@ GraphBuilder::~GraphBuilder() {
 //     DisplayName = TextContent.substr(0, Pos);
 //   }
 //   return std::make_shared<IfDefBlockNode>(
-//       NodeCount++, IsConflicting, NodeType::IFDEF_BLOCK, DisplayName, "",
+//       NodeCount++, IsConflicting, NodeKind::IFDEF_BLOCK, DisplayName, "",
 //       TextContent, ts::getNodeComment(Node), Node.startPoint(), "",
 //       std::move(TextContent));
 // }
@@ -808,7 +881,7 @@ GraphBuilder::~GraphBuilder() {
 //    std::string Key;
 //    std::string Value;
 //    return std::make_shared<AliasNode>(
-//        NodeCount++, IsConflicting, NodeType::USING, Node.text(), "",
+//        NodeCount++, IsConflicting, NodeKind::USING, Node.text(), "",
 //        Node.text(), ts::getNodeComment(Node), Node.startPoint(), "",
 //        Node.text(), false, Key);
 //  } else {

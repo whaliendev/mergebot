@@ -15,17 +15,20 @@ enum class EdgeKind : uint8_t {
    */
   CONTAIN, // isStructuralEdge
   INCLUDE,
-  INHERIT,
+  //  INHERIT,
+  REFERENCE,
+  DEFINE,
+  USE
   /**
    * inside file
    */
-  DECLARE,
-  DEFINE,
-  INITIALIZE,
-  READ,
-  WRITE,
-  CALL,
-  COUNT
+  //  DECLARE,
+  //  DEFINE,
+  //  INITIALIZE,
+  //  READ,
+  //  WRITE,
+  //  CALL,
+  //  COUNT
 };
 
 struct EdgeTypeInfo {
@@ -41,22 +44,23 @@ struct EdgeTypeInfo {
 };
 
 // Preallocate EdgeTypeInfo instances at compile-time in a fixed-size array
-constexpr std::array<EdgeTypeInfo, static_cast<std::uint8_t>(EdgeKind::COUNT)>
-    EDGE_TYPE_INFO_ARRAY = {
-        EdgeTypeInfo(EdgeKind::CONTAIN, true, "contains"),
-        EdgeTypeInfo(EdgeKind::INCLUDE, false, "includes"),
-        EdgeTypeInfo(EdgeKind::INHERIT, false, "inherits"),
-        EdgeTypeInfo(EdgeKind::DECLARE, false, "declares"),
-        EdgeTypeInfo(EdgeKind::DEFINE, false, "defines"),
-        EdgeTypeInfo(EdgeKind::INITIALIZE, false, "initializes"),
-        EdgeTypeInfo(EdgeKind::READ, false, "reads"),
-        EdgeTypeInfo(EdgeKind::WRITE, false, "writes"),
-        EdgeTypeInfo(EdgeKind::CALL, false, "calls")};
+// constexpr std::array<EdgeTypeInfo,
+// static_cast<std::uint8_t>(EdgeKind::COUNT)>
+//    EDGE_TYPE_INFO_ARRAY = {
+//        EdgeTypeInfo(EdgeKind::CONTAIN, true, "contains"),
+//        EdgeTypeInfo(EdgeKind::INCLUDE, false, "includes"),
+//        EdgeTypeInfo(EdgeKind::INHERIT, false, "inherits"),
+//        EdgeTypeInfo(EdgeKind::DECLARE, false, "declares"),
+//        EdgeTypeInfo(EdgeKind::DEFINE, false, "defines"),
+//        EdgeTypeInfo(EdgeKind::INITIALIZE, false, "initializes"),
+//        EdgeTypeInfo(EdgeKind::READ, false, "reads"),
+//        EdgeTypeInfo(EdgeKind::WRITE, false, "writes"),
+//        EdgeTypeInfo(EdgeKind::CALL, false, "calls")};
 
 // Access EdgeTypeInfo using array indexing
-constexpr const EdgeTypeInfo &getEdgeTypeInfo(EdgeKind type) {
-  return EDGE_TYPE_INFO_ARRAY[static_cast<std::uint8_t>(type)];
-}
+// constexpr const EdgeTypeInfo &getEdgeTypeInfo(EdgeKind type) {
+//  return EDGE_TYPE_INFO_ARRAY[static_cast<std::uint8_t>(type)];
+//}
 
 } // namespace sa
 } // namespace mergebot
