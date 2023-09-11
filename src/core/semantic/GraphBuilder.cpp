@@ -166,6 +166,7 @@ void GraphBuilder::processCppTranslationUnit(const std::string &Path,
                                              const std::string &FilePath,
                                              bool IsConflicting) {
   std::string FileSource = util::file_get_content(FilePath);
+
   /// TODO(hwa): add macro replace here
   /// replace macro to magic string /*MB_MR_BG*/ MACRO /*MB_MR_ED*/
 
@@ -194,10 +195,15 @@ void GraphBuilder::processCppTranslationUnit(const std::string &Path,
 
   size_t FrontDeclCnt = 0;
   ts::Node TURoot = TSRoot;
+  // 如果是头文件，并且使用的是传统的header
+  // guard，那么TSRoot是一个preproc_ifdef，
+  // 并且FrontDeclCnt同时也要进行更新；如果是头文件或实现文件，有#pragma header
+  // guard 或无header guard，那么TSRoot是translation_unit; FrontDeclCnt不用更新
   std::shared_ptr<SemanticNode> TUPtr = parseTranslationUnit(
       TSRoot, IsConflicting, Path, FilePath, FrontDeclCnt, TURoot);
-  addVertex(TUPtr);
-  parseCompositeNode(TUPtr, IsConflicting, TSRoot, FilePath, FrontDeclCnt);
+  vertex_descriptor TUVertex = addVertex(TUPtr);
+  parseCompositeNode(TUPtr, TUVertex, IsConflicting, TURoot, FilePath,
+                     FrontDeclCnt);
 
   // build edges
 
@@ -210,29 +216,30 @@ void GraphBuilder::processCppTranslationUnit(const std::string &Path,
 }
 
 void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
-                                      bool IsConflicting,
-                                      const ts::Node &TSRoot,
+                                      const vertex_descriptor &SRootVDesc,
+                                      bool IsConflicting, const ts::Node &Root,
                                       const std::string &FilePath,
                                       const int FirstChildIdx /* = 0 */) {
   namespace symbols = ts::cpp::symbols;
   namespace fields = ts::cpp::fields;
   size_t ChildCnt = 0;
-  for (size_t Idx = FirstChildIdx; Idx < TSRoot.childrenCount(); ++ChildCnt) {
-    const ts::Node &Child = TSRoot.children[Idx];
+  for (size_t Idx = FirstChildIdx; Idx < Root.childrenCount(); ++ChildCnt) {
+    const ts::Node &Child = Root.children[Idx];
     const std::string ChildType = Child.type();
     if (CompositeTypes.count(ChildType)) { // plain Composite
       std::shared_ptr<SemanticNode> NamespacePtr =
           parseNamespaceNode(Child, IsConflicting, FilePath);
-      addVertex(NamespacePtr);
-      SRoot->Children.push_back(NamespacePtr);
-      parseCompositeNode(NamespacePtr, IsConflicting, Child, FilePath);
+      auto [CurDesc, _] =
+          insertToGraphAndParent(SRoot, SRootVDesc, NamespacePtr);
+      parseCompositeNode(
+          NamespacePtr, CurDesc, IsConflicting,
+          Child.getChildByFieldName(fields::field_body.name).value(), FilePath);
     } else if (TerminalTypes.count(ChildType)) { // plain terminal
       if (details::IsTextualNode(ChildType)) {
         std::shared_ptr<SemanticNode> TextualPtr =
             parseTextualNode(Child, IsConflicting, SRoot->hashSignature());
         TextualPtr->FollowingEOL = ts::getFollowingEOLs(Child);
-        addVertex(TextualPtr);
-        SRoot->Children.push_back(TextualPtr);
+        insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
       } else if (ChildType == symbols::sym_comment.name) {
         size_t CommentCnt = 0;
         auto [Orphan, Comment] = ts::getComment(Child, CommentCnt);
@@ -242,17 +249,15 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
                   NodeCount++, IsConflicting, NodeKind::ORPHAN_COMMENT, Comment,
                   "", Comment, "", Child.startPoint(), "", "",
                   ts::getFollowingEOLs(Child));
-          addVertex(OrphanCommentPtr);
-          SRoot->Children.push_back(OrphanCommentPtr);
+          insertToGraphAndParent(SRoot, SRootVDesc, OrphanCommentPtr);
           Idx +=
               CommentCnt - 1; // -1 as the loop end will auto increment Idx by 1
         }
       } else if (ChildType == symbols::sym_field_declaration.name) {
         std::shared_ptr<SemanticNode> FieldDeclPtr = parseFieldDeclarationNode(
-            FilePath, Child, IsConflicting, SRoot->hashSignature());
+            Child, IsConflicting, SRoot->hashSignature(), FilePath);
         FieldDeclPtr->FollowingEOL = ts::getFollowingEOLs(Child);
-        addVertex(FieldDeclPtr);
-        SRoot->Children.push_back(FieldDeclPtr);
+        insertToGraphAndParent(SRoot, SRootVDesc, FieldDeclPtr);
       } else if (ChildType == symbols::sym_function_definition.name) {
         const std::optional<ts::Node> TypeOpt =
             Child.getChildByFieldName(fields::field_type.name);
@@ -261,32 +266,31 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
             // tree-sitter will parse inline namespace as function definition
             std::shared_ptr<SemanticNode> NamespacePtr =
                 parseNamespaceNode(Child, IsConflicting, FilePath);
-            addVertex(NamespacePtr);
-            SRoot->Children.push_back(NamespacePtr);
-            parseCompositeNode(NamespacePtr, IsConflicting, Child, FilePath);
+            auto [NSDesc, _] =
+                insertToGraphAndParent(SRoot, SRootVDesc, NamespacePtr);
+            parseCompositeNode(
+                NamespacePtr, NSDesc, IsConflicting,
+                Child.getChildByFieldName(fields::field_body.name).value(),
+                FilePath);
           } else {
             // plain function definition
             std::shared_ptr<SemanticNode> FncDefNodePtr =
                 parseFuncDefNode(Child, IsConflicting, FilePath);
-            addVertex(FncDefNodePtr);
-            SRoot->Children.push_back(FncDefNodePtr);
+            insertToGraphAndParent(SRoot, SRootVDesc, FncDefNodePtr);
           }
         } else { // without return value
           const std::optional<ts::Node> declaratorOpt =
-              Child.getChildByFieldName(
-                  fields::field_declarator.name); // function declarator
+              Child.getChildByFieldName(fields::field_declarator.name);
           if (declaratorOpt.has_value() &&
               declaratorOpt.value().type() ==
                   symbols::sym_operator_cast.name) { // operator cast function
             std::shared_ptr<SemanticNode> FuncOperatorCastNodePtr =
                 parseFuncOperatorCastNode(Child, IsConflicting, FilePath);
-            addVertex(FuncOperatorCastNodePtr);
-            SRoot->Children.push_back(FuncOperatorCastNodePtr);
+            insertToGraphAndParent(SRoot, SRootVDesc, FuncOperatorCastNodePtr);
           } else { // special function member
             std::shared_ptr<SemanticNode> FuncSpecialMemberNodePtr =
                 parseFuncSpecialMemberNode(Child, IsConflicting, FilePath);
-            addVertex(FuncSpecialMemberNodePtr);
-            SRoot->Children.push_back(FuncSpecialMemberNodePtr);
+            insertToGraphAndParent(SRoot, SRootVDesc, FuncSpecialMemberNodePtr);
           }
         }
       } else if (ChildType == symbols::sym_template_declaration.name) {
@@ -306,15 +310,17 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
         if (Kind == FUNCTION_TEMPLATE) {
           std::shared_ptr<SemanticNode> FuncDefNodePtr =
               parseFuncDefNode(Child, IsConflicting, FilePath);
-          addVertex(FuncDefNodePtr);
-          SRoot->Children.push_back(FuncDefNodePtr);
+          insertToGraphAndParent(SRoot, SRootVDesc, FuncDefNodePtr);
         } else if (Kind == CLASS_TEMPLATE) {
           auto [TypeDeclNodePtr, TypeKind] =
               parseTypeDeclNode(Child, IsConflicting, FilePath);
           std::shared_ptr<SemanticNode> SemanticPtr = TypeDeclNodePtr;
-          addVertex(TypeDeclNodePtr);
-          SRoot->Children.push_back(TypeDeclNodePtr);
-          parseCompositeNode(SemanticPtr, IsConflicting, Child, FilePath);
+          auto [TypeDeclDesc, _] =
+              insertToGraphAndParent(SRoot, SRootVDesc, SemanticPtr);
+          parseCompositeNode(
+              SemanticPtr, TypeDeclDesc, IsConflicting,
+              Child.getChildByFieldName(fields::field_body.name).value(),
+              FilePath);
           TypeDeclNodePtr->setMemberAccessSpecifier();
         } else {
           spdlog::error("unexpected template declaration: file path is {}, row "
@@ -349,15 +355,17 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
         if (!TypeBodyOpt.has_value()) {
           std::shared_ptr<TextualNode> TextualPtr =
               parseTextualNode(Child, IsConflicting, SRoot->hashSignature());
-          addVertex(TextualPtr);
-          SRoot->Children.push_back(TextualPtr);
+          insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
         } else {
           auto [TypeDeclNodePtr, Kind] =
               parseTypeDeclNode(Child, IsConflicting, FilePath);
           std::shared_ptr<SemanticNode> SemanticPtr = TypeDeclNodePtr;
-          addVertex(TypeDeclNodePtr);
-          SRoot->Children.push_back(TypeDeclNodePtr);
-          parseCompositeNode(SemanticPtr, IsConflicting, Child, FilePath);
+          auto [TypeDeclDesc, _] =
+              insertToGraphAndParent(SRoot, SRootVDesc, SemanticPtr);
+          parseCompositeNode(
+              SemanticPtr, TypeDeclDesc, IsConflicting,
+              Child.getChildByFieldName(fields::field_body.name).value(),
+              FilePath);
           TypeDeclNodePtr->setMemberAccessSpecifier();
         }
       } else if (ChildType == symbols::sym_linkage_specification.name) {
@@ -370,14 +378,16 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
             LinkageBody.type() == symbols::sym_function_definition.name) {
           std::shared_ptr<SemanticNode> TextualPtr =
               parseTextualNode(Child, IsConflicting, SRoot->hashSignature());
-          addVertex(TextualPtr);
-          SRoot->Children.push_back(TextualPtr);
+          insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
         } else {
           std::shared_ptr<SemanticNode> LinkagePtr = parseLinkageSpecNode(
               Child, IsConflicting, SRoot->hashSignature());
-          addVertex(LinkagePtr);
-          SRoot->Children.push_back(LinkagePtr);
-          parseCompositeNode(LinkagePtr, IsConflicting, Child, FilePath);
+          auto [LinkageDesc, _] =
+              insertToGraphAndParent(SRoot, SRootVDesc, LinkagePtr);
+          parseCompositeNode(
+              LinkagePtr, LinkageDesc, IsConflicting,
+              Child.getChildByFieldName(fields::field_body.name).value(),
+              FilePath);
         }
       } else if (ChildType == symbols::sym_enum_specifier.name) {
         const std::optional<ts::Node> EnumBodyOpt =
@@ -385,14 +395,16 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
         if (!EnumBodyOpt.has_value()) { // empty enum specifier
           std::shared_ptr<TextualNode> TextualPtr =
               parseTextualNode(Child, IsConflicting, SRoot->hashSignature());
-          addVertex(TextualPtr);
-          SRoot->Children.push_back(TextualPtr);
+          insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
         } else {
           std::shared_ptr<SemanticNode> EnumNodePtr =
               parseEnumNode(Child, IsConflicting, FilePath);
-          addVertex(EnumNodePtr);
-          SRoot->Children.push_back(EnumNodePtr);
-          parseCompositeNode(EnumNodePtr, IsConflicting, Child, FilePath);
+          auto [EnumDesc, _] =
+              insertToGraphAndParent(SRoot, SRootVDesc, EnumNodePtr);
+          parseCompositeNode(
+              EnumNodePtr, EnumDesc, IsConflicting,
+              Child.getChildByFieldName(fields::field_body.name).value(),
+              FilePath);
         }
       }
     } else {
@@ -413,9 +425,6 @@ std::shared_ptr<TranslationUnitNode> GraphBuilder::parseTranslationUnit(
   FrontDeclCnt = CommentPair.first;
   std::string Comment = CommentPair.second;
 
-  // 如果是头文件，有传统的header guard，那么TSRoot是一个preproc_ifdef，
-  // 并且FrontDeclCnt同时也要进行更新；如果是头文件或实现文件，有#pragma header
-  // guard 或无header guard，那么TSRoot是translation_unit; FrontDeclCnt不用更新
   bool IsHeader = false;
   bool TraditionGuard = false;
   std::vector<std::string> HeaderGuard(3);
@@ -450,13 +459,18 @@ GraphBuilder::parseNamespaceNode(const ts::Node &Node, bool IsConflicting,
   // cascade, normal, anonymous, inline
   std::string DisplayName;
   std::string OriginalSignature;
+  std::string Inline;
   int NOffset = 0;
   RE2 pattern(R"(((inline\s+)?namespace\s*([^\s{]*))\s*\{)");
   re2::StringPiece input(Node.text().data(), Node.text().size());
-  if (RE2::PartialMatch(input, pattern, &OriginalSignature, nullptr,
+  if (RE2::PartialMatch(input, pattern, &OriginalSignature, &Inline,
                         &DisplayName)) {
     if (!DisplayName.empty()) {
-      NOffset = input.find(DisplayName) - 1;
+      NOffset = input.find(DisplayName);
+      size_t QualifiedOffset = DisplayName.rfind("::");
+      if (QualifiedOffset != std::string::npos) {
+        NOffset += (QualifiedOffset + 2); // 2 for "::"
+      }
     }
   } else {
     assert(false && "it seems that Node is not a namespace node");
@@ -473,10 +487,6 @@ GraphBuilder::parseNamespaceNode(const ts::Node &Node, bool IsConflicting,
     const lsp::SymbolDetails &details = detailsOpt.value();
     USR = details.usr;
     QualifiedName = details.containerName.value_or("");
-    // if clangd gives us a name, we use the clangd name
-    if (details.name.size()) {
-      DisplayName = details.name;
-    }
   }
 
   std::string Comment = getNodeComment(Node);
@@ -491,7 +501,8 @@ GraphBuilder::parseNamespaceNode(const ts::Node &Node, bool IsConflicting,
   return std::make_shared<NamespaceNode>(
       NodeCount++, IsConflicting, NodeKind::NAMESPACE, DisplayName,
       QualifiedName, OriginalSignature, std::move(Comment), Node.startPoint(),
-      std::move(USR), BeforeFirstChildEOL, std::move(NSComment));
+      std::move(USR), BeforeFirstChildEOL, Inline.size() != 0,
+      std::move(NSComment));
 }
 
 std::shared_ptr<TextualNode>
@@ -505,31 +516,44 @@ GraphBuilder::parseTextualNode(const ts::Node &Node, bool IsConflicting,
 }
 
 std::shared_ptr<FieldDeclarationNode> GraphBuilder::parseFieldDeclarationNode(
-    const std::string &FilePath, const ts::Node &Node, bool IsConflicting,
-    size_t ParentSignatureHash) {
-  // TODO(method or field): add std::vector of reference
+    const ts::Node &Node, bool IsConflicting, size_t ParentSignatureHash,
+    const std::string &FilePath) {
   const std::optional<ts::Node> DeclaratorNodeOpt =
       Node.getChildByFieldName(ts::cpp::fields::field_declarator.name);
-  assert(DeclaratorNodeOpt.has_value() &&
-         "field declaration without declarator");
-  const ts::Node &DeclaratorNode = DeclaratorNodeOpt.value();
+
+  auto [RowPos, ColPos] = Node.startPoint();
+  std::string Declarator;
+  std::vector<std::string> References;
+  if (DeclaratorNodeOpt.has_value()) {
+    const ts::Node &DeclaratorNode = DeclaratorNodeOpt.value();
+    auto StartPoint = DeclaratorNode.startPoint();
+    RowPos = StartPoint.row;
+    ColPos = StartPoint.column;
+
+    // 查找References
+    References = getReferences(
+        FilePath, {static_cast<int>(RowPos), static_cast<int>(ColPos)});
+  }
 
   std::string QualifiedName;
   std::string USR;
-  // TODO(hwa): 重构：获取identifier的偏移
-  auto [row, col] = DeclaratorNode.startPoint();
-  std::optional<lsp::SymbolDetails> detailsOpt = getSymbolDetails(
-      FilePath, lsp::Position{static_cast<int>(row), static_cast<int>(col)});
+  std::string DisplayName;
+  std::optional<lsp::SymbolDetails> detailsOpt =
+      getSymbolDetails(FilePath, lsp::Position{static_cast<int>(RowPos),
+                                               static_cast<int>(ColPos)});
   if (detailsOpt.has_value()) {
     const lsp::SymbolDetails &details = detailsOpt.value();
     USR = details.usr;
     QualifiedName = details.containerName.value_or("");
+    DisplayName = details.name;
   }
-  return std::make_shared<FieldDeclarationNode>(
-      NodeCount++, IsConflicting, NodeKind::FIELD_DECLARATION,
-      DeclaratorNode.text(), QualifiedName, Node.text(),
-      ts::getNodeComment(Node), Node.startPoint(), std::move(USR), Node.text(),
-      ts::getFollowingEOLs(Node), DeclaratorNode.text(), ParentSignatureHash);
+  std::shared_ptr<FieldDeclarationNode> FDNodePtr =
+      std::make_shared<FieldDeclarationNode>(
+          NodeCount++, IsConflicting, NodeKind::FIELD_DECLARATION, DisplayName,
+          QualifiedName, Node.text(), ts::getNodeComment(Node),
+          Node.startPoint(), std::move(USR), Node.text(),
+          ts::getFollowingEOLs(Node), std::move(Declarator),
+          ParentSignatureHash);
 }
 
 std::shared_ptr<LinkageSpecNode>
@@ -826,6 +850,27 @@ GraphBuilder::getSymbolDetails(const lsp::URIForFile &URI,
   return details[0];
 }
 
+std::vector<std::string> GraphBuilder::getReferences(const lsp::URIForFile &URI,
+                                                     const lsp::Position Pos) {
+  auto returned = Client.References(URI, Pos);
+  if (!returned.has_value()) {
+    return {};
+  }
+
+  std::vector<lsp::ReferenceLocation> locations = returned.value();
+  if (!locations.size()) {
+    return {};
+  }
+
+  std::vector<std::string> References;
+  for (auto &location : locations) {
+    if (location.containerName.has_value()) {
+      References.push_back(std::move(location.containerName.value()));
+    }
+  }
+  return References;
+}
+
 bool GraphBuilder::initLanguageServer() {
   auto Communicator = lsp::PipeCommunicator::create("./clangd", "clangd");
   if (!Communicator) {
@@ -853,6 +898,25 @@ GraphBuilder::vertex_descriptor
 GraphBuilder::addVertex(std::shared_ptr<SemanticNode> Node) {
   // Note(hwa): will there be a memory leak?
   return boost::add_vertex(Node, G);
+}
+
+std::pair<GraphBuilder::edge_descriptor, bool>
+GraphBuilder::addEdge(GraphBuilder::vertex_descriptor Source,
+                      GraphBuilder::vertex_descriptor Target,
+                      SemanticEdge Edge) {
+  return boost::add_edge(Source, Target, Edge, G);
+}
+
+std::pair<GraphBuilder::vertex_descriptor, bool>
+GraphBuilder::insertToGraphAndParent(
+    std::shared_ptr<SemanticNode> &ParentPtr,
+    const vertex_descriptor &ParentDesc,
+    const std::shared_ptr<SemanticNode> &CurPtr) {
+  vertex_descriptor CurDesc = addVertex(CurPtr);
+  auto [_, Success] = addEdge(ParentDesc, CurDesc,
+                              SemanticEdge(EdgeCount++, EdgeKind::CONTAIN));
+  ParentPtr->Children.push_back(CurPtr);
+  return {CurDesc, Success};
 }
 
 GraphBuilder::~GraphBuilder() {

@@ -14,16 +14,17 @@ public:
                 const std::string &QualifiedName,
                 const std::string &OriginalSignature, std::string &&Comment,
                 const std::optional<ts::Point> &Point, std::string &&USR,
-                int BeforeFirstChildEOL, std::string &&NSComment)
+                int BeforeFirstChildEOL, bool IsInline, std::string &&NSComment)
       : CompositeNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                       OriginalSignature, std::move(Comment), Point,
                       std::move(USR), BeforeFirstChildEOL),
-        NSComment(std::move(NSComment)) {}
+        IsInline(IsInline), NSComment(std::move(NSComment)) {}
 
   static bool classof(const SemanticNode *N) {
     return N->getKind() == NodeKind::NAMESPACE;
   }
 
+  bool IsInline;
   std::string NSComment;
 };
 } // namespace sa

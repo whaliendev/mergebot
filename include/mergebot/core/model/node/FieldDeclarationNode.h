@@ -36,6 +36,7 @@ public:
 
   std::string Declarator;
   std::size_t ParentSignatureHash;
+  std::vector<std::string> References;
 };
 } // namespace mergebot::sa
 #endif // MB_INCLUDE_MERGEBOT_CORE_MODEL_NODE_FIELDDECLARATIONNODE_H

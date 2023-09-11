@@ -12,16 +12,16 @@ namespace sa {
 class SemanticNode;
 class SemanticEdge {
 public:
-  int i = 4;
+  SemanticEdge(int ID, EdgeKind Kind, int Weight, bool IsPhysical)
+      : ID(ID), Kind(Kind), Weight(Weight), IsPhysical(IsPhysical) {}
 
-private:
+  SemanticEdge(int ID, EdgeKind Kind)
+      : ID(ID), Kind(Kind), Weight(1), IsPhysical(true) {}
+
   int ID;
-  EdgeKind Type;
-  int Weight;
-  std::shared_ptr<SemanticNode> Source;
-  std::shared_ptr<SemanticNode> Target;
-  /// whether the target node is defined inside the graph or not
-  bool IsInternal;
+  EdgeKind Kind;
+  int Weight;      // how many times it appears
+  bool IsPhysical; // physical edge or logical edge
 };
 
 } // namespace sa

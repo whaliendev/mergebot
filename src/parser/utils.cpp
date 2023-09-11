@@ -76,25 +76,25 @@ std::pair<bool, std::vector<std::string>> getHeaderGuard(
          "invariant: node should be a translation unit");
   const ts::Node &HeaderGuardNode = TUNode.children[BeforeBodyChildCnt];
   if (HeaderGuardNode.type() == ts::cpp::symbols::sym_preproc_call.name) {
-    RE2 pattern(R"(^\s*#\s*pragma\s+once\s*$)");
-    if (RE2::FullMatch(HeaderGuardNode.text(), pattern)) {
+    RE2 pattern(R"(\s*#\s*pragma\s+once\s*)");
+    if (RE2::PartialMatch(HeaderGuardNode.text(), pattern)) {
       BeforeBodyChildCnt += 1;
       return std::pair<bool, std::vector<std::string>>(
           false, {HeaderGuardNode.text()});
     }
   }
   if (HeaderGuardNode.type() == ts::cpp::symbols::sym_preproc_ifdef.name) {
-    size_t ChildrenCnt = HeaderGuardNode.namedChildrenCount();
+    size_t ChildrenCnt =
+        HeaderGuardNode.namedChildrenCount();  // 检查是否为传统的Header Guard
     if (ChildrenCnt < 2) {
       return {false, {}};
     }
     const ts::Node defineNode = HeaderGuardNode.namedChildren()[1];
     if (defineNode.type() == ts::cpp::symbols::sym_preproc_def.name) {
-      TURoot = HeaderGuardNode;
-      BeforeBodyChildCnt = 2;  // first two is identifier and define
+      TURoot = HeaderGuardNode;  // 更改TURoot为ifdef block
+      BeforeBodyChildCnt = 2;    // first two is identifier and define
       size_t first_newline = HeaderGuardNode.text().find('\n');
       std::string ifndefText = HeaderGuardNode.text().substr(0, first_newline);
-      // TODO(hwa): validate it's a #endif
       std::string endifText = HeaderGuardNode.text().substr(
           HeaderGuardNode.text().rfind('\n') + 1, std::string::npos);
       return {true, {ifndefText, defineNode.text(), endifText}};
