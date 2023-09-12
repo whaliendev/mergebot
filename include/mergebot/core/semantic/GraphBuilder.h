@@ -106,10 +106,11 @@ private:
                                           bool IsConflicting,
                                           const std::string &FilePath);
   std::pair<std::shared_ptr<TypeDeclNode>, TypeDeclNode::TypeDeclKind>
-  parseTypeDeclNode(const ts::Node &Node, bool IsConflicting,
-                    const std::string &Path);
+  parseTypeDeclNode(const ts::Node &Node, const ts::Node &RealNode,
+                    bool IsConflicting, const std::string &Path);
 
   std::shared_ptr<FuncDefNode> parseFuncDefNode(const ts::Node &Node,
+                                                const ts::Node &RealNode,
                                                 bool IsConflicting,
                                                 const std::string &FilePath);
 

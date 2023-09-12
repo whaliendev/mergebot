@@ -5,6 +5,7 @@
 #ifndef MB_INCLUDE_MERGEBOT_CORE_MODEL_NODE_TYPEDECLNODE_H
 #define MB_INCLUDE_MERGEBOT_CORE_MODEL_NODE_TYPEDECLNODE_H
 
+#include "AccessSpecifierNode.h"
 #include "mergebot/core/model/node/CompositeNode.h"
 #include <queue>
 
@@ -24,41 +25,34 @@ public:
                const std::optional<ts::Point> &Point, std::string &&USR,
                size_t BeforeFirstChildEOL, TypeDeclKind Kind,
                std::string &&Attrs, bool IsFinal, std::string &&BaseClause,
-               AccessSpecifierKind FirstAccessSpecifier,
                std::string &&TemplateParameterList)
       : CompositeNode(NodeId, NeedToMerge, NKind, DisplayName, QualifiedName,
                       OriginalSignature, std::move(Comment), Point,
                       std::move(USR), BeforeFirstChildEOL),
         Kind(Kind), Attrs(std::move(Attrs)), IsFinal(IsFinal),
         BaseClause(std::move(BaseClause)),
-        FirstAccessSpecifier(FirstAccessSpecifier),
-        TemplateParameterList(std::move(TemplateParameterList)) {
-    int idx = FirstAccessSpecifier == AccessSpecifierKind::Default ? -1 : 0;
-    this->AccessSpecifierQue.push(std::make_pair(FirstAccessSpecifier, idx));
-  }
+        TemplateParameterList(std::move(TemplateParameterList)) {}
 
   static bool classof(const SemanticNode *N) {
     return N->getKind() == NodeKind::TYPE;
   }
 
   void setMemberAccessSpecifier() {
-    assert(!this->AccessSpecifierQue.empty() && "AccessSpecifierQue is empty");
-    int ChildIdx = 0;
-    while (!AccessSpecifierQue.empty()) {
-      auto [AccessSpecifier, Start] = AccessSpecifierQue.front();
-      AccessSpecifierQue.pop();
-
-      int End = -1;
-      if (!AccessSpecifierQue.empty()) {
-        auto SpecifierPair = AccessSpecifierQue.front();
-        End = SpecifierPair.second;
-      }
-
-      int LoopEnd =
-          End == -1 ? this->Children.size() : ChildIdx + End - Start - 1;
-
-      for (int idx = ChildIdx; idx < LoopEnd; ChildIdx = ++idx) {
-        this->Children[idx]->AccessSpecifier = AccessSpecifier;
+    if (this->Children.empty()) {
+      return;
+    }
+    AccessSpecifierKind AccessKind = AccessSpecifierKind::Default;
+    std::shared_ptr<SemanticNode> FirstChild = this->Children.front();
+    if (auto *AccessSpecifierPtr =
+            llvm::dyn_cast<AccessSpecifierNode>(FirstChild.get())) {
+      AccessKind = AccessSpecifierPtr->AccessKind;
+    }
+    for (size_t idx = 1; idx < this->Children.size(); ++idx) {
+      if (!llvm::isa<AccessSpecifierNode>(this->Children[idx].get())) {
+        this->Children[idx]->AccessSpecifier = AccessKind;
+      } else {
+        AccessKind = llvm::cast<AccessSpecifierNode>(this->Children[idx].get())
+                         ->AccessKind;
       }
     }
   }
@@ -68,9 +62,7 @@ public:
   std::string Attrs;
   bool IsFinal;
   std::string BaseClause;
-  AccessSpecifierKind FirstAccessSpecifier;
   std::string TemplateParameterList;
-  std::queue<std::pair<AccessSpecifierKind, int>> AccessSpecifierQue;
 };
 } // namespace mergebot::sa
 

@@ -45,6 +45,7 @@ JSONRpcEndpoint::RecvResponse() {
     if (line.empty()) {
       break;
     } else if (util::starts_with(line, LEN_HEADER)) {
+      spdlog::debug("content-length line: {}", line);
       line = line.substr(strlen(LEN_HEADER));
       char* end;
       bodySize = static_cast<ssize_t>(strtoll(line.c_str(), &end, 10));
@@ -119,11 +120,11 @@ std::string JSONRpcEndpoint::readMessageContent(ssize_t len) {
     return "";
   }
 
-  if (static_cast<size_t>(bytesRead) < len) {
+  if (bytesRead < len) {
     spdlog::error(
-        "illegal language server response: bytesRead[{}] is less than message "
-        "len[{}]",
-        bytesRead, len);
+        "illegal language server response: bytesRead={} is less than message "
+        "len={}, content: {}",
+        bytesRead, len, content);
     return "";
   }
 

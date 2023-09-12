@@ -34,6 +34,7 @@ enum class NodeKind : std::uint16_t {
       FUNC_SPECIAL_MEMBER,
       ORPHAN_COMMENT,
       TEXTUAL,
+      ACCESS_SPECIFIER,
       LAST_TERMINAL_NODE,
 
     COUNT,

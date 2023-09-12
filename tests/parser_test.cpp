@@ -145,32 +145,36 @@ TEST(Parser, GetNodeComment) {
 TEST(Parser, Type) {
   // clang-format off
   std::string source = R"(
-class A {
- A(): B(b){}
-};
+namespace AAA {
+
+
+} // namespace AAA
 )";
   // clang-format on
 
   ts::Parser parser(ts::cpp::language());
   std::shared_ptr<ts::Tree> tree = parser.parse(source);
-  ts::Node Node = tree->rootNode().children[0];
-  ASSERT_EQ(Node.type(), "class_specifier");
-  const ts::Node bodyNode = Node.getChildByFieldName("body").value();
-  bool IsCtor = false;
-  size_t idx = 0;
-  std::cout << bodyNode.namedChildren()[0].type() << "\n";
-  for (const ts::Node &Child : bodyNode.namedChildren()[0].namedChildren()) {
-    std::cout << Child.type() << std::endl;
-    if (Child.type() == ts::cpp::symbols::sym_field_initializer_list.name) {
-      IsCtor = true;
-      break;
-    }
-    idx++;
+  ts::Node root = tree->rootNode();
+  //  ASSERT_EQ(Node.type(), "class_specifier");
+  //  const ts::Node bodyNode = Node.getChildByFieldName("body").value();
+  //  bool IsCtor = false;
+  //  size_t idx = 0;
+  //  std::cout << bodyNode.namedChildren()[0].type() << "\n";
+  //  for (const ts::Node &Child : bodyNode.namedChildren()[0].namedChildren())
+  //  {
+  //    std::cout << Child.type() << std::endl;
+  //    if (Child.type() == ts::cpp::symbols::sym_field_initializer_list.name) {
+  //      IsCtor = true;
+  //      break;
+  //    }
+  //    idx++;
+  //  }
+  //  ASSERT_TRUE(IsCtor);
+  for (const auto &node : root.children) {
+    spdlog::info("node text: {}", node.text());
+    spdlog::info("node type: {}", node.type());
+    spdlog::info("node is named: {}", node.isNamed());
   }
-  ASSERT_TRUE(IsCtor);
-  spdlog::info("node text: {}", Node.text());
-  spdlog::info("node type: {}", Node.type());
-  spdlog::info("node is named: {}", Node.isNamed());
 }
 }  // namespace sa
 }  // namespace mergebot

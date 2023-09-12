@@ -42,6 +42,23 @@ class ClangdBasedTest : public ::testing::Test {
   const std::string avPath = "/home/whalien/Desktop/av";
 };
 
+TEST_F(ClangdBasedTest, LargeFile) {
+  using namespace std::string_literals;
+  client->Initialize(
+      "/home/whalien/.mergebot/07dd6c3d8edc2e2df20f51c03c31b80d4ec25f1b/f9b2f0-5142b3/theirs"s);
+  const std::string filePath =
+      "/home/whalien/.mergebot/07dd6c3d8edc2e2df20f51c03c31b80d4ec25f1b/"
+      "f9b2f0-5142b3/theirs/db/db_impl.cc";
+  std::string fileContent = mergebot::util::file_get_content(filePath);
+  client->DidOpen(filePath, fileContent);
+
+  auto symbolOpt = client->SymbolInfo(filePath, Position{68, 15});
+  ASSERT_TRUE(symbolOpt.has_value());
+  spdlog::info("details: {}", symbolOpt.value().dump(2));
+
+  SymbolDetails details = symbolOpt.value();
+}
+
 TEST_F(ClangdBasedTest, Commnucation) {
   this->initializeRocksdb();
 

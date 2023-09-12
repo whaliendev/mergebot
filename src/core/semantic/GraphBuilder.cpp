@@ -5,6 +5,7 @@
 #include "mergebot/core/semantic/GraphBuilder.h"
 
 #include "mergebot/core/magic_enum_customization.h" // for magic_enum::enum_name
+#include "mergebot/core/model/node/AccessSpecifierNode.h"
 #include "mergebot/core/model/node/EnumNode.h"
 #include "mergebot/core/model/node/FieldDeclarationNode.h"
 #include "mergebot/core/model/node/FuncDefNode.h"
@@ -102,7 +103,7 @@ std::unordered_set<std::string> GraphBuilder::TerminalTypes = {
     "preproc_ifdef",             // textual
     "using_declaration",         // textual
     "comment",                   // textual
-    "typedef_definition",        // textual
+    "type_definition",           // textual
     "alias_declaration",         // textual
     "enumerator",                // textual
     "declaration",               // textual
@@ -134,6 +135,7 @@ bool GraphBuilder::build() {
   for (std::string const &Path : SourceList) {
     processTranslationUnit(Path);
   }
+  //  processTranslationUnit("db/version_edit.h");
   //  for (size_t i = 0; i < 5; i++) {
   //    processTranslationUnit(SourceList[i]);
   //  }
@@ -222,17 +224,22 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
                                       const int FirstChildIdx /* = 0 */) {
   namespace symbols = ts::cpp::symbols;
   namespace fields = ts::cpp::fields;
-  size_t ChildCnt = 0;
-  for (size_t Idx = FirstChildIdx; Idx < Root.childrenCount(); ++ChildCnt) {
+  for (size_t Idx = FirstChildIdx; Idx < Root.childrenCount();) {
     const ts::Node &Child = Root.children[Idx];
     const std::string ChildType = Child.type();
     if (CompositeTypes.count(ChildType)) { // plain Composite
-      std::shared_ptr<SemanticNode> NamespacePtr =
+      std::shared_ptr<NamespaceNode> NamespacePtr =
           parseNamespaceNode(Child, IsConflicting, FilePath);
+      if (NamespacePtr->NSComment.size()) {
+        Idx++; // skip the following namespace comment
+      }
+      std::shared_ptr<SemanticNode> SemanticPtr = NamespacePtr;
       auto [CurDesc, _] =
           insertToGraphAndParent(SRoot, SRootVDesc, NamespacePtr);
+      assert(Child.getChildByFieldName(fields::field_body.name).has_value() &&
+             "namespace definition should have a body");
       parseCompositeNode(
-          NamespacePtr, CurDesc, IsConflicting,
+          SemanticPtr, CurDesc, IsConflicting,
           Child.getChildByFieldName(fields::field_body.name).value(), FilePath);
     } else if (TerminalTypes.count(ChildType)) { // plain terminal
       if (details::IsTextualNode(ChildType)) {
@@ -264,18 +271,25 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
         if (TypeOpt.has_value()) { // with return value
           if (TypeOpt.value().text() == "namespace") {
             // tree-sitter will parse inline namespace as function definition
-            std::shared_ptr<SemanticNode> NamespacePtr =
+            std::shared_ptr<NamespaceNode> NamespacePtr =
                 parseNamespaceNode(Child, IsConflicting, FilePath);
+            if (NamespacePtr->NSComment.size()) {
+              Idx++; // skip the following namespace comment
+            }
+            std::shared_ptr<SemanticNode> SemanticPtr = NamespacePtr;
             auto [NSDesc, _] =
                 insertToGraphAndParent(SRoot, SRootVDesc, NamespacePtr);
+            assert(Child.getChildByFieldName(fields::field_body.name)
+                       .has_value() &&
+                   "namespace definition should have a body");
             parseCompositeNode(
-                NamespacePtr, NSDesc, IsConflicting,
+                SemanticPtr, NSDesc, IsConflicting,
                 Child.getChildByFieldName(fields::field_body.name).value(),
                 FilePath);
           } else {
             // plain function definition
             std::shared_ptr<SemanticNode> FncDefNodePtr =
-                parseFuncDefNode(Child, IsConflicting, FilePath);
+                parseFuncDefNode(Child, Child, IsConflicting, FilePath);
             insertToGraphAndParent(SRoot, SRootVDesc, FncDefNodePtr);
           }
         } else { // without return value
@@ -297,31 +311,64 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
         // class template or function template definition
         enum TemplateDeclKind { CLASS_TEMPLATE, FUNCTION_TEMPLATE, UNKNOWN };
         TemplateDeclKind Kind = UNKNOWN;
+        bool HasBody = true;
+        ts::Node RealNode = Child;
         for (const auto &ChildChild : Child.children) {
-          if (details::IsClassSpecifier(ChildChild.type())) {
+          if (details::IsClassSpecifier(ChildChild.type())) { // class template
             Kind = CLASS_TEMPLATE;
+            const std::optional<ts::Node> BodyOpt =
+                ChildChild.getChildByFieldName(fields::field_body.name);
+            if (!BodyOpt.has_value()) { // class template fwd declaration
+              HasBody = false;
+            } else { // class template
+              RealNode = ChildChild;
+            }
             break;
-          } else if (ChildChild.type() ==
-                     symbols::sym_function_definition.name) {
+          } else if (ChildChild.type() == symbols::sym_function_definition
+                                              .name) { // function template
             Kind = FUNCTION_TEMPLATE;
+            const std::optional<ts::Node> BodyOpt =
+                ChildChild.getChildByFieldName(fields::field_body.name);
+            if (!BodyOpt.has_value()) { // function template fwd declaration
+              HasBody = false;
+            } else { // function template
+              RealNode = ChildChild;
+            }
             break;
           }
         }
         if (Kind == FUNCTION_TEMPLATE) {
-          std::shared_ptr<SemanticNode> FuncDefNodePtr =
-              parseFuncDefNode(Child, IsConflicting, FilePath);
-          insertToGraphAndParent(SRoot, SRootVDesc, FuncDefNodePtr);
+          if (HasBody) {
+            std::shared_ptr<SemanticNode> FuncDefNodePtr =
+                parseFuncDefNode(Child, RealNode, IsConflicting, FilePath);
+            insertToGraphAndParent(SRoot, SRootVDesc, FuncDefNodePtr);
+          } else {
+            std::shared_ptr<TextualNode> TextualPtr =
+                parseTextualNode(Child, IsConflicting, SRoot->hashSignature());
+            TextualPtr->FollowingEOL = ts::getFollowingEOLs(Child);
+            insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
+          }
         } else if (Kind == CLASS_TEMPLATE) {
-          auto [TypeDeclNodePtr, TypeKind] =
-              parseTypeDeclNode(Child, IsConflicting, FilePath);
-          std::shared_ptr<SemanticNode> SemanticPtr = TypeDeclNodePtr;
-          auto [TypeDeclDesc, _] =
-              insertToGraphAndParent(SRoot, SRootVDesc, SemanticPtr);
-          parseCompositeNode(
-              SemanticPtr, TypeDeclDesc, IsConflicting,
-              Child.getChildByFieldName(fields::field_body.name).value(),
-              FilePath);
-          TypeDeclNodePtr->setMemberAccessSpecifier();
+          if (HasBody) {
+            auto [TypeDeclNodePtr, TypeKind] =
+                parseTypeDeclNode(Child, RealNode, IsConflicting, FilePath);
+            std::shared_ptr<SemanticNode> SemanticPtr = TypeDeclNodePtr;
+            auto [TypeDeclDesc, _] =
+                insertToGraphAndParent(SRoot, SRootVDesc, SemanticPtr);
+            assert(RealNode.getChildByFieldName(fields::field_body.name)
+                       .has_value() &&
+                   "class template definition should have a body");
+            parseCompositeNode(
+                SemanticPtr, TypeDeclDesc, IsConflicting,
+                RealNode.getChildByFieldName(fields::field_body.name).value(),
+                FilePath);
+            TypeDeclNodePtr->setMemberAccessSpecifier();
+          } else {
+            std::shared_ptr<TextualNode> TextualPtr =
+                parseTextualNode(Child, IsConflicting, SRoot->hashSignature());
+            TextualPtr->FollowingEOL = ts::getFollowingEOLs(Child);
+            insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
+          }
         } else {
           spdlog::error("unexpected template declaration: file path is {}, row "
                         "is: {}, node type is {}, isNamed is {}, text is {}",
@@ -334,18 +381,17 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
         AccessSpecifierKind AccessKind =
             details::getAccessSpecifierKind(Child.text());
         // SRoot must be a class specifier type
-        if (ChildCnt != 0) {
-          if (auto *TypeDeclPtr = llvm::dyn_cast<TypeDeclNode>(ParentRawPtr)) {
-            TypeDeclPtr->AccessSpecifierQue.push({AccessKind, ChildCnt});
-          } else {
-            spdlog::error("access specifier should only appear in type decl "
-                          "node: file path is {}, location "
-                          "is: {}, node type is {}, isNamed is {}, text is {}",
-                          FilePath, Child.startPoint(), Child.type(),
-                          Child.isNamed(), Child.text());
-            assert(false &&
-                   "access specifier should only appear in type decl node");
-          }
+        if (llvm::isa<TypeDeclNode>(ParentRawPtr)) {
+          SRoot->Children.push_back(
+              std::make_shared<AccessSpecifierNode>(AccessKind));
+        } else {
+          spdlog::error("access specifier should only appear in type decl "
+                        "node: file path is {}, location "
+                        "is: {}, node type is {}, isNamed is {}, text is {}",
+                        FilePath, Child.startPoint(), Child.type(),
+                        Child.isNamed(), Child.text());
+          assert(false &&
+                 "access specifier should only appear in type decl node");
         }
       }
     } else if (ComplexTypes.count(ChildType)) { // complex type
@@ -358,10 +404,13 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
           insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
         } else {
           auto [TypeDeclNodePtr, Kind] =
-              parseTypeDeclNode(Child, IsConflicting, FilePath);
+              parseTypeDeclNode(Child, Child, IsConflicting, FilePath);
           std::shared_ptr<SemanticNode> SemanticPtr = TypeDeclNodePtr;
           auto [TypeDeclDesc, _] =
               insertToGraphAndParent(SRoot, SRootVDesc, SemanticPtr);
+          assert(
+              Child.getChildByFieldName(fields::field_body.name).has_value() &&
+              "class specifier should have a body");
           parseCompositeNode(
               SemanticPtr, TypeDeclDesc, IsConflicting,
               Child.getChildByFieldName(fields::field_body.name).value(),
@@ -384,6 +433,9 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
               Child, IsConflicting, SRoot->hashSignature());
           auto [LinkageDesc, _] =
               insertToGraphAndParent(SRoot, SRootVDesc, LinkagePtr);
+          assert(
+              Child.getChildByFieldName(fields::field_body.name).has_value() &&
+              "linkage specification should have a body");
           parseCompositeNode(
               LinkagePtr, LinkageDesc, IsConflicting,
               Child.getChildByFieldName(fields::field_body.name).value(),
@@ -401,6 +453,9 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
               parseEnumNode(Child, IsConflicting, FilePath);
           auto [EnumDesc, _] =
               insertToGraphAndParent(SRoot, SRootVDesc, EnumNodePtr);
+          assert(
+              Child.getChildByFieldName(fields::field_body.name).has_value() &&
+              "enum specifier should have a body");
           parseCompositeNode(
               EnumNodePtr, EnumDesc, IsConflicting,
               Child.getChildByFieldName(fields::field_body.name).value(),
@@ -441,7 +496,7 @@ std::shared_ptr<TranslationUnitNode> GraphBuilder::parseTranslationUnit(
       ts::getFrontDecls(TURoot, FrontDeclCnt);
 
   size_t BeforeFirstChildEOL = 1;
-  if (FrontDecls.size()) {
+  if (FrontDecls.size() && FrontDeclCnt < TURoot.childrenCount()) {
     BeforeFirstChildEOL = TURoot.children[FrontDeclCnt].startPoint().row -
                           FrontDecls.back().first.row - 1;
   }
@@ -496,7 +551,10 @@ GraphBuilder::parseNamespaceNode(const ts::Node &Node, bool IsConflicting,
   std::string NSComment;
   if (Node.nextSibling().has_value() &&
       Node.nextSibling().value().type() == ts::cpp::symbols::sym_comment.name) {
-    NSComment = Node.nextSibling().value().text();
+    const ts::Node CommentNode = Node.nextSibling().value();
+    if (CommentNode.startPoint().row == Node.endPoint().row) {
+      NSComment = CommentNode.text();
+    }
   }
 
   return std::make_shared<NamespaceNode>(
@@ -529,11 +587,15 @@ std::shared_ptr<FieldDeclarationNode> GraphBuilder::parseFieldDeclarationNode(
     const ts::Node &DeclaratorNode = DeclaratorNodeOpt.value();
     auto StartPoint = DeclaratorNode.startPoint();
     const std::string DeclaratorText = DeclaratorNode.text();
-    std::vector<std::string_view> QualifiedNames =
-        util::string_split(DeclaratorText, " ", false);
-    size_t Offset = DeclaratorText.find_first_of(QualifiedNames.back());
+    int Offset = 0;
+    for (auto c : DeclaratorText) {
+      if (c == '*' || c == '&' || isspace(c)) {
+        Offset++;
+      } else {
+        break;
+      }
+    }
     RowPos = StartPoint.row;
-    // FIXME(hwa): * or & col offset needs to be fixed
     ColPos = StartPoint.column + Offset;
 
     // 查找References
@@ -618,22 +680,13 @@ GraphBuilder::parseEnumNode(const ts::Node &Node, bool IsConflicting,
 }
 
 std::pair<std::shared_ptr<TypeDeclNode>, TypeDeclNode::TypeDeclKind>
-GraphBuilder::parseTypeDeclNode(const ts::Node &Node, bool IsConflicting,
+GraphBuilder::parseTypeDeclNode(const ts::Node &Node, const ts::Node &RealNode,
+                                bool IsConflicting,
                                 const std::string &FilePath) {
   using TypeDeclKind = TypeDeclNode::TypeDeclKind;
   AccessSpecifierKind Access = AccessSpecifierKind::Default;
-  const std::optional<ts::Node> BodyOpt = Node.getChildByFieldName(
+  const std::optional<ts::Node> BodyOpt = RealNode.getChildByFieldName(
       ts::cpp::fields::field_body.name); // class, struct, union body
-  assert(BodyOpt.has_value() && "type declaration without body");
-  const ts::Node &Body = BodyOpt.value();
-  if (Body.childrenCount()) {
-    const ts::Node &First = Body.children[0];
-    if (First.type() == ts::cpp::symbols::sym_access_specifier.name) {
-      Access = First.text() == "public"      ? AccessSpecifierKind::Public
-               : First.text() == "protected" ? AccessSpecifierKind::Protected
-                                             : AccessSpecifierKind::Private;
-    } // else default visibility of type decl
-  }
 
   ts::ClassInfo Info = ts::extractClassInfo(Node.text());
 
@@ -657,15 +710,16 @@ GraphBuilder::parseTypeDeclNode(const ts::Node &Node, bool IsConflicting,
       std::make_shared<TypeDeclNode>(
           NodeCount++, IsConflicting, NodeKind::TYPE, Info.ClassName,
           QualifiedName, Info.OriginalSignature, ts::getNodeComment(Node),
-          Node.startPoint(), std::move(USR), ts::beforeFirstChildEOLs(Node),
+          Node.startPoint(), std::move(USR), ts::beforeFirstChildEOLs(RealNode),
           Kind, std::move(Info.Attrs), Info.IsFinal, std::move(Info.BaseClause),
-          Access, std::move(Info.TemplateParameterList)),
+          std::move(Info.TemplateParameterList)),
       Kind,
   });
 }
 
 std::shared_ptr<FuncDefNode>
-GraphBuilder::parseFuncDefNode(const ts::Node &Node, bool IsConflicting,
+GraphBuilder::parseFuncDefNode(const ts::Node &Node, const ts::Node &RealNode,
+                               bool IsConflicting,
                                const std::string &FilePath) {
   ts::Node FDefNode = Node;
   if (Node.type() == ts::cpp::symbols::sym_template_declaration.name) {
@@ -677,17 +731,25 @@ GraphBuilder::parseFuncDefNode(const ts::Node &Node, bool IsConflicting,
       }
     }
   }
+  assert(RealNode.getChildByFieldName(ts::cpp::fields::field_declarator.name)
+             .has_value() &&
+         "function definition should have a declarator");
   const ts::Node DeclaratorNode =
-      FDefNode.getChildByFieldName(ts::cpp::fields::field_declarator.name)
+      RealNode.getChildByFieldName(ts::cpp::fields::field_declarator.name)
           .value();
   std::string QualifiedFuncName =
       DeclaratorNode.text().substr(0, DeclaratorNode.text().find('('));
-  // as QualifiedFuncName may be "* funcName", tree sitter will interpret a
-  // return value pointer to declarator
-  std::vector<std::string_view> Names =
-      util::string_split(QualifiedFuncName, " ", false);
+  int Offset = 0;
+  for (auto c : QualifiedFuncName) {
+    if (c == '&' || c == '*' || isspace(c)) {
+      Offset++;
+    } else {
+      break;
+    }
+  }
+  QualifiedFuncName = QualifiedFuncName.substr(Offset);
   ts::FuncDefInfo DefInfo =
-      ts::extractFuncDefInfo(FDefNode.text(), std::string(Names.back()));
+      ts::extractFuncDefInfo(FDefNode.text(), QualifiedFuncName);
 
   std::string QualifiedName;
   std::string USR;
@@ -732,7 +794,7 @@ GraphBuilder::parseFuncDefNode(const ts::Node &Node, bool IsConflicting,
     }
   }
 
-  const std::optional<ts::Node> BodyOpt = Node.getChildByFieldName(
+  const std::optional<ts::Node> BodyOpt = RealNode.getChildByFieldName(
       ts::cpp::fields::field_body.name); // function body
   std::string BodyText = BodyOpt.has_value() ? BodyOpt.value().text() : "";
 

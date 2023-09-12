@@ -60,10 +60,13 @@ void ASTBasedHandler::resolveConflictFiles(
   spdlog::info("it takes {} ms to collect collection of sources to analyze",
                (End - Start).seconds() * 1000);
   SourceCollectorV2::AnalysisSourceTuple ST = SC.analysisSourceTuple();
-  spdlog::info("our direct included: {}, base direct included: {}, their "
-               "direct included: {}",
-               ST.OurDirectIncluded.size(), ST.BaseDirectIncluded.size(),
-               ST.TheirDirectIncluded.size());
+  spdlog::debug("source list size: {}, {}, {}, first direct include size: {}, "
+                "{}, {}(our, base, their).",
+                ST.OurSourceList.size(), ST.BaseSourceList.size(),
+                ST.TheirSourceList.size(),
+                ST.OurDirectIncluded.begin()->second.size(),
+                ST.BaseDirectIncluded.begin()->second.size(),
+                ST.TheirDirectIncluded.begin()->second.size());
 
   // 2. Get Graph representation of 3 commit nodes
   std::vector<std::string> ConflictPaths;
@@ -86,9 +89,12 @@ void ASTBasedHandler::resolveConflictFiles(
   bool OurOk = false;
   bool BaseOk = false;
   bool TheirOk = false;
-  tbb::parallel_invoke([&]() { OurOk = OurBuilder.build(); },
-                       [&]() { BaseOk = BaseBuilder.build(); },
-                       [&]() { TheirOk = TheirBuilder.build(); });
+  OurOk = OurBuilder.build();
+  BaseOk = BaseBuilder.build();
+  TheirOk = TheirBuilder.build();
+  //  tbb::parallel_invoke([&]() { OurOk = OurBuilder.build(); },
+  //                       [&]() { BaseOk = BaseBuilder.build(); },
+  //                       [&]() { TheirOk = TheirBuilder.build(); });
   End = tbb::tick_count::now();
   if (!OurOk || !TheirOk) {
     spdlog::info("fail to construct graph representation of revisions");
