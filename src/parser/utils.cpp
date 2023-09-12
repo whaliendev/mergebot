@@ -111,8 +111,8 @@ std::vector<std::pair<ts::Point, std::string>> getFrontDecls(
   }
 
   std::vector<std::pair<ts::Point, std::string>> ret;
-  for (ts::Node node = TURoot.children[cnt]; cnt < childrenCnt;
-       node = TURoot.children[cnt]) {
+  for (; cnt < childrenCnt;) {
+    ts::Node node = TURoot.children[cnt];
     if (util::starts_with(node.type(), "preproc") ||
         node.type() == ts::cpp::symbols::sym_using_declaration.name ||
         node.type() == ts::cpp::symbols::sym_alias_declaration.name ||
@@ -186,7 +186,7 @@ ClassInfo extractClassInfo(const std::string &code) {
   ClassInfo ret;
 
   const std::string pattern =
-      R"(((template\s*<[^>]*>)?\s*(class|struct|union)\s*((\s*\[\[[^\]]+\]\])*)?\s*([a-zA-Z_][a-zA-Z0-9_:]*)?\s*(final)?\s*(:\s*[^\{]*)?)\s*\{)";
+      R"(((template\s*<[^>]*>)?\s*(class|struct|union)\s*((\s*\[\[[^\]]+\]\])*)?\s*([a-zA-Z_][a-zA-Z0-9_:<>]*)?\s*(final)?\s*(:\s*[^\{]*)?)\s*\{)";
   std::string Final;
   re2::RE2 re(pattern);
   re2::StringPiece input(code);
@@ -217,6 +217,11 @@ ClassInfo extractClassInfo(const std::string &code) {
     // 补充有qualified identifier的偏移计算
     size_t qualified_identifier_offset = 0;
     if (!class_name_pieces.empty()) {
+      const re2::StringPiece::size_type angelOffset =
+          class_name_pieces.find("<");
+      if (angelOffset != re2::StringPiece::npos) {
+        class_name_pieces = class_name_pieces.substr(0, angelOffset);
+      }
       re2::StringPiece::size_type pos = class_name_pieces.rfind("::");
       if (pos != re2::StringPiece::npos) {
         qualified_identifier_offset = pos + 2;
