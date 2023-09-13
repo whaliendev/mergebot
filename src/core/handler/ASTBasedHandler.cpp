@@ -1,7 +1,11 @@
 //
 // Created by whalien on 13/03/23.
 //
+#define MB_EXPORT_GRAPH
 
+#ifdef MB_EXPORT_GRAPH
+#include "mergebot/core/semantic/graph_export.h"
+#endif
 #include "mergebot/core/handler/ASTBasedHandler.h"
 #include "mergebot/core/model/ConflictFile.h"
 #include "mergebot/core/semantic/GraphBuilder.h"
@@ -48,6 +52,22 @@ void ASTBasedHandler::resolveConflictFiles(
     return;
   }
 
+  // 0. gets relative paths of conflict files
+  std::vector<std::string> ConflictPaths;
+  ConflictPaths.reserve(ConflictFiles.size());
+  std::transform(ConflictFiles.begin(), ConflictFiles.end(),
+                 std::back_inserter(ConflictPaths),
+                 [&](ConflictFile const &CF) {
+                   const std::string RelativePath =
+                       fs::relative(CF.Filename, Meta.ProjectPath).string();
+                   if (util::starts_with(RelativePath, "./") ||
+                       util::starts_with(RelativePath, ".\\")) {
+                     return RelativePath.substr(2);
+                   } else {
+                     return RelativePath;
+                   }
+                 });
+
   /// do variant intelli merge
   // 1. Collect Sources set to analyze
   // note that LookupIncluded is default enabled, OnlyBothModified is default
@@ -55,7 +75,7 @@ void ASTBasedHandler::resolveConflictFiles(
   SourceCollectorV2 SC(Meta, OurCompilations, BaseCompilations,
                        TheirCompilations);
   auto Start = tbb::tick_count::now();
-  SC.collectAnalysisSources();
+  SC.collectAnalysisSourcesV2(ConflictPaths);
   auto End = tbb::tick_count::now();
   spdlog::info("it takes {} ms to collect collection of sources to analyze",
                (End - Start).seconds() * 1000);
@@ -69,15 +89,6 @@ void ASTBasedHandler::resolveConflictFiles(
                 ST.TheirDirectIncluded.begin()->second.size());
 
   // 2. Get Graph representation of 3 commit nodes
-  std::vector<std::string> ConflictPaths;
-  ConflictPaths.reserve(ConflictFiles.size());
-  for (ConflictFile const &CF : ConflictFiles) {
-    std::string RelativePath = fs::relative(CF.Filename, Meta.ProjectPath);
-    if (util::starts_with(RelativePath, "./")) {
-      RelativePath.erase(0, 2);
-    }
-    ConflictPaths.push_back(std::move(RelativePath));
-  }
   Start = tbb::tick_count::now();
   GraphBuilder OurBuilder(Side::OURS, Meta, ConflictPaths, ST.OurSourceList,
                           ST.OurDirectIncluded);
@@ -89,19 +100,43 @@ void ASTBasedHandler::resolveConflictFiles(
   bool OurOk = false;
   bool BaseOk = false;
   bool TheirOk = false;
-  OurOk = OurBuilder.build();
-  BaseOk = BaseBuilder.build();
-  TheirOk = TheirBuilder.build();
-  //  tbb::parallel_invoke([&]() { OurOk = OurBuilder.build(); },
-  //                       [&]() { BaseOk = BaseBuilder.build(); },
-  //                       [&]() { TheirOk = TheirBuilder.build(); });
+  tbb::parallel_invoke([&]() { OurOk = OurBuilder.build(); },
+                       [&]() { BaseOk = BaseBuilder.build(); },
+                       [&]() { TheirOk = TheirBuilder.build(); });
   End = tbb::tick_count::now();
   if (!OurOk || !TheirOk) {
     spdlog::info("fail to construct graph representation of revisions");
     return;
   }
+  spdlog::info("graph built successfully, info:\nOur:\n\t{} nodes, {} edges\n"
+               "Base:\n\t{} nodes, {} edges\nTheir:\n\t{} nodes, {} edges",
+               OurBuilder.numVertices(), OurBuilder.numEdges(),
+               BaseBuilder.numVertices(), BaseBuilder.numEdges(),
+               TheirBuilder.numVertices(), TheirBuilder.numEdges());
   spdlog::info("it takes {} ms to build 3 commit nodes' graph representation ",
                (End - Start).seconds() * 1000);
+
+#ifdef MB_EXPORT_GRAPH
+  const fs::path IntermediateGraphsDir = fs::path(Meta.MSCacheDir) / "graphs";
+  fs::create_directories(IntermediateGraphsDir);
+  const std::string OurDotDest =
+      fmt::format("{}.dot", (fs::path(IntermediateGraphsDir) /
+                             magic_enum::enum_name(Side::OURS))
+                                .string());
+  const std::string BaseDotDest =
+      fmt::format("{}.dot", (fs::path(IntermediateGraphsDir) /
+                             magic_enum::enum_name(Side::BASE))
+                                .string());
+  const std::string TheirDotDest =
+      fmt::format("{}.dot", (fs::path(IntermediateGraphsDir) /
+                             magic_enum::enum_name(Side::THEIRS))
+                                .string());
+  ExportGraphToDot(OurBuilder.graph(), OurDotDest, true);
+  ExportGraphToDot(OurBuilder.graph(), BaseDotDest, true);
+  ExportGraphToDot(OurBuilder.graph(), TheirDotDest, true);
+  spdlog::info("export intermediate graphs to {}",
+               IntermediateGraphsDir.string());
+#endif
 }
 
 /**
