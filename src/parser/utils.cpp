@@ -370,7 +370,7 @@ FuncDefInfo extractFuncDefInfo(const std::string &code,
   using namespace std::string_literals;
 
   const std::string pattern =
-      R"(((template\s*<[^>]*>)?\s*((\[\[[^\]]+\]\]\s*)*)?(.*)\s)" + "("s +
+      R"(((template\s*<[^>]*>)?\s*((\[\[[^\]]+\]\]\s*)*)?(.*)\s*)" + "("s +
       FuncName + ")" + R"(\s*\(([^)]*)\)(\s*[^;{]*)))";
 
   re2::RE2 re(pattern);

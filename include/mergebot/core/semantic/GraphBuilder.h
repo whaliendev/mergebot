@@ -58,6 +58,16 @@ public:
         ConflictPaths(ConflictPaths.begin(), ConflictPaths.end()),
         SourceList(SourceList), DirectIncluded(DirectIncluded) {
     SourceDir = (fs::path(Meta.MSCacheDir) / magic_enum::enum_name(S)).string();
+
+    std::unordered_set<std::string> IncludedFiles;
+    std::for_each(
+        this->DirectIncluded.begin(), this->DirectIncluded.end(),
+        [&](std::pair<const std::string, std::vector<std::string>> &Pair) {
+          IncludedFiles.insert(Pair.second.begin(), Pair.second.end());
+        });
+
+    this->SourceList.insert(this->SourceList.end(), IncludedFiles.begin(),
+                            IncludedFiles.end());
   }
 
   /// shutdown language server
