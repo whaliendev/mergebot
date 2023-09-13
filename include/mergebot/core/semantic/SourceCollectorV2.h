@@ -65,6 +65,8 @@ public:
   /// this operation to add more context info
   void collectAnalysisSources();
 
+  void collectAnalysisSourcesV2(const std::vector<std::string> &Conflicts);
+
   /// boilerplate accessors and mutators
   bool lookupIncluded() const { return LookupIncluded; }
   bool onlyBothModified() const { return OnlyBothModified; }

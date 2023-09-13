@@ -180,6 +180,10 @@ std::unordered_set<sa::SimplifiedDiffDelta> list_cpp_diff_files(
     std::string_view repo_path, std::string_view old_commit,
     std::string_view new_commit);
 
+std::unordered_map<std::string, std::string> get_cpp_diff_mapping(
+    std::string_view repo_path, std::string_view old_commit_str,
+    std::string_view new_commit_str);
+
 /// dump commit tree object with `hash` in project `repo_path` to `dest`
 /// \param dest destination folder
 /// \param hash SHA1 hash, consists of 40 hex digits

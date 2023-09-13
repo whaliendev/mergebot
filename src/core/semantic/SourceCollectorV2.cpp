@@ -25,7 +25,8 @@
 
 namespace mergebot {
 namespace sa {
-void SourceCollectorV2::collectAnalysisSources() {
+[[deprecated("use collectAnalysisSourcesV2")]] void
+SourceCollectorV2::collectAnalysisSources() {
   // retrieve concise diff deltas from the git repo
   // note that git_diff_find_similar is very slow when diff deltas are large, do
   // we really need rename/copy detection?
@@ -55,6 +56,63 @@ void SourceCollectorV2::collectAnalysisSources() {
   }
 
   // heavy op for long-lived unmerged branches
+  if (LookupIncluded) {
+    assert(OurCompilations && BaseCompilations && TheirCompilations &&
+           "CompDB should not be null if we want to to deps analysis");
+    SourceTuple.OurDirectIncluded.reserve(SourceTuple.OurSourceList.size());
+    SourceTuple.BaseDirectIncluded.reserve(SourceTuple.BaseSourceList.size());
+    SourceTuple.TheirDirectIncluded.reserve(SourceTuple.TheirSourceList.size());
+
+    tbb::parallel_invoke([this]() { extendIncludedSources(Side::OURS); },
+                         [this]() { extendIncludedSources(Side::BASE); },
+                         [this]() { extendIncludedSources(Side::THEIRS); });
+  }
+}
+
+void SourceCollectorV2::collectAnalysisSourcesV2(
+    const std::vector<std::string> &Conflicts) {
+  spdlog::info("we're collecting diff deltas of merge scenario {} in project "
+               "{}, which may take some time",
+               Meta.MS.name, Meta.Project);
+  auto OurDeltaInfo = utils::MeasureRunningTime(
+      util::get_cpp_diff_mapping, Meta.ProjectPath, Meta.MS.base, Meta.MS.ours);
+  spdlog::info("it takes {} ms to list cpp files in ours",
+               std::get<0>(OurDeltaInfo));
+  auto TheirDeltaInfo =
+      utils::MeasureRunningTime(util::get_cpp_diff_mapping, Meta.ProjectPath,
+                                Meta.MS.base, Meta.MS.theirs);
+  spdlog::info("it takes {} ms to list cpp files in theirs",
+               std::get<0>(TheirDeltaInfo));
+
+  std::unordered_map<std::string, std::string> OurDiffDeltas =
+      std::get<1>(OurDeltaInfo);
+  std::unordered_map<std::string, std::string> TheirDiffDeltas =
+      std::get<1>(TheirDeltaInfo);
+
+  //  SourceTuple.OurSourceList.reserve(Conflicts.size());
+  //  SourceTuple.BaseSourceList.reserve(Conflicts.size() * 1.5);
+  //  SourceTuple.TheirSourceList.reserve(Conflicts.size());
+  std::unordered_set<std::string> OurSourceSet(Conflicts.size());
+  std::unordered_set<std::string> BaseSourceSet(Conflicts.size());
+  std::unordered_set<std::string> TheirSourceSet(Conflicts.size());
+  std::for_each(Conflicts.begin(), Conflicts.end(),
+                [&](const std::string &Conflict) {
+                  if (OurDiffDeltas.count(Conflict) > 0) {
+                    OurSourceSet.insert(Conflict);
+                    BaseSourceSet.insert(OurDiffDeltas[Conflict]);
+                  }
+                  if (TheirDiffDeltas.count(Conflict) > 0) {
+                    TheirSourceSet.insert(Conflict);
+                    BaseSourceSet.insert(TheirDiffDeltas[Conflict]);
+                  }
+                });
+  SourceTuple.OurSourceList =
+      std::vector(OurSourceSet.begin(), OurSourceSet.end());
+  SourceTuple.BaseSourceList =
+      std::vector(BaseSourceSet.begin(), BaseSourceSet.end());
+  SourceTuple.TheirSourceList =
+      std::vector(TheirSourceSet.begin(), TheirSourceSet.end());
+
   if (LookupIncluded) {
     assert(OurCompilations && BaseCompilations && TheirCompilations &&
            "CompDB should not be null if we want to to deps analysis");
@@ -130,7 +188,6 @@ void SourceCollectorV2::diffDeltaWithHeuristic(
 }
 
 void SourceCollectorV2::extendIncludedSources(Side S) {
-
   spdlog::info("collecting {} side's direct included headers, which may take "
                "some time...",
                magic_enum::enum_name(S));
@@ -170,20 +227,56 @@ void SourceCollectorV2::extendIncludedSources(Side S) {
 
   std::mutex includeMapMutex; // Mutex for synchronizing access to IncludeMap
 
-  tbb::parallel_for(static_cast<size_t>(0), SourcePaths.size(), [&](size_t i) {
-    std::string const &SourcePath = SourcePaths[i];
+  tbb::parallel_for(
+      tbb::blocked_range<size_t>(0, SourcePaths.size()),
+      [&](const tbb::blocked_range<size_t> &r) {
+        for (size_t i = r.begin(); i != r.end(); ++i) {
+          std::string const &SourcePath = SourcePaths[i];
 
-    clang::tooling::ClangTool Tool(*Compilations, SourcePath);
-    Tool.setPrintErrorMessage(false);
-    Tool.setDiagnosticConsumer(new clang::IgnoringDiagConsumer());
+          clang::tooling::ClangTool Tool(*Compilations, SourcePath);
+          Tool.setPrintErrorMessage(false);
+          Tool.setDiagnosticConsumer(new clang::IgnoringDiagConsumer());
 
-    std::unique_ptr<IncludeLookupActionFactory> ActionFactory =
-        std::make_unique<IncludeLookupActionFactory>();
-    Tool.run(ActionFactory.get());
+          std::unique_ptr<IncludeLookupActionFactory> ActionFactory =
+              std::make_unique<IncludeLookupActionFactory>();
+          Tool.run(ActionFactory.get());
 
-    std::lock_guard<std::mutex> lock(includeMapMutex);
-    IncludeMap[SourceList[i]] = ActionFactory->copyIncludedFiles();
-  });
+          std::lock_guard<std::mutex> lock(includeMapMutex);
+          IncludeMap[SourceList[i]] = ActionFactory->copyIncludedFiles();
+        }
+      });
+
+  for (auto it = IncludeMap.begin(); it != IncludeMap.end(); ++it) {
+    std::vector<std::string> &IncludedFiles = it->second;
+    std::transform(IncludedFiles.begin(), IncludedFiles.end(),
+                   IncludedFiles.begin(), [&](std::string const &Path) {
+                     std::string RelativePath =
+                         fs::relative(Path, Meta.MSCacheDir).string();
+                     if (util::starts_with(RelativePath, "./") ||
+                         util::starts_with(RelativePath, ".\\")) {
+                       RelativePath = RelativePath.substr(2);
+                     }
+                     if (util::starts_with(RelativePath,
+                                           magic_enum::enum_name(Side::OURS))) {
+                       RelativePath = RelativePath.substr(
+                           magic_enum::enum_name(Side::OURS).size() + 1);
+                     }
+                     if (util::starts_with(RelativePath,
+                                           magic_enum::enum_name(Side::BASE))) {
+                       RelativePath = RelativePath.substr(
+                           magic_enum::enum_name(Side::BASE).size() + 1);
+                     }
+                     if (util::starts_with(RelativePath, magic_enum::enum_name(
+                                                             Side::THEIRS))) {
+                       RelativePath = RelativePath.substr(
+                           magic_enum::enum_name(Side::THEIRS).size() + 1);
+                     }
+                     return RelativePath;
+                   });
+  }
+
+  spdlog::info("collecting {} side's direct included headers done",
+               magic_enum::enum_name(S));
 }
 
 void IncludeLookupCallback::LexedFileChanged(
@@ -216,7 +309,7 @@ void IncludeLookupCallback::InclusionDirective(
     const auto &FileEntry = File->getFileEntry();
     assert(!util::starts_with(FileEntry.getName(), "./") &&
            "Direct Include Path should not be relative");
-    DirectIncludes.insert(FileEntry.getName().str());
+    DirectIncludes.insert(FileEntry.tryGetRealPathName().str());
   }
 }
 
