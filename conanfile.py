@@ -191,6 +191,9 @@ class MergebotConan(ConanFile):
                 with gzip.open(dest_file, 'rb') as f_in:
                     with open(dest_file_unzipped, 'wb') as f_out:
                         f_out.write(f_in.read())
+                    # add executable permission for user
+                    current_permissions = os.stat(dest_file_unzipped).st_mode
+                    os.chmod(dest_file_unzipped, current_permissions | 0o111)
 
     def _package_docs(self):
         docs_folder = os.path.join(self.source_folder, "docs")
