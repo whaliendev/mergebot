@@ -9,6 +9,8 @@
 #include "mergebot/filesystem.h"
 #include "mergebot/globals.h"
 
+#define MB_DROP_CHILD_STDERR
+
 namespace mergebot {
 namespace lsp {
 std::unique_ptr<PipeCommunicator> PipeCommunicator::create(
@@ -49,9 +51,13 @@ std::unique_ptr<PipeCommunicator> PipeCommunicator::create(
       assert("failed to dup2" && false);
     }
 
+#ifdef MB_DROP_CHILD_STDERR
+    std::string logFileName = "/dev/null";
+#else
     std::string logFileName = (fs::temp_directory_path() /
                                fmt::format("mergebot-{}-stderr.log", getpid()))
                                   .string();
+#endif
     //    fs::create_directories(LOG_FOLDER);
     int logFd = open(logFileName.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (logFd == -1) {
@@ -59,7 +65,7 @@ std::unique_ptr<PipeCommunicator> PipeCommunicator::create(
       assert(false && "language server failed to open log file");
     }
     FILE* logStream = fdopen(logFd, "w");
-    if (logStream == NULL) {
+    if (logStream == nullptr) {
       perror("fdopen");
       assert(false && "failed to convert file descriptor to FILE*");
     }
