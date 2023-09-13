@@ -7,63 +7,42 @@
 
 #include <array>
 #include <cstdint>
+#include <magic_enum.hpp>
+
 namespace mergebot {
 namespace sa {
 enum class EdgeKind : uint8_t {
   ILLEGAL,
-  /**
-   * file and folder level
-   */
-  CONTAIN, // isStructuralEdge
+  CONTAIN,
   INCLUDE,
-  //  INHERIT,
   REFERENCE,
   DEFINE,
   USE
-  /**
-   * inside file
-   */
-  //  DECLARE,
-  //  DEFINE,
-  //  INITIALIZE,
-  //  READ,
-  //  WRITE,
-  //  CALL,
-  //  COUNT
 };
-
-struct EdgeTypeInfo {
-  EdgeKind type;
-  bool isStructuralEdge;
-  const char *label;
-
-  constexpr EdgeTypeInfo(EdgeKind type, bool isStructuralEdge,
-                         const char *label)
-      : type(type), isStructuralEdge(isStructuralEdge), label(label) {}
-
-  constexpr const char *toPrettyString() const { return label; }
-};
-
-// Preallocate EdgeTypeInfo instances at compile-time in a fixed-size array
-// constexpr std::array<EdgeTypeInfo,
-// static_cast<std::uint8_t>(EdgeKind::COUNT)>
-//    EDGE_TYPE_INFO_ARRAY = {
-//        EdgeTypeInfo(EdgeKind::CONTAIN, true, "contains"),
-//        EdgeTypeInfo(EdgeKind::INCLUDE, false, "includes"),
-//        EdgeTypeInfo(EdgeKind::INHERIT, false, "inherits"),
-//        EdgeTypeInfo(EdgeKind::DECLARE, false, "declares"),
-//        EdgeTypeInfo(EdgeKind::DEFINE, false, "defines"),
-//        EdgeTypeInfo(EdgeKind::INITIALIZE, false, "initializes"),
-//        EdgeTypeInfo(EdgeKind::READ, false, "reads"),
-//        EdgeTypeInfo(EdgeKind::WRITE, false, "writes"),
-//        EdgeTypeInfo(EdgeKind::CALL, false, "calls")};
-
-// Access EdgeTypeInfo using array indexing
-// constexpr const EdgeTypeInfo &getEdgeTypeInfo(EdgeKind type) {
-//  return EDGE_TYPE_INFO_ARRAY[static_cast<std::uint8_t>(type)];
-//}
-
 } // namespace sa
 } // namespace mergebot
+
+namespace magic_enum {
+namespace customize {
+using mergebot::sa::EdgeKind;
+template <> constexpr customize_t enum_name<EdgeKind>(EdgeKind Kind) noexcept {
+  switch (Kind) {
+  case EdgeKind::ILLEGAL:
+    return "ILLEGAL";
+  case EdgeKind::CONTAIN:
+    return "CONTAIN";
+  case EdgeKind::INCLUDE:
+    return "INCLUDE";
+  case EdgeKind::REFERENCE:
+    return "REF";
+  case EdgeKind::DEFINE:
+    return "DEFINE";
+  case EdgeKind::USE:
+    return "USE";
+  }
+  return default_tag;
+}
+} // namespace customize
+} // namespace magic_enum
 
 #endif // MB_INCLUDE_MERGEBOT_CORE_MODEL_ENUM_EDGEKIND_H

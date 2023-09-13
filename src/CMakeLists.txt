@@ -23,7 +23,10 @@ list(FILTER SRC_FILES EXCLUDE REGEX "core/.*")
 # if llvm compiles with -fno-rtti, all dependent srcs should compile with -fno-rtti
 file(GLOB_RECURSE RTTI_DISABLED_SRCS CONFIGURE_DEPENDS ./core/*.cpp ./core/*.hpp)
 foreach (file ${RTTI_DISABLED_SRCS})
-    set_source_files_properties(${file} PROPERTIES COMPILE_FLAGS "-fno-rtti")
+    string(FIND ${file} "ASTBasedHandler" position)
+    if (${position} EQUAL -1)
+        set_source_files_properties(${file} PROPERTIES COMPILE_FLAGS "-fno-rtti")
+    endif ()
 endforeach ()
 
 # extract src files for test purpose
