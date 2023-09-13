@@ -74,7 +74,10 @@ public:
   ~GraphBuilder();
 
   bool build();
-  SemanticGraph graph() const { return G; }
+  const SemanticGraph &graph() const { return G; }
+
+  size_t numEdges() const { return boost::num_edges(G); }
+  size_t numVertices() const { return boost::num_vertices(G); }
 
   static std::unordered_set<std::string> CompositeTypes;
   static std::unordered_set<std::string> TerminalTypes;

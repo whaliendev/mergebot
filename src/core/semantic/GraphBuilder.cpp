@@ -55,6 +55,7 @@ bool IsClassSpecifier(std::string_view child_type) {
 bool IsTextualNode(std::string_view child_type) {
   namespace symbols = ts::cpp::symbols;
   return child_type == symbols::sym_preproc_ifdef.name ||
+         child_type == symbols::sym_preproc_def.name ||
          child_type == symbols::sym_using_declaration.name ||
          child_type == symbols::sym_type_definition.name ||
          child_type == symbols::sym_alias_declaration.name ||
@@ -101,6 +102,7 @@ std::unordered_set<std::string> GraphBuilder::CompositeTypes = {
 std::unordered_set<std::string> GraphBuilder::TerminalTypes = {
     "access_specifier",
     "preproc_ifdef",             // textual
+    "preproc_def",               // textual
     "using_declaration",         // textual
     "comment",                   // textual
     "type_definition",           // textual
@@ -135,10 +137,6 @@ bool GraphBuilder::build() {
   for (std::string const &Path : SourceList) {
     processTranslationUnit(Path);
   }
-  //  processTranslationUnit("db/version_edit.h");
-  //  for (size_t i = 0; i < 5; i++) {
-  //    processTranslationUnit(SourceList[i]);
-  //  }
   return true;
 }
 
@@ -463,11 +461,14 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
         }
       }
     } else {
-      spdlog::error(
-          "unexpected node: file path is {}, location is: {}, node type is {}, "
-          "isNamed is {}, text is {}",
-          FilePath, Child.startPoint(), Child.type(), Child.isNamed(),
-          Child.text());
+      if (Child.type() != "{" && Child.type() != "}" && Child.type() != ";" &&
+          Child.type() != "#endif") {
+        spdlog::error("unexpected node: file path is {}, location is: {}, node "
+                      "type is {}, "
+                      "isNamed is {}, text is {}",
+                      FilePath, Child.startPoint(), Child.type(),
+                      Child.isNamed(), Child.text());
+      }
     }
     ++Idx;
   }

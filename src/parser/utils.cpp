@@ -167,7 +167,7 @@ std::pair<bool, std::string> getComment(const Node &commentNode,
     prevComment = curComment;
     curComment = siblingOpt.value();
   }
-  if (curComment.startPoint().row - prevComment.startPoint().row > 1) {
+  if (curComment.startPoint().row - prevComment.endPoint().row > 1) {
     return {true, ret.str()};
   } else {
     return {false, ret.str()};
