@@ -103,6 +103,10 @@ std::unordered_set<std::string> GraphBuilder::TerminalTypes = {
     "access_specifier",
     "preproc_ifdef",             // textual
     "preproc_def",               // textual
+    "preproc_if",                // textual
+    "preproc_function_def",      // textual
+    "preproc_call",              // textual
+    "preproc_include",           // textual
     "using_declaration",         // textual
     "comment",                   // textual
     "type_definition",           // textual
@@ -132,6 +136,28 @@ bool GraphBuilder::build() {
   if (!Success) {
     spdlog::error("cannot initialize language server");
     return false;
+  }
+
+  if (OnlyHeaderSourceMapping) {
+    std::vector<std::string> HeaderSourceMapping;
+    HeaderSourceMapping.reserve(SourceList.size());
+    std::for_each(
+        this->SourceList.begin(), this->SourceList.end(), [&](auto &P) {
+          std::string MainFile = (fs::path(SourceDir) / P).string();
+          Client.DidOpen(MainFile, util::file_get_content(MainFile));
+          auto URIOpt = Client.SwitchSourceHeader(MainFile);
+          if (URIOpt.has_value() && URIOpt.value() != nullptr) {
+            std::string AltFileScheme = URIOpt.value();
+            lsp::URIForFile AltUri = lsp::URIForFile(AltFileScheme);
+            std::string AltFilePath = AltUri.path();
+            HeaderSourceMapping.push_back(fs::relative(AltFilePath, SourceDir));
+          }
+          Client.DidClose(MainFile);
+        });
+    SourceList.insert(SourceList.end(), HeaderSourceMapping.begin(),
+                      HeaderSourceMapping.end());
+    SourceList.erase(std::unique(SourceList.begin(), SourceList.end()),
+                     SourceList.end());
   }
 
   for (std::string const &Path : SourceList) {
@@ -462,7 +488,7 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
       }
     } else {
       if (Child.type() != "{" && Child.type() != "}" && Child.type() != ";" &&
-          Child.type() != "#endif") {
+          Child.type() != "#endif" && Child.type() != ",") {
         spdlog::error("unexpected node: file path is {}, location is: {}, node "
                       "type is {}, "
                       "isNamed is {}, text is {}",

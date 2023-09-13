@@ -369,9 +369,10 @@ FuncDefInfo extractFuncDefInfo(const std::string &code,
 
   using namespace std::string_literals;
 
+  const std::string escapedFuncName = re2::RE2::QuoteMeta(FuncName);
   const std::string pattern =
       R"(((template\s*<[^>]*>)?\s*((\[\[[^\]]+\]\]\s*)*)?(.*)\s*)" + "("s +
-      FuncName + ")" + R"(\s*\(([^)]*)\)(\s*[^;{]*)))";
+      escapedFuncName + ")" + R"(\s*\(([^)]*)\)(\s*[^;{]*)))";
 
   re2::RE2 re(pattern);
   re2::StringPiece input(code);

@@ -29,14 +29,12 @@ namespace sa {
 class NamespaceNode;
 class TranslationUnitNode;
 class TextualNode;
-// class AliasNode;
 class FieldDeclarationNode;
 class LinkageSpecNode;
 class EnumNode;
 class FuncDefNode;
 class FuncSpecialMemberNode;
 class FuncOperatorCastNode;
-// class TypeDeclNode;
 
 class GraphBuilder {
 public:
@@ -53,21 +51,25 @@ public:
                std::vector<std::string> const &ConflictPaths, // relative paths
                std::vector<std::string> const &SourceList,    // relative paths
                std::unordered_map<std::string, std::vector<std::string>> const
-                   &DirectIncluded)
+                   &DirectIncluded,
+               bool OnlyHeaderSourceMapping = true)
       : S(S), Meta(Meta),
         ConflictPaths(ConflictPaths.begin(), ConflictPaths.end()),
-        SourceList(SourceList), DirectIncluded(DirectIncluded) {
+        SourceList(SourceList), DirectIncluded(DirectIncluded),
+        OnlyHeaderSourceMapping(OnlyHeaderSourceMapping) {
     SourceDir = (fs::path(Meta.MSCacheDir) / magic_enum::enum_name(S)).string();
 
-    std::unordered_set<std::string> IncludedFiles;
-    std::for_each(
-        this->DirectIncluded.begin(), this->DirectIncluded.end(),
-        [&](std::pair<const std::string, std::vector<std::string>> &Pair) {
-          IncludedFiles.insert(Pair.second.begin(), Pair.second.end());
-        });
+    if (!OnlyHeaderSourceMapping) {
+      std::unordered_set<std::string> IncludedFiles;
+      std::for_each(
+          this->DirectIncluded.begin(), this->DirectIncluded.end(),
+          [&](std::pair<const std::string, std::vector<std::string>> &Pair) {
+            IncludedFiles.insert(Pair.second.begin(), Pair.second.end());
+          });
 
-    this->SourceList.insert(this->SourceList.end(), IncludedFiles.begin(),
-                            IncludedFiles.end());
+      this->SourceList.insert(this->SourceList.end(), IncludedFiles.begin(),
+                              IncludedFiles.end());
+    }
   }
 
   /// shutdown language server
@@ -166,6 +168,8 @@ private:
   std::vector<std::string> SourceList;
   /// mapping of source's direct included files for each source in `SourceList`
   std::unordered_map<std::string, std::vector<std::string>> DirectIncluded;
+
+  bool OnlyHeaderSourceMapping;
 
   SemanticGraph G;
 

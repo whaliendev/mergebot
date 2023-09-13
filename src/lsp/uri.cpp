@@ -184,6 +184,7 @@ URI URI::createFile(std::string_view absolutePath) {
   }
 
   body += _details::convert_to_slash(absolutePath);
+  if (util::starts_with(body, "file://")) body = body.substr(7);
   return URI("file", authority, body);
 }
 std::string URI::percentDecode(std::string_view content) {

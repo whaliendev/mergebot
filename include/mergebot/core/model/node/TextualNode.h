@@ -8,6 +8,7 @@
 #include "mergebot/core/model/node/TerminalNode.h"
 namespace mergebot {
 namespace sa {
+// enumerator需要加逗号
 class TextualNode : public TerminalNode {
 public:
   TextualNode(int NodeId, bool NeedToMerge, NodeKind Kind,

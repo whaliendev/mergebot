@@ -104,7 +104,7 @@ std::string JSONRpcEndpoint::readLine() {
       len++;
     } while (bytesRead);
   }
-  spdlog::info("the pipe is empty");
+  spdlog::warn("the pipe is empty");
   return std::string(buf);
 }
 

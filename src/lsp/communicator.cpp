@@ -52,12 +52,23 @@ std::unique_ptr<PipeCommunicator> PipeCommunicator::create(
     }
 
 #ifdef MB_DROP_CHILD_STDERR
-    std::string logFileName = "/dev/null";
+    int nullFd = open("/dev/null", O_WRONLY);
+    if (nullFd == -1) {
+      perror("open");
+      exit(1);
+    }
+
+    // Redirect stderr to /dev/null
+    if (dup2(nullFd, STDERR_FILENO) == -1) {
+      perror("dup2");
+      exit(1);
+    }
+
+    close(nullFd);
 #else
     std::string logFileName = (fs::temp_directory_path() /
                                fmt::format("mergebot-{}-stderr.log", getpid()))
                                   .string();
-#endif
     //    fs::create_directories(LOG_FOLDER);
     int logFd = open(logFileName.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (logFd == -1) {
@@ -81,10 +92,13 @@ std::unique_ptr<PipeCommunicator> PipeCommunicator::create(
     //      assert("failed to dup2" && false);
     //    }
     //    close(logFd);
+#endif
 
     execl(executable, args, NULL);
     perror("execl");
+#ifndef MB_DROP_CHILD_STDERR
     fclose(logStream);
+#endif
     assert(false && fmt::format("failed to exec: {}", strerror(errno)).c_str());
   } else {
     // parent process

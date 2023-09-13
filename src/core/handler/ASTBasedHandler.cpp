@@ -100,9 +100,12 @@ void ASTBasedHandler::resolveConflictFiles(
   bool OurOk = false;
   bool BaseOk = false;
   bool TheirOk = false;
-  tbb::parallel_invoke([&]() { OurOk = OurBuilder.build(); },
-                       [&]() { BaseOk = BaseBuilder.build(); },
-                       [&]() { TheirOk = TheirBuilder.build(); });
+  OurOk = OurBuilder.build();
+  BaseOk = BaseBuilder.build();
+  TheirOk = TheirBuilder.build();
+  //  tbb::parallel_invoke([&]() { OurOk = OurBuilder.build(); },
+  //                       [&]() { BaseOk = BaseBuilder.build(); },
+  //                       [&]() { TheirOk = TheirBuilder.build(); });
   End = tbb::tick_count::now();
   if (!OurOk || !TheirOk) {
     spdlog::info("fail to construct graph representation of revisions");
