@@ -27,10 +27,11 @@ public:
       std::string &&Body, size_t FollowingEOL, DefinitionType DefType,
       std::string &&TemplateParameterList, std::string &&Attrs,
       std::string &&BeforeFuncName, std::vector<std::string> &&ParameterList,
-      std::vector<std::string> &&InitList)
+      std::vector<std::string> &&InitList, bool IsSynthetic = false)
       : TerminalNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
-                     std::move(USR), std::move(Body), FollowingEOL),
+                     std::move(USR), std::move(Body), FollowingEOL,
+                     IsSynthetic),
         DefType(DefType),
         TemplateParameterList(std::move(TemplateParameterList)),
         Attrs(std::move(Attrs)), BeforeFuncName(std::move(BeforeFuncName)),

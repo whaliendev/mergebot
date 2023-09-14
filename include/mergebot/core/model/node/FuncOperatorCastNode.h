@@ -24,10 +24,12 @@ public:
                        std::string &&Body, size_t FollowingEOL,
                        std::string &&TemplateParameterList, std::string &&Attrs,
                        std::vector<std::string> &&ParameterList,
-                       std::string &&AfterParameterList)
+                       std::string &&AfterParameterList,
+                       bool IsSynthetic = false)
       : TerminalNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
-                     std::move(USR), std::move(Body), FollowingEOL),
+                     std::move(USR), std::move(Body), FollowingEOL,
+                     IsSynthetic),
         TemplateParameterList(std::move(TemplateParameterList)),
         Attrs(std::move(Attrs)), ParameterList(std::move(ParameterList)),
         AfterParameterList(std::move(AfterParameterList)) {}

@@ -19,10 +19,11 @@ public:
            const std::string &OriginalSignature, std::string &&Comment,
            const std::optional<ts::Point> &Point, std::string &&USR,
            size_t BeforeFirstChildEOL, const std::string &Key,
-           const std::string &Attrs, const std::string &Base)
+           const std::string &Attrs, const std::string &Base,
+           bool IsSynthetic = false)
       : CompositeNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                       OriginalSignature, std::move(Comment), Point,
-                      std::move(USR), BeforeFirstChildEOL),
+                      std::move(USR), BeforeFirstChildEOL, IsSynthetic),
         EnumKey(Key), Attrs(Attrs), EnumBase(Base) {}
 
   static bool classof(const SemanticNode *N) {

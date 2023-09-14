@@ -14,10 +14,11 @@ public:
                const std::string &DisplayName, const std::string &QualifiedName,
                const std::string &OriginalSignature, std::string &&Comment,
                const std::optional<ts::Point> &Point, std::string &&USR,
-               std::string &&Body, size_t FollowingEOL)
+               std::string &&Body, size_t FollowingEOL,
+               bool IsSynthetic = false)
       : SemanticNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
-                     std::move(USR)),
+                     std::move(USR), IsSynthetic),
         Body(std::move(Body)) {
     this->FollowingEOL = FollowingEOL;
   }

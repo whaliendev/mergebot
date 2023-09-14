@@ -25,10 +25,10 @@ public:
                const std::optional<ts::Point> &Point, std::string &&USR,
                size_t BeforeFirstChildEOL, TypeDeclKind Kind,
                std::string &&Attrs, bool IsFinal, std::string &&BaseClause,
-               std::string &&TemplateParameterList)
+               std::string &&TemplateParameterList, bool IsSynthetic = false)
       : CompositeNode(NodeId, NeedToMerge, NKind, DisplayName, QualifiedName,
                       OriginalSignature, std::move(Comment), Point,
-                      std::move(USR), BeforeFirstChildEOL),
+                      std::move(USR), BeforeFirstChildEOL, IsSynthetic),
         Kind(Kind), Attrs(std::move(Attrs)), IsFinal(IsFinal),
         BaseClause(std::move(BaseClause)),
         TemplateParameterList(std::move(TemplateParameterList)) {}

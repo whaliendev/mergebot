@@ -14,10 +14,11 @@ public:
                 const std::string &QualifiedName,
                 const std::string &OriginalSignature, std::string &&Comment,
                 const std::optional<ts::Point> &Point, std::string &&USR,
-                int BeforeFirstChildEOL, bool IsInline, std::string &&NSComment)
+                int BeforeFirstChildEOL, bool IsInline, std::string &&NSComment,
+                bool IsSynthetic = false)
       : CompositeNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                       OriginalSignature, std::move(Comment), Point,
-                      std::move(USR), BeforeFirstChildEOL),
+                      std::move(USR), BeforeFirstChildEOL, IsSynthetic),
         IsInline(IsInline), NSComment(std::move(NSComment)) {}
 
   static bool classof(const SemanticNode *N) {

@@ -17,10 +17,10 @@ public:
                 const std::string &QualifiedName,
                 const std::string &OriginalSignature, std::string &&Comment,
                 const std::optional<ts::Point> &Point, std::string &&USR,
-                size_t BeforeFirstChildEOL)
+                size_t BeforeFirstChildEOL, bool IsSynthetic = false)
       : SemanticNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
-                     std::move(USR)),
+                     std::move(USR), IsSynthetic),
         BeforeFirstChildEOL(BeforeFirstChildEOL) {}
 
   size_t hashSignature() const override {

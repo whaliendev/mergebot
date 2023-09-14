@@ -15,10 +15,11 @@ public:
                   const std::string &QualifiedName,
                   const std::string &OriginalSignature, std::string &&Comment,
                   const std::optional<ts::Point> &Point, std::string &&USR,
-                  size_t BeforeFirstChildEOLs, size_t ParentSignatureHash)
+                  size_t BeforeFirstChildEOLs, size_t ParentSignatureHash,
+                  bool IsSynthetic = false)
       : CompositeNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                       OriginalSignature, std::move(Comment), Point,
-                      std::move(USR), BeforeFirstChildEOLs),
+                      std::move(USR), BeforeFirstChildEOLs, IsSynthetic),
         ParentSignatureHash(ParentSignatureHash) {}
 
   size_t hashSignature() const override {

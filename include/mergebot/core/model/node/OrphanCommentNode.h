@@ -14,10 +14,12 @@ public:
                     const std::string &QualifiedName,
                     const std::string &OriginalSignature, std::string &&Comment,
                     const std::optional<ts::Point> &Point, std::string &&USR,
-                    std::string &&Body, size_t FollowingEOL)
+                    std::string &&Body, size_t FollowingEOL,
+                    bool IsSynthetic = false)
       : TerminalNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
-                     std::move(USR), std::move(Body), FollowingEOL) {}
+                     std::move(USR), std::move(Body), FollowingEOL,
+                     IsSynthetic) {}
 
   static bool classof(const SemanticNode *N) {
     return N->getKind() == NodeKind::ORPHAN_COMMENT;

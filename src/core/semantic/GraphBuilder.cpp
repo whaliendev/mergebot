@@ -971,10 +971,10 @@ void GraphBuilder::addIncludeEdges() {
                     IncludedFile, "", "", "", std::nullopt,
                     std::string(IncludedFile), false, false,
                     std::vector<std::string>(),
-                    std::vector<std::pair<ts::Point, std::string>>(), 0);
+                    std::vector<std::pair<ts::Point, std::string>>(), 0, true);
             auto SyntheticVertex = addVertex(SyntheticPtr);
             addEdge(*TUPair.second, SyntheticVertex,
-                    SemanticEdge(EdgeCount++, EdgeKind::INCLUDE, 1, false));
+                    SemanticEdge(EdgeCount++, EdgeKind::INCLUDE, 1, true));
           }
         });
   });
@@ -1010,10 +1010,10 @@ void GraphBuilder::addReferenceEdges() {
                   std::make_shared<FuncDefNode>(
                       NodeCount++, false, NodeKind::FUNC_DEF, Reference, "", "",
                       "", std::nullopt, "", "", 0, "", "", "",
-                      std::vector<std::string>(), "");
+                      std::vector<std::string>(), "", true);
               auto SyntheticVertex = addVertex(SyntheticPtr);
               addEdge(*FieldDeclPair.second, SyntheticVertex,
-                      SemanticEdge(EdgeCount++, EdgeKind::REFERENCE, 1, false));
+                      SemanticEdge(EdgeCount++, EdgeKind::REFERENCE, 1, true));
             }
           });
     }
@@ -1061,10 +1061,10 @@ void GraphBuilder::addUseEdges() {
             std::make_shared<TypeDeclNode>(
                 NodeCount++, false, NodeKind::TYPE, UseType, "", "", "",
                 std::nullopt, "", 0, TypeDeclNode::TypeDeclKind::Class, "",
-                false, "", "");
+                false, "", "", true);
         auto SyntheticVertex = addVertex(SyntheticPtr);
         addEdge(*FuncPair.second, SyntheticVertex,
-                SemanticEdge(EdgeCount++, EdgeKind::USE, 1, false));
+                SemanticEdge(EdgeCount++, EdgeKind::USE, 1, true));
       }
     });
   });

@@ -12,8 +12,10 @@ namespace mergebot::sa {
 class AccessSpecifierNode : public TerminalNode {
 public:
   explicit AccessSpecifierNode(AccessSpecifierKind AccessKind,
-                               NodeKind Kind = NodeKind::ACCESS_SPECIFIER)
-      : TerminalNode(-1, false, Kind, "", "", "", "", std::nullopt, "", "", 0),
+                               NodeKind Kind = NodeKind::ACCESS_SPECIFIER,
+                               bool IsSynthetic = true)
+      : TerminalNode(-1, false, Kind, "", "", "", "", std::nullopt, "", "", 0,
+                     IsSynthetic),
         AccessKind(AccessKind) {
     this->FollowingEOL = 0;
   }

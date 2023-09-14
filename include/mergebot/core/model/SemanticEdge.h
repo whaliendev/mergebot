@@ -12,19 +12,19 @@ namespace sa {
 class SemanticNode;
 class SemanticEdge {
 public:
-  SemanticEdge(int ID, EdgeKind Kind, int Weight, bool IsPhysical)
-      : ID(ID), Kind(Kind), Weight(Weight), IsPhysical(IsPhysical) {}
+  SemanticEdge(int ID, EdgeKind Kind, int Weight, bool IsSynthetic)
+      : ID(ID), Kind(Kind), Weight(Weight), IsSynthetic(IsSynthetic) {}
 
   SemanticEdge(int ID, EdgeKind Kind)
-      : ID(ID), Kind(Kind), Weight(1), IsPhysical(true) {}
+      : ID(ID), Kind(Kind), Weight(1), IsSynthetic(false) {}
 
   SemanticEdge()
-      : ID(-1), Kind(EdgeKind::ILLEGAL), Weight(-1), IsPhysical(false) {}
+      : ID(-1), Kind(EdgeKind::ILLEGAL), Weight(-1), IsSynthetic(true) {}
 
   int ID;
   EdgeKind Kind;
-  int Weight;      // how many times it appears
-  bool IsPhysical; // physical edge or logical edge
+  int Weight; // how many times it appears
+  bool IsSynthetic;
 };
 
 } // namespace sa

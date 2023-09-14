@@ -24,12 +24,13 @@ public:
   SemanticNode(int NodeId, bool NeedToMerge, NodeKind Kind,
                const std::string &DisplayName, const std::string &QualifiedName,
                const std::string &OriginalSignature, std::string &&Comment,
-               const std::optional<ts::Point> &Point, std::string &&USR)
+               const std::optional<ts::Point> &Point, std::string &&USR,
+               bool IsSynthetic = false)
       : ID(NodeId), NeedToMerge(NeedToMerge), Kind(Kind),
         DisplayName(QualifiedName + DisplayName), QualifiedName(QualifiedName),
         OriginalSignature(OriginalSignature), Comment(Comment),
-        StartPoint(Point), USR(USR),
-        AccessSpecifier(AccessSpecifierKind::None) {}
+        StartPoint(Point), USR(USR), AccessSpecifier(AccessSpecifierKind::None),
+        IsSynthetic(IsSynthetic) {}
 
   friend bool operator==(SemanticNode const &lhs, SemanticNode const &rhs) {
     return lhs.hashSignature() == rhs.hashSignature();
@@ -69,6 +70,8 @@ public:
   int FollowingEOL = 1;
 
   AccessSpecifierKind AccessSpecifier = AccessSpecifierKind::None;
+
+  bool IsSynthetic;
 
   std::vector<std::shared_ptr<SemanticNode>> Children;
 
