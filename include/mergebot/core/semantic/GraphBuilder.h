@@ -76,7 +76,7 @@ public:
   ~GraphBuilder();
 
   bool build();
-  const SemanticGraph &graph() const { return G; }
+  SemanticGraph &graph() { return G; }
 
   size_t numEdges() const { return boost::num_edges(G); }
   size_t numVertices() const { return boost::num_vertices(G); }
@@ -136,6 +136,10 @@ private:
   std::shared_ptr<FuncSpecialMemberNode>
   parseFuncSpecialMemberNode(const ts::Node &Node, bool IsConflicting,
                              const std::string &FilePath);
+
+  void addIncludeEdges();
+  void addReferenceEdges();
+  void addUseEdges();
 
   bool initLanguageServer();
   std::optional<lsp::SymbolDetails> getSymbolDetails(const lsp::URIForFile &URI,

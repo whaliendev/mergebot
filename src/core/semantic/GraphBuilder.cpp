@@ -163,6 +163,15 @@ bool GraphBuilder::build() {
   for (std::string const &Path : SourceList) {
     processTranslationUnit(Path);
   }
+
+  // now vertices are all added, we can add edges
+  //  addIncludeEdges();
+  addReferenceEdges();
+  addUseEdges();
+
+  // now all vertices and edges are fixed, we can generate context info for each
+  // vertex
+
   return true;
 }
 
@@ -230,10 +239,6 @@ void GraphBuilder::processCppTranslationUnit(const std::string &Path,
   vertex_descriptor TUVertex = addVertex(TUPtr);
   parseCompositeNode(TUPtr, TUVertex, IsConflicting, TURoot, FilePath,
                      FrontDeclCnt);
-
-  // build edges
-
-  // generate context info
 
   Client.DidClose(FilePath);
   if (HasAltFile) {
@@ -531,7 +536,7 @@ std::shared_ptr<TranslationUnitNode> GraphBuilder::parseTranslationUnit(
   return std::make_shared<TranslationUnitNode>(
       NodeCount++, IsConflicting, NodeKind::TRANSLATION_UNIT, Path,
       Meta.ProjectPath, FilePath, std::move(Comment), std::nullopt,
-      std::string(Path), Path, IsHeader, TraditionGuard, std::move(HeaderGuard),
+      std::string(Path), IsHeader, TraditionGuard, std::move(HeaderGuard),
       std::move(FrontDecls), BeforeFirstChildEOL);
 }
 
@@ -649,6 +654,7 @@ std::shared_ptr<FieldDeclarationNode> GraphBuilder::parseFieldDeclarationNode(
           Node.startPoint(), std::move(USR), Node.text(),
           ts::getFollowingEOLs(Node), std::move(Declarator),
           ParentSignatureHash);
+  FDNodePtr->References = References;
   return FDNodePtr;
 }
 
@@ -931,6 +937,137 @@ std::shared_ptr<FuncSpecialMemberNode> GraphBuilder::parseFuncSpecialMemberNode(
   FSMPtr->ParameterTypes = std::move(ParameterTypeList);
 
   return FSMPtr;
+}
+
+void GraphBuilder::addIncludeEdges() {
+  auto rangePair = boost::vertices(G);
+  std::vector<
+      std::pair<std::shared_ptr<SemanticNode>, decltype(rangePair.first)>>
+      TUPtrs;
+  for (auto It = rangePair.first; It != rangePair.second; ++It) {
+    if (llvm::isa<TranslationUnitNode>(G[*It].get())) {
+      TUPtrs.push_back({G[*It], It});
+    }
+  }
+
+  std::for_each(TUPtrs.begin(), TUPtrs.end(), [&](auto &TUPair) {
+    std::vector<std::string> &IncludedFiles = DirectIncluded[TUPair.first->USR];
+    std::for_each(
+        IncludedFiles.begin(), IncludedFiles.end(),
+        [&](const auto &IncludedFile) {
+          auto It = std::find_if(TUPtrs.begin(), TUPtrs.end(),
+                                 [&](const auto &TUPair) {
+                                   return TUPair.first->USR == IncludedFile;
+                                 });
+          if (It != TUPtrs.end()) {
+            // physical node and edge
+            addEdge(*TUPair.second, *(It->second),
+                    SemanticEdge(EdgeCount++, EdgeKind::INCLUDE));
+          } else {
+            // insert synthetic node and edge
+            std::shared_ptr<SemanticNode> SyntheticPtr =
+                std::make_shared<TranslationUnitNode>(
+                    NodeCount++, false, NodeKind::TRANSLATION_UNIT,
+                    IncludedFile, "", "", "", std::nullopt,
+                    std::string(IncludedFile), false, false,
+                    std::vector<std::string>(),
+                    std::vector<std::pair<ts::Point, std::string>>(), 0);
+            auto SyntheticVertex = addVertex(SyntheticPtr);
+            addEdge(*TUPair.second, SyntheticVertex,
+                    SemanticEdge(EdgeCount++, EdgeKind::INCLUDE, 1, false));
+          }
+        });
+  });
+}
+
+void GraphBuilder::addReferenceEdges() {
+  auto rangePair = boost::vertices(G);
+  std::vector<
+      std::pair<std::shared_ptr<SemanticNode>, decltype(rangePair.first)>>
+      FieldDecls;
+  for (auto It = rangePair.first; It != rangePair.second; ++It) {
+    if (llvm::isa<FieldDeclarationNode>(G[*It].get())) {
+      FieldDecls.push_back({G[*It], It});
+    }
+  }
+
+  std::for_each(FieldDecls.begin(), FieldDecls.end(), [&](auto &FieldDeclPair) {
+    if (auto FieldDeclRawPtr =
+            llvm::dyn_cast<FieldDeclarationNode>(FieldDeclPair.first.get())) {
+      std::for_each(
+          FieldDeclRawPtr->References.begin(),
+          FieldDeclRawPtr->References.end(), [&](const auto &Reference) {
+            // field can be referenced in many NodeKinds
+            auto It = std::find_if(rangePair.first, rangePair.second,
+                                   [&](const auto Vertex) {
+                                     return G[Vertex]->DisplayName == Reference;
+                                   });
+            if (It != rangePair.second) {
+              addEdge(*FieldDeclPair.second, *It,
+                      SemanticEdge(EdgeCount++, EdgeKind::REFERENCE));
+            } else {
+              std::shared_ptr<SemanticNode> SyntheticPtr =
+                  std::make_shared<FuncDefNode>(
+                      NodeCount++, false, NodeKind::FUNC_DEF, Reference, "", "",
+                      "", std::nullopt, "", "", 0, "", "", "",
+                      std::vector<std::string>(), "");
+              auto SyntheticVertex = addVertex(SyntheticPtr);
+              addEdge(*FieldDeclPair.second, SyntheticVertex,
+                      SemanticEdge(EdgeCount++, EdgeKind::REFERENCE, 1, false));
+            }
+          });
+    }
+  });
+}
+
+void GraphBuilder::addUseEdges() {
+  auto rangePair = boost::vertices(G);
+  std::vector<
+      std::pair<std::shared_ptr<SemanticNode>, decltype(rangePair.first)>>
+      PlainFuncs;
+  std::vector<
+      std::pair<std::shared_ptr<SemanticNode>, decltype(rangePair.first)>>
+      TypeDecls;
+  for (auto It = rangePair.first; It != rangePair.second; ++It) {
+    if (llvm::isa<FuncDefNode>(G[*It].get()) ||
+        llvm::isa<FuncSpecialMemberNode>(G[*It].get())) {
+      PlainFuncs.push_back({G[*It], It});
+    }
+    if (llvm::isa<TypeDeclNode>(G[*It].get())) {
+      TypeDecls.push_back({G[*It], It});
+    }
+  }
+
+  std::for_each(PlainFuncs.begin(), PlainFuncs.end(), [&](auto &FuncPair) {
+    std::vector<std::string> FuncUses;
+    if (auto FuncDefRawPtr =
+            llvm::dyn_cast<FuncDefNode>(FuncPair.first.get())) {
+      FuncUses = FuncDefRawPtr->ParameterTypes;
+    }
+    if (auto FuncSpecialRawPtr =
+            llvm::dyn_cast<FuncSpecialMemberNode>(FuncPair.first.get())) {
+      FuncUses = FuncSpecialRawPtr->ParameterTypes;
+    }
+    std::for_each(FuncUses.begin(), FuncUses.end(), [&](const auto &UseType) {
+      auto It = std::find_if(
+          TypeDecls.begin(), TypeDecls.end(), [&](const auto &TypeDeclPair) {
+            return TypeDeclPair.first->DisplayName == UseType;
+          });
+      if (It != TypeDecls.end()) {
+        addEdge(*FuncPair.second, *(It->second),
+                SemanticEdge(EdgeCount++, EdgeKind::USE));
+      } else {
+        std::shared_ptr<SemanticNode> SyntheticPtr =
+            std::make_shared<TypeDeclNode>(
+                NodeCount++, false, NodeKind::TYPE, UseType, "", "", "",
+                std::nullopt, "", 0, TypeDeclNode::TypeDeclKind::Class, "",
+                false, "", "");
+        auto SyntheticVertex = addVertex(SyntheticPtr);
+        addEdge(*FuncPair.second, SyntheticVertex,
+                SemanticEdge(EdgeCount++, EdgeKind::USE, 1, false));
+      }
+    });
+  });
 }
 
 bool GraphBuilder::isConflicting(std::string_view Path) const {

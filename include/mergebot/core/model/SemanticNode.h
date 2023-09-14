@@ -26,7 +26,7 @@ public:
                const std::string &OriginalSignature, std::string &&Comment,
                const std::optional<ts::Point> &Point, std::string &&USR)
       : ID(NodeId), NeedToMerge(NeedToMerge), Kind(Kind),
-        DisplayName(DisplayName), QualifiedName(QualifiedName),
+        DisplayName(QualifiedName + DisplayName), QualifiedName(QualifiedName),
         OriginalSignature(OriginalSignature), Comment(Comment),
         StartPoint(Point), USR(USR),
         AccessSpecifier(AccessSpecifierKind::None) {}

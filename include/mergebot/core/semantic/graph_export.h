@@ -13,7 +13,7 @@ namespace mergebot::sa {
 constexpr const char *getNodeKindShape(NodeKind Kind) {
   switch (Kind) {
   case NodeKind::TRANSLATION_UNIT:
-    return "doublecircle";
+    return "octagon";
   case NodeKind::LINKAGE_SPEC_LIST:
     return "diamond";
   case NodeKind::NAMESPACE:
@@ -45,7 +45,7 @@ struct SemanticNodeWriter {
   void operator()(std::ostream &out, const VertexDesc &v) const {
     const std::shared_ptr<SemanticNode> &node = g[v];
     out << fmt::format("[label={}, type={}, shape={}]",
-                       util::escaped(node->QualifiedName + node->DisplayName),
+                       util::escaped(node->DisplayName),
                        magic_enum::enum_name(node->getKind()),
                        getNodeKindShape(node->getKind()));
   }
@@ -65,8 +65,14 @@ struct SemanticEdgeWriter {
       out << fmt::format("[style=invis]");
       return;
     }
-    out << fmt::format("[label={}, weight={}]",
-                       magic_enum::enum_name(edge.Kind), edge.Weight);
+    if (edge.IsPhysical) {
+      out << fmt::format("[label={}, weight={}]",
+                         magic_enum::enum_name(edge.Kind), edge.Weight);
+    } else {
+      out << fmt::format("[label={}, weight={}, color={}]",
+                         magic_enum::enum_name(edge.Kind), edge.Weight,
+                         "lightgreen");
+    }
   }
 
   const GraphBuilder::SemanticGraph &g;

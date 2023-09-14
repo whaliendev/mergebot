@@ -16,23 +16,21 @@ public:
       int NodeId, bool NeedToMerge, NodeKind Kind,
       const std::string &DisplayName, const std::string &QualifiedName,
       const std::string &OriginalSignature, std::string &&Comment,
-      const std::optional<ts::Point> &Point, std::string &&USR,
-      const std::string &RelativePath, bool IsHeader, bool TraditionGuard,
-      std::vector<std::string> &&HeaderGuard,
+      const std::optional<ts::Point> &Point, std::string &&USR, bool IsHeader,
+      bool TraditionGuard, std::vector<std::string> &&HeaderGuard,
       std::vector<std::pair<ts::Point, std::string>> &&FrontDecls,
       size_t BeforeFirstChildEOL)
       : CompositeNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                       OriginalSignature, std::move(Comment), Point,
                       std::move(USR), BeforeFirstChildEOL),
-        RelativePath(RelativePath), IsHeader(IsHeader),
-        TraditionGuard(TraditionGuard), HeaderGuard(std::move(HeaderGuard)),
+        IsHeader(IsHeader), TraditionGuard(TraditionGuard),
+        HeaderGuard(std::move(HeaderGuard)),
         FrontDecls(std::move(FrontDecls)){};
 
   static bool classof(const SemanticNode *N) {
     return N->getKind() == NodeKind::TRANSLATION_UNIT;
   }
 
-  std::string RelativePath;
   bool IsHeader = false;
   bool TraditionGuard = true;
   /// @code
