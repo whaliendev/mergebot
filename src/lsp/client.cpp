@@ -32,6 +32,7 @@ JSONRpcEndpoint::RecvResponse() {
   ssize_t bodySize = -1;
   while (true) {
     std::string line = readLine();
+    // TODO(hwa): handle clangd crash
     if (line.empty()) {
       // empty pipe
       return "";
@@ -104,7 +105,8 @@ std::string JSONRpcEndpoint::readLine() {
       len++;
     } while (bytesRead);
   }
-  spdlog::warn("the pipe is empty");
+  spdlog::warn(
+      "empty pipe: language server may have been killed due to out of memory");
   return std::string(buf);
 }
 

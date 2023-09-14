@@ -114,8 +114,8 @@ PipeCommunicator::PipeCommunicator(int* pipeIn, int* pipeOut, pid_t processId)
     : pipeIn{pipeIn[0], pipeIn[1]},
       pipeOut{pipeOut[0], pipeOut[1]},
       processId(processId) {
-  spdlog::debug("&&&& pipeIn: {}, {}", pipeIn[0], pipeIn[1]);
-  spdlog::debug("&&&& pipeOut: {}, {}", pipeOut[0], pipeOut[1]);
+  spdlog::info(">>>>>>> pipeIn: {}, {}", pipeIn[0], pipeIn[1]);
+  spdlog::info(">>>>>>> pipeOut: {}, {}", pipeOut[0], pipeOut[1]);
 }
 
 PipeCommunicator::~PipeCommunicator() {
@@ -128,15 +128,15 @@ PipeCommunicator::~PipeCommunicator() {
   waitpid(processId, &status, 0);
   if (WIFSIGNALED(status)) {
     if (WTERMSIG(status) == SIGTERM) {
-      spdlog::debug("child process was ended with a SIGTERM");
+      spdlog::warn("child process was ended with a SIGTERM");
     } else {
-      spdlog::debug("child process was ended with a {} signal",
-                    WTERMSIG(status));
+      spdlog::warn("child process was ended with a {} signal",
+                   WTERMSIG(status));
     }
   } else if (WIFEXITED(status)) {
     spdlog::debug("child process exited normally");
   }
-  spdlog::debug("--------- pipe closed, {}, {}", pipeIn[1], pipeOut[0]);
+  spdlog::info("<<<<<<< pipe closed, {}, {}", pipeIn[1], pipeOut[0]);
   close(pipeIn[1]);
   close(pipeOut[0]);
 }
@@ -163,29 +163,6 @@ ssize_t PipeCommunicator::read(void* buf, size_t len) {
   fcntl(pipeOut[0], F_SETFL, flags | O_NONBLOCK);
 
   return ::read(pipeOut[0], buf, len);
-
-  size_t totalBytesRead = 0;
-  ssize_t bytesRead = 0;
-  char* bufferPtr = static_cast<char*>(buf);
-
-  while (totalBytesRead < len) {
-    bytesRead =
-        ::read(pipeOut[0], bufferPtr + totalBytesRead, len - totalBytesRead);
-    if (bytesRead > 0) {
-      totalBytesRead += bytesRead;
-    } else if (bytesRead == 0) {
-      break;
-    } else {
-      // An error occurred
-      if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        break;
-      } else {
-        return -1;
-      }
-    }
-  }
-
-  return totalBytesRead;
 }
 }  // namespace lsp
 }  // namespace mergebot
