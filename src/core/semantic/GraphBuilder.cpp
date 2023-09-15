@@ -1114,10 +1114,9 @@ std::vector<std::string> GraphBuilder::getReferences(const lsp::URIForFile &URI,
 }
 
 bool GraphBuilder::initLanguageServer() {
-  std::filesystem::path current_exec_path =
-      std::filesystem::read_symlink("/proc/self/exe");
-  std::filesystem::path dir = current_exec_path.parent_path();
-  std::filesystem::path clangd_path = dir / "clangd";
+  fs::path current_exec_path = std::filesystem::read_symlink("/proc/self/exe");
+  fs::path dir = current_exec_path.parent_path();
+  fs::path clangd_path = dir / "clangd";
   if (!fs::exists(clangd_path)) {
     spdlog::error("clangd not found");
     return false;
