@@ -15,13 +15,12 @@ public:
               const std::string &DisplayName, const std::string &QualifiedName,
               const std::string &OriginalSignature, std::string &&Comment,
               const std::optional<ts::Point> &Point, std::string &&USR,
-              std::string &&Body, size_t FollowingEOL,
-              size_t ParentSignatureHash, bool IsSynthetic = false)
+              std::string &&Body, size_t ParentSignatureHash,
+              size_t FollowingEOL, bool IsSynthetic = false)
       : TerminalNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
-                     std::move(USR), std::move(Body), FollowingEOL,
-                     IsSynthetic),
-        ParentSignatureHash(ParentSignatureHash) {}
+                     std::move(USR), std::move(Body), ParentSignatureHash,
+                     FollowingEOL, IsSynthetic) {}
 
   size_t ParentSignatureHash;
 

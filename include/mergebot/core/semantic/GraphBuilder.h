@@ -127,14 +127,17 @@ private:
   std::shared_ptr<FuncDefNode> parseFuncDefNode(const ts::Node &Node,
                                                 const ts::Node &RealNode,
                                                 bool IsConflicting,
+                                                size_t ParentSignatureHash,
                                                 const std::string &FilePath);
 
   std::shared_ptr<FuncOperatorCastNode>
   parseFuncOperatorCastNode(const ts::Node &Node, bool IsConflicting,
+                            size_t ParentSignatureHash,
                             const std::string &FilePath);
 
   std::shared_ptr<FuncSpecialMemberNode>
   parseFuncSpecialMemberNode(const ts::Node &Node, bool IsConflicting,
+                             size_t ParentSignatureHash,
                              const std::string &FilePath);
 
   void addIncludeEdges();

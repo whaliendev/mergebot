@@ -26,6 +26,8 @@ public:
                       std::move(USR), BeforeFirstChildEOL, IsSynthetic),
         EnumKey(Key), Attrs(Attrs), EnumBase(Base) {}
 
+  /// use CompositeNode's hashSignature, no need to rewrite
+
   static bool classof(const SemanticNode *N) {
     return N->getKind() == NodeKind::ENUM;
   }

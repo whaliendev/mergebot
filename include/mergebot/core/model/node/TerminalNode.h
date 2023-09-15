@@ -14,12 +14,12 @@ public:
                const std::string &DisplayName, const std::string &QualifiedName,
                const std::string &OriginalSignature, std::string &&Comment,
                const std::optional<ts::Point> &Point, std::string &&USR,
-               std::string &&Body, size_t FollowingEOL,
-               bool IsSynthetic = false)
+               std::string &&Body, size_t ParentSignatureHash,
+               size_t FollowingEOL, bool IsSynthetic = false)
       : SemanticNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
                      std::move(USR), IsSynthetic),
-        Body(std::move(Body)) {
+        Body(std::move(Body)), ParentSignatureHash(ParentSignatureHash) {
     this->FollowingEOL = FollowingEOL;
   }
 
@@ -29,6 +29,7 @@ public:
 
   size_t hashSignature() const override {
     size_t H = 1;
+    mergebot::hash_combine(H, getKind());
     mergebot::hash_combine(H, this->Body);
     return H;
   }
@@ -39,6 +40,7 @@ public:
   }
 
   std::string Body;
+  size_t ParentSignatureHash;
 };
 } // namespace sa
 } // namespace mergebot

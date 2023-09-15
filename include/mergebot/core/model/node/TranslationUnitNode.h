@@ -31,6 +31,13 @@ public:
     return N->getKind() == NodeKind::TRANSLATION_UNIT;
   }
 
+  size_t hashSignature() const override {
+    size_t H = 1;
+    mergebot::hash_combine(H, getKind());
+    mergebot::hash_combine(H, this->DisplayName);
+    return H;
+  }
+
   bool IsHeader = false;
   bool TraditionGuard = true;
   /// @code

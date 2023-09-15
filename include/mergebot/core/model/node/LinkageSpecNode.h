@@ -24,6 +24,7 @@ public:
 
   size_t hashSignature() const override {
     size_t H = 1;
+    mergebot::hash_combine(H, this->Kind);
     mergebot::hash_combine(H, this->ParentSignatureHash);
     mergebot::hash_combine(H, this->DisplayName);
     return H;

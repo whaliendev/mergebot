@@ -180,13 +180,13 @@ bool GraphBuilder::build() {
 
 /// carefully share memory
 void GraphBuilder::processTranslationUnit(const std::string &Path) {
-  spdlog::info("Side: [{}], processing compilation unit {}...",
+  spdlog::info("Side: [{}], processing translation unit {}...",
                magic_enum::enum_name(S), Path);
 
   bool IsConflicting = isConflicting(Path);
   std::string FilePath = (fs::path(SourceDir) / Path).string();
   if (!fs::exists(FilePath)) {
-    spdlog::warn("Side: [{}], compilation unit {} doesn't exist",
+    spdlog::warn("Side: [{}], translation unit {} doesn't exist",
                  magic_enum::enum_name(S), FilePath);
     return;
   }
@@ -194,7 +194,7 @@ void GraphBuilder::processTranslationUnit(const std::string &Path) {
   if (details::IsCppSource(Path)) {
     processCppTranslationUnit(Path, FilePath, IsConflicting);
   } else {
-    spdlog::info("Side: [{}], compilation unit {} is not a C++ source file. We "
+    spdlog::info("Side: [{}], translation unit {} is not a C++ source file. We "
                  "skip it currently",
                  magic_enum::enum_name(S), FilePath);
   }
@@ -223,7 +223,7 @@ void GraphBuilder::processCppTranslationUnit(const std::string &Path,
   ts::Parser PS(ts::cpp::language());
   std::shared_ptr<ts::Tree> Tree = PS.parse(FileSource);
   if (!Tree) {
-    spdlog::error("Side: [{}], compilation unit {} cannot be parsed",
+    spdlog::error("Side: [{}], translation unit {} cannot be parsed",
                   magic_enum::enum_name(S), FilePath);
     return;
   }
@@ -287,7 +287,7 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
               std::make_shared<OrphanCommentNode>(
                   NodeCount++, IsConflicting, NodeKind::ORPHAN_COMMENT, Comment,
                   "", Comment, "", Child.startPoint(), "", "",
-                  ts::getFollowingEOLs(Child));
+                  SRoot->hashSignature(), ts::getFollowingEOLs(Child));
           insertToGraphAndParent(SRoot, SRootVDesc, OrphanCommentPtr);
           Idx +=
               CommentCnt - 1; // -1 as the loop end will auto increment Idx by 1
@@ -320,8 +320,8 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
                 FilePath);
           } else {
             // plain function definition
-            std::shared_ptr<SemanticNode> FncDefNodePtr =
-                parseFuncDefNode(Child, Child, IsConflicting, FilePath);
+            std::shared_ptr<SemanticNode> FncDefNodePtr = parseFuncDefNode(
+                Child, Child, IsConflicting, SRoot->hashSignature(), FilePath);
             insertToGraphAndParent(SRoot, SRootVDesc, FncDefNodePtr);
           }
         } else { // without return value
@@ -331,11 +331,13 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
               declaratorOpt.value().type() ==
                   symbols::sym_operator_cast.name) { // operator cast function
             std::shared_ptr<SemanticNode> FuncOperatorCastNodePtr =
-                parseFuncOperatorCastNode(Child, IsConflicting, FilePath);
+                parseFuncOperatorCastNode(Child, IsConflicting,
+                                          SRoot->hashSignature(), FilePath);
             insertToGraphAndParent(SRoot, SRootVDesc, FuncOperatorCastNodePtr);
           } else { // special function member
             std::shared_ptr<SemanticNode> FuncSpecialMemberNodePtr =
-                parseFuncSpecialMemberNode(Child, IsConflicting, FilePath);
+                parseFuncSpecialMemberNode(Child, IsConflicting,
+                                           SRoot->hashSignature(), FilePath);
             insertToGraphAndParent(SRoot, SRootVDesc, FuncSpecialMemberNodePtr);
           }
         }
@@ -372,7 +374,8 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
         if (Kind == FUNCTION_TEMPLATE) {
           if (HasBody) {
             std::shared_ptr<SemanticNode> FuncDefNodePtr =
-                parseFuncDefNode(Child, RealNode, IsConflicting, FilePath);
+                parseFuncDefNode(Child, RealNode, IsConflicting,
+                                 SRoot->hashSignature(), FilePath);
             insertToGraphAndParent(SRoot, SRootVDesc, FuncDefNodePtr);
           } else {
             std::shared_ptr<TextualNode> TextualPtr =
@@ -592,10 +595,11 @@ GraphBuilder::parseNamespaceNode(const ts::Node &Node, bool IsConflicting,
     }
   }
 
+  const std::string TUPath = fs::relative(Path, SourceDir).string();
   return std::make_shared<NamespaceNode>(
       NodeCount++, IsConflicting, NodeKind::NAMESPACE, DisplayName,
       QualifiedName, OriginalSignature, std::move(Comment), Node.startPoint(),
-      std::move(USR), BeforeFirstChildEOL, Inline.size() != 0,
+      std::move(USR), BeforeFirstChildEOL, TUPath, Inline.size() != 0,
       std::move(NSComment));
 }
 
@@ -606,7 +610,7 @@ GraphBuilder::parseTextualNode(const ts::Node &Node, bool IsConflicting,
   return std::make_shared<TextualNode>(
       NodeCount++, IsConflicting, NodeKind::TEXTUAL, TextContent, "",
       TextContent, ts::getNodeComment(Node), Node.startPoint(), "",
-      std::move(TextContent), ts::getFollowingEOLs(Node), ParentSignatureHash);
+      std::move(TextContent), ParentSignatureHash, ts::getFollowingEOLs(Node));
 }
 
 std::shared_ptr<FieldDeclarationNode> GraphBuilder::parseFieldDeclarationNode(
@@ -755,7 +759,7 @@ GraphBuilder::parseTypeDeclNode(const ts::Node &Node, const ts::Node &RealNode,
 
 std::shared_ptr<FuncDefNode>
 GraphBuilder::parseFuncDefNode(const ts::Node &Node, const ts::Node &RealNode,
-                               bool IsConflicting,
+                               bool IsConflicting, size_t ParentSignatureHash,
                                const std::string &FilePath) {
   ts::Node FDefNode = Node;
   if (Node.type() == ts::cpp::symbols::sym_template_declaration.name) {
@@ -838,9 +842,10 @@ GraphBuilder::parseFuncDefNode(const ts::Node &Node, const ts::Node &RealNode,
       NodeCount++, IsConflicting, NodeKind::FUNC_DEF, DefInfo.FuncName,
       QualifiedName, DefInfo.OriginalSignature, ts::getNodeComment(Node),
       Node.startPoint(), std::move(USR), std::move(BodyText),
-      ts::getFollowingEOLs(Node), std::move(DefInfo.TemplateParameterList),
-      std::move(DefInfo.Attrs), std::move(DefInfo.BeforeFuncName),
-      std::move(DefInfo.ParameterList), std::move(DefInfo.AfterParameterList));
+      ParentSignatureHash, ts::getFollowingEOLs(Node),
+      std::move(DefInfo.TemplateParameterList), std::move(DefInfo.Attrs),
+      std::move(DefInfo.BeforeFuncName), std::move(DefInfo.ParameterList),
+      std::move(DefInfo.AfterParameterList));
 
   FuncDefNodePtr->ParameterTypes = std::move(ParameterTypeList);
 
@@ -848,7 +853,8 @@ GraphBuilder::parseFuncDefNode(const ts::Node &Node, const ts::Node &RealNode,
 }
 
 std::shared_ptr<FuncOperatorCastNode> GraphBuilder::parseFuncOperatorCastNode(
-    const ts::Node &Node, bool IsConflicting, const std::string &FilePath) {
+    const ts::Node &Node, bool IsConflicting, size_t ParentSignatureHash,
+    const std::string &FilePath) {
   ts::FuncOperatorCastInfo Info = ts::extractFuncOperatorCastInfo(Node.text());
 
   std::string QualifiedName;
@@ -871,13 +877,14 @@ std::shared_ptr<FuncOperatorCastNode> GraphBuilder::parseFuncOperatorCastNode(
       NodeCount++, IsConflicting, NodeKind::FUNC_OPERATOR_CAST, Info.FuncName,
       QualifiedName, Info.OriginalSignature, ts::getNodeComment(Node),
       Node.startPoint(), std::move(USR), std::move(BodyText),
-      ts::getFollowingEOLs(Node), std::move(Info.TemplateParameterList),
-      std::move(Info.Attrs), std::move(Info.ParameterList),
-      std::move(Info.AfterParameterList));
+      ParentSignatureHash, ts::getFollowingEOLs(Node),
+      std::move(Info.TemplateParameterList), std::move(Info.Attrs),
+      std::move(Info.ParameterList), std::move(Info.AfterParameterList));
 }
 
 std::shared_ptr<FuncSpecialMemberNode> GraphBuilder::parseFuncSpecialMemberNode(
-    const ts::Node &Node, bool IsConflicting, const std::string &FilePath) {
+    const ts::Node &Node, bool IsConflicting, size_t ParentSignatureHash,
+    const std::string &FilePath) {
   ts::FuncSpecialMemberInfo Info =
       ts::extractFuncSpecialMemberInfo(Node.text());
 
@@ -933,10 +940,10 @@ std::shared_ptr<FuncSpecialMemberNode> GraphBuilder::parseFuncSpecialMemberNode(
           NodeCount++, IsConflicting, NodeKind::FUNC_SPECIAL_MEMBER,
           Info.FuncName, QualifiedName, Info.OriginalSignature,
           ts::getNodeComment(Node), Node.startPoint(), std::move(USR),
-          std::move(BodyText), ts::getFollowingEOLs(Node), Info.DefType,
-          std::move(Info.TemplateParameterList), std::move(Info.Attrs),
-          std::move(Info.BeforeFuncName), std::move(Info.ParameterList),
-          std::move(Info.InitList));
+          std::move(BodyText), ParentSignatureHash, ts::getFollowingEOLs(Node),
+          Info.DefType, std::move(Info.TemplateParameterList),
+          std::move(Info.Attrs), std::move(Info.BeforeFuncName),
+          std::move(Info.ParameterList), std::move(Info.InitList));
   FSMPtr->ParameterTypes = std::move(ParameterTypeList);
 
   return FSMPtr;
@@ -1012,7 +1019,7 @@ void GraphBuilder::addReferenceEdges() {
               std::shared_ptr<SemanticNode> SyntheticPtr =
                   std::make_shared<FuncDefNode>(
                       NodeCount++, false, NodeKind::FUNC_DEF, Reference, "", "",
-                      "", std::nullopt, "", "", 0, "", "", "",
+                      "", std::nullopt, "", "", -1, 0, "", "", "",
                       std::vector<std::string>(), "", true);
               auto SyntheticVertex = addVertex(SyntheticPtr);
               addEdge(*FieldDeclPair.second, SyntheticVertex,

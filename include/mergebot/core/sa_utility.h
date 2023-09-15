@@ -18,10 +18,19 @@
 
 namespace mergebot {
 template <typename T> void hash_combine(size_t &seed, const T &v) {
-  const size_t prime = 31;
   std::hash<T> hasher;
-  seed = prime * seed + hasher(v);
+  seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
+
+template <typename T> struct VectorHash {
+  std::size_t operator()(const std::vector<T> &vec) const {
+    std::size_t seed = 0;
+    for (const auto &elem : vec) {
+      hash_combine(seed, elem);
+    }
+    return seed;
+  }
+};
 
 namespace utils {
 static std::shared_mutex rwMutex;

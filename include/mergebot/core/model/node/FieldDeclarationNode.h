@@ -19,16 +19,15 @@ public:
                        bool IsSynthetic = false)
       : TerminalNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
-                     std::move(USR), std::move(Body), FollowingEOL,
-                     IsSynthetic),
-        Declarator(std::move(Declarator)),
-        ParentSignatureHash(ParentSignatureHash) {}
+                     std::move(USR), std::move(Body), ParentSignatureHash,
+                     FollowingEOL, IsSynthetic),
+        Declarator(std::move(Declarator)) {}
 
   size_t hashSignature() const override {
     size_t H = 1;
     mergebot::hash_combine(H, this->ParentSignatureHash);
     //    mergebot::hash_combine(H, this->Body);
-    mergebot::hash_combine(H, this->Declarator);
+    mergebot::hash_combine(H, this->OriginalSignature);
     return H;
   }
 
@@ -37,7 +36,6 @@ public:
   }
 
   std::string Declarator;
-  std::size_t ParentSignatureHash;
   std::vector<std::string> References;
 };
 } // namespace mergebot::sa
