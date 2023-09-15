@@ -182,6 +182,8 @@ private:
   int NodeCount = 0;
   int EdgeCount = 0;
 
+  std::mutex ClientMutex;
+
   /**
    * a series of temp containers to store relationships among nodes and symbols
    */

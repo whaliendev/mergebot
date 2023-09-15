@@ -162,8 +162,9 @@ void InitLogger() {
 
     spdlog::register_logger(defaultLogger);
     spdlog::set_default_logger(defaultLogger);
+    spdlog::flush_on(spdlog::level::err);
   } catch (const spdlog::spdlog_ex& ex) {
-    std::cout << "spdlog initialization failed: " << ex.what() << std::endl;
+    std::cout << "spdlog initialization failed: " << ex.what() << '\n';
     spdlog::shutdown();
     exit(1);
   }

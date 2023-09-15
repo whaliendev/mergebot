@@ -105,8 +105,8 @@ std::string JSONRpcEndpoint::readLine() {
       len++;
     } while (bytesRead);
   }
-  spdlog::warn(
-      "empty pipe: language server may have been killed due to out of memory");
+  spdlog::warn("empty pipe: language server may fail to start");
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
   return std::string(buf);
 }
 

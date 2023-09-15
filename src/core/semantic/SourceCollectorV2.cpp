@@ -235,7 +235,9 @@ void SourceCollectorV2::extendIncludedSources(Side S) {
 
           clang::tooling::ClangTool Tool(*Compilations, SourcePath);
           Tool.setPrintErrorMessage(false);
-          Tool.setDiagnosticConsumer(new clang::IgnoringDiagConsumer());
+          std::unique_ptr<clang::IgnoringDiagConsumer> DiagConsumer =
+              std::make_unique<clang::IgnoringDiagConsumer>();
+          Tool.setDiagnosticConsumer(DiagConsumer.get());
 
           std::unique_ptr<IncludeLookupActionFactory> ActionFactory =
               std::make_unique<IncludeLookupActionFactory>();

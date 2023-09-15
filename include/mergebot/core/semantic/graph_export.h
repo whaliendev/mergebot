@@ -13,16 +13,16 @@ namespace mergebot::sa {
 constexpr const char *getNodeKindShape(NodeKind Kind) {
   switch (Kind) {
   case NodeKind::TRANSLATION_UNIT:
-    return "octagon";
+    return "box";
   case NodeKind::LINKAGE_SPEC_LIST:
     return "diamond";
   case NodeKind::NAMESPACE:
     return "box3d";
   case NodeKind::TYPE:
   case NodeKind::ENUM:
-    return "ellipse";
+    return "component";
   case NodeKind::FIELD_DECLARATION:
-    return "polygon";
+    return "egg";
   case NodeKind::FUNC_DEF:
   case NodeKind::FUNC_OPERATOR_CAST:
   case NodeKind::FUNC_SPECIAL_MEMBER:
@@ -30,7 +30,7 @@ constexpr const char *getNodeKindShape(NodeKind Kind) {
   case NodeKind::ORPHAN_COMMENT:
     return "note";
   case NodeKind::TEXTUAL:
-    return "rect";
+    return "underline";
   case NodeKind::ACCESS_SPECIFIER:
     return "plain";
   default:
@@ -39,18 +39,32 @@ constexpr const char *getNodeKindShape(NodeKind Kind) {
 }
 
 struct SemanticNodeWriter {
-  explicit SemanticNodeWriter(const GraphBuilder::SemanticGraph &g) : g(g) {}
+  explicit SemanticNodeWriter(const GraphBuilder::SemanticGraph &g,
+                              bool showSynthetic = true)
+      : g(g), showSynthetic(showSynthetic) {}
 
   template <class VertexDesc>
   void operator()(std::ostream &out, const VertexDesc &v) const {
     const std::shared_ptr<SemanticNode> &node = g[v];
-    out << fmt::format("[label={}, type={}, shape={}]",
-                       util::escaped(node->DisplayName),
-                       magic_enum::enum_name(node->getKind()),
-                       getNodeKindShape(node->getKind()));
+    if (!showSynthetic && node->IsSynthetic) {
+      out << fmt::format("[style=invis]");
+      return;
+    }
+    if (!node->IsSynthetic) {
+      out << fmt::format("[label={}, type={}, shape={}]",
+                         util::escaped(node->DisplayName),
+                         magic_enum::enum_name(node->getKind()),
+                         getNodeKindShape(node->getKind()));
+    } else {
+      out << fmt::format("[label={}, type={}, shape={}, color={}]",
+                         util::escaped(node->DisplayName),
+                         magic_enum::enum_name(node->getKind()),
+                         getNodeKindShape(node->getKind()), "lightslateblue");
+    }
   }
 
   const GraphBuilder::SemanticGraph &g;
+  bool showSynthetic;
 };
 
 struct SemanticEdgeWriter {
@@ -61,17 +75,17 @@ struct SemanticEdgeWriter {
   template <class EdgeDesc>
   void operator()(std::ostream &out, const EdgeDesc &e) const {
     const SemanticEdge &edge = g[e];
-    if (!showSynthetic && !edge.IsPhysical) {
+    if (!showSynthetic && edge.IsSynthetic) {
       out << fmt::format("[style=invis]");
       return;
     }
-    if (edge.IsPhysical) {
+    if (!edge.IsSynthetic) {
       out << fmt::format("[label={}, weight={}]",
                          magic_enum::enum_name(edge.Kind), edge.Weight);
     } else {
       out << fmt::format("[label={}, weight={}, color={}]",
                          magic_enum::enum_name(edge.Kind), edge.Weight,
-                         "lightgreen");
+                         "indianred1");
     }
   }
 
@@ -86,7 +100,7 @@ bool ExportGraphToDot(const GraphBuilder::SemanticGraph &g,
   if (!destStream.is_open()) {
     return false;
   }
-  boost::write_graphviz(destStream, g, SemanticNodeWriter(g),
+  boost::write_graphviz(destStream, g, SemanticNodeWriter(g, showSynthetic),
                         SemanticEdgeWriter(g, showSynthetic));
   destStream.close();
   return true;
@@ -94,7 +108,7 @@ bool ExportGraphToDot(const GraphBuilder::SemanticGraph &g,
 
 bool ExportGraphToStdOut(const GraphBuilder::SemanticGraph &g,
                          bool showSynthetic = true) {
-  boost::write_graphviz(std::cout, g, SemanticNodeWriter(g),
+  boost::write_graphviz(std::cout, g, SemanticNodeWriter(g, showSynthetic),
                         SemanticEdgeWriter(g, showSynthetic));
   return true;
 }

@@ -6,10 +6,10 @@
 #include <fcntl.h>
 #include <spdlog/spdlog.h>
 
+#include <random>
+
 #include "mergebot/filesystem.h"
 #include "mergebot/globals.h"
-
-#define MB_DROP_CHILD_STDERR
 
 namespace mergebot {
 namespace lsp {
@@ -31,6 +31,25 @@ std::unique_ptr<PipeCommunicator> PipeCommunicator::create(
     return nullptr;
   }
 
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<> distr(1000, 9999);  // 生成一个四位随机数
+
+  int random_number = distr(gen);
+  fs::create_directories(LOG_FOLDER);
+  const std::string logFile =
+      (fs::path(LOG_FOLDER) / fmt::format("child-stderr-{}.log", random_number))
+          .string();
+  int childLogFd = open(logFile.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+  if (childLogFd == -1) {
+    spdlog::error("fail to open child log file: {}", strerror(errno));
+    close(pipeIn[0]);
+    close(pipeIn[1]);
+    close(pipeOut[0]);
+    close(pipeOut[1]);
+    return nullptr;
+  }
+
   processId = fork();
   if (processId == -1) {
     spdlog::error("fail to fork: {}", strerror(errno));
@@ -38,7 +57,7 @@ std::unique_ptr<PipeCommunicator> PipeCommunicator::create(
     close(pipeIn[1]);
     close(pipeOut[0]);
     close(pipeOut[1]);
-
+    close(childLogFd);
     return nullptr;
   } else if (processId == 0) {
     // child process
@@ -46,64 +65,24 @@ std::unique_ptr<PipeCommunicator> PipeCommunicator::create(
     close(pipeOut[0]);
     int ret1 = dup2(pipeIn[0], STDIN_FILENO);
     int ret2 = dup2(pipeOut[1], STDOUT_FILENO);
-    if (ret1 == -1 || ret2 == -1) {
-      perror("dup2");
+    int ret3 = dup2(childLogFd, STDERR_FILENO);
+    if (ret1 == -1 || ret2 == -1 || ret3 == -1) {
+      perror("failed to dup2");
       assert("failed to dup2" && false);
     }
 
-#ifdef MB_DROP_CHILD_STDERR
-    int nullFd = open("/dev/null", O_WRONLY);
-    if (nullFd == -1) {
-      perror("open");
-      exit(1);
-    }
-
-    // Redirect stderr to /dev/null
-    if (dup2(nullFd, STDERR_FILENO) == -1) {
-      perror("dup2");
-      exit(1);
-    }
-
-    close(nullFd);
-#else
-    std::string logFileName = (fs::temp_directory_path() /
-                               fmt::format("mergebot-{}-stderr.log", getpid()))
-                                  .string();
-    //    fs::create_directories(LOG_FOLDER);
-    int logFd = open(logFileName.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (logFd == -1) {
-      perror(logFileName.c_str());
-      assert(false && "language server failed to open log file");
-    }
-    FILE* logStream = fdopen(logFd, "w");
-    if (logStream == nullptr) {
-      perror("fdopen");
-      assert(false && "failed to convert file descriptor to FILE*");
-    }
-
-    // 重定向标准错误输出到logStream
-    if (dup2(fileno(logStream), STDERR_FILENO) == -1) {
-      perror("dup2");
-      assert(false && "failed to dup2");
-    }
-    //    int ret3 = dup2(logFd, STDERR_FILENO);
-    //    if (ret3 == -1) {
-    //      perror("dup2");
-    //      assert("failed to dup2" && false);
-    //    }
-    //    close(logFd);
-#endif
-
     execl(executable, args, NULL);
-    perror("execl");
-#ifndef MB_DROP_CHILD_STDERR
-    fclose(logStream);
-#endif
+    const std::string err_msg =
+        fmt::format("failed to exec: {}", strerror(errno));
+    ::write(STDERR_FILENO, err_msg.c_str(), err_msg.size());
+    fsync(STDERR_FILENO);
+    //    perror("failed to exec");
     assert(false && fmt::format("failed to exec: {}", strerror(errno)).c_str());
   } else {
     // parent process
     close(pipeIn[0]);
     close(pipeOut[1]);
+    close(childLogFd);
   }
 
   return std::unique_ptr<PipeCommunicator>(
@@ -142,19 +121,37 @@ PipeCommunicator::~PipeCommunicator() {
 }
 
 ssize_t PipeCommunicator::write(const std::string& message) {
-  constexpr size_t BufSize = 4096;
   size_t totalBytesWritten = 0;
+  constexpr size_t BufSize = 4096;
+  constexpr size_t MaxRetries = 10;
+  constexpr std::chrono::milliseconds RetryInterval(100);
   const char* BufStart = message.c_str();
+  size_t retries = 0;
+
   while (totalBytesWritten < message.size()) {
     ssize_t bytesWritten =
         ::write(pipeIn[1], BufStart + totalBytesWritten,
                 std::min(BufSize, message.size() - totalBytesWritten));
-    if (bytesWritten == -1) {
-      spdlog::error("failed to write to pipe: {}", strerror(errno));
-      return totalBytesWritten;
+
+    if (bytesWritten >= 0) {
+      totalBytesWritten += bytesWritten;
+      retries = 0;  // 重置重试次数
+    } else {
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        if (++retries >= MaxRetries) {
+          spdlog::error("max retries reached, failed to write to pipe");
+          break;
+        }
+        spdlog::warn("write would block, retrying in {} ms",
+                     RetryInterval.count());
+        std::this_thread::sleep_for(RetryInterval);
+      } else {
+        spdlog::error("failed to write to pipe: {}", strerror(errno));
+        break;
+      }
     }
-    totalBytesWritten += bytesWritten;
   }
+
   return totalBytesWritten;
 }
 

@@ -132,10 +132,13 @@ bool GraphBuilder::build() {
   spdlog::debug("size of {} Side's sources to be analyzed: {}",
                 magic_enum::enum_name(S), SourceList.size());
 
-  bool Success = initLanguageServer();
-  if (!Success) {
-    spdlog::error("cannot initialize language server");
-    return false;
+  {
+    std::lock_guard<std::mutex> LockGuard(ClientMutex);
+    bool Success = initLanguageServer();
+    if (!Success) {
+      spdlog::error("cannot initialize language server");
+      return false;
+    }
   }
 
   if (OnlyHeaderSourceMapping) {
@@ -1111,7 +1114,16 @@ std::vector<std::string> GraphBuilder::getReferences(const lsp::URIForFile &URI,
 }
 
 bool GraphBuilder::initLanguageServer() {
-  auto Communicator = lsp::PipeCommunicator::create("./clangd", "clangd");
+  std::filesystem::path current_exec_path =
+      std::filesystem::read_symlink("/proc/self/exe");
+  std::filesystem::path dir = current_exec_path.parent_path();
+  std::filesystem::path clangd_path = dir / "clangd";
+  if (!fs::exists(clangd_path)) {
+    spdlog::error("clangd not found");
+    return false;
+  }
+  auto Communicator =
+      lsp::PipeCommunicator::create(clangd_path.string().c_str(), "clangd");
   if (!Communicator) {
     spdlog::error("cannot create pipe to communicate with child process");
     return false;
@@ -1119,7 +1131,7 @@ bool GraphBuilder::initLanguageServer() {
   std::unique_ptr<lsp::JSONRpcEndpoint> RpcEndpoint =
       std::make_unique<lsp::JSONRpcEndpoint>(std::move(Communicator));
   std::unique_ptr<lsp::LspEndpoint> LspEndpoint =
-      std::make_unique<lsp::LspEndpoint>(std::move(RpcEndpoint), 3);
+      std::make_unique<lsp::LspEndpoint>(std::move(RpcEndpoint), 5);
 
   Client = lsp::LspClient(std::move(LspEndpoint));
 

@@ -9,6 +9,7 @@
 #include "mergebot/core/handler/ASTBasedHandler.h"
 #include "mergebot/core/model/ConflictFile.h"
 #include "mergebot/core/semantic/GraphBuilder.h"
+#include "mergebot/core/semantic/GraphMerger.h"
 #include "mergebot/core/semantic/SourceCollectorV2.h"
 #include "mergebot/filesystem.h"
 #include "mergebot/utils/stringop.h"
@@ -100,12 +101,12 @@ void ASTBasedHandler::resolveConflictFiles(
   bool OurOk = false;
   bool BaseOk = false;
   bool TheirOk = false;
-  OurOk = OurBuilder.build();
-  BaseOk = BaseBuilder.build();
-  TheirOk = TheirBuilder.build();
-  //  tbb::parallel_invoke([&]() { OurOk = OurBuilder.build(); },
-  //                       [&]() { BaseOk = BaseBuilder.build(); },
-  //                       [&]() { TheirOk = TheirBuilder.build(); });
+//  OurOk = OurBuilder.build();
+//  BaseOk = BaseBuilder.build();
+//  TheirOk = TheirBuilder.build();
+    tbb::parallel_invoke([&]() { OurOk = OurBuilder.build(); },
+                         [&]() { BaseOk = BaseBuilder.build(); },
+                         [&]() { TheirOk = TheirBuilder.build(); });
   End = tbb::tick_count::now();
   if (!OurOk || !TheirOk) {
     spdlog::info("fail to construct graph representation of revisions");
@@ -140,6 +141,9 @@ void ASTBasedHandler::resolveConflictFiles(
   spdlog::info("export intermediate graphs to {}",
                IntermediateGraphsDir.string());
 #endif
+
+  GraphMerger Merger(Meta, OurBuilder.graph(), BaseBuilder.graph(),
+                     TheirBuilder.graph());
 }
 
 /**
