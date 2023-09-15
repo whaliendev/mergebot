@@ -106,6 +106,7 @@ int fill_diff_set(const git_diff_delta *delta, float progress, void *payload) {
   return 0;
 }
 
+// FIXME(hwa): memory leak
 int dump_tree_entry(const char *root, const git_tree_entry *entry,
                     void *payload) {
   DumpTreePayload dump_payload = *static_cast<DumpTreePayload *>(payload);

@@ -134,7 +134,7 @@ void InitLogger() {
 #else
     consoleSink->set_level(spdlog::level::debug);
 #endif
-    consoleSink->set_pattern("[%Y-%H-%M %T] [%t] %^[%l]%$ %@: %v");
+    consoleSink->set_pattern("[%Y-%m-%d %T] [%t] %^[%l]%$ %@: %v");
 
     // output to file for analysis purpose, there are at most 3 rotating log
     // files, with a file size limit of 1024M
@@ -145,7 +145,7 @@ void InitLogger() {
                 .string(),
             1024 * M, 3);
     rotateFileSink->set_level(spdlog::level::info);
-    rotateFileSink->set_pattern("[%Y-%H-%M %T.%e] [%t] [%l] %@: %v");
+    rotateFileSink->set_pattern("[%Y-%m-%d %T.%e] [%t] [%l] %@: %v");
 
     spdlog::sinks_init_list sinkList = {consoleSink, rotateFileSink};
     spdlog::init_thread_pool(4096, 1);

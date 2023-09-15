@@ -32,9 +32,11 @@ void InitLogger() {
 #else
     consoleSink->set_level(spdlog::level::debug);
 #endif
-    consoleSink->set_pattern("[%Y-%H-%M %T] [%t] %^[%l]%$ %@: %v");
+    consoleSink->set_pattern("[%Y-%m-%d %T] [%t] %^[%l]%$ %@: %v");
 
-    spdlog::sinks_init_list sinkList = {consoleSink, };
+    spdlog::sinks_init_list sinkList = {
+        consoleSink,
+    };
     spdlog::init_thread_pool(4096, 1);
     auto defaultLogger = std::make_shared<spdlog::async_logger>(
         "async_logger", sinkList, spdlog::thread_pool(),
@@ -50,7 +52,7 @@ void InitLogger() {
     spdlog::register_logger(defaultLogger);
     spdlog::set_default_logger(defaultLogger);
   } catch (const spdlog::spdlog_ex& ex) {
-    std::cout << "spdlog initialization failed: " << ex.what() << std::endl;
+    std::cout << "spdlog initialization failed: " << ex.what() << '\n';
     spdlog::shutdown();
     exit(1);
   }

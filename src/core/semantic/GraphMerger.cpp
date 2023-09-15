@@ -5,5 +5,10 @@
 #include "mergebot/core/semantic/GraphMerger.h"
 
 namespace mergebot {
-namespace sa {} // namespace sa
+namespace sa {
+
+void GraphMerger::ThreeWayMatch() {}
+
+void GraphMerger::ThreeWayMerge() {}
+} // namespace sa
 } // namespace mergebot

@@ -101,18 +101,18 @@ void ASTBasedHandler::resolveConflictFiles(
   bool OurOk = false;
   bool BaseOk = false;
   bool TheirOk = false;
-//  OurOk = OurBuilder.build();
-//  BaseOk = BaseBuilder.build();
-//  TheirOk = TheirBuilder.build();
-    tbb::parallel_invoke([&]() { OurOk = OurBuilder.build(); },
-                         [&]() { BaseOk = BaseBuilder.build(); },
-                         [&]() { TheirOk = TheirBuilder.build(); });
+  //  OurOk = OurBuilder.build();
+  //  BaseOk = BaseBuilder.build();
+  //  TheirOk = TheirBuilder.build();
+  tbb::parallel_invoke([&]() { OurOk = OurBuilder.build(); },
+                       [&]() { BaseOk = BaseBuilder.build(); },
+                       [&]() { TheirOk = TheirBuilder.build(); });
   End = tbb::tick_count::now();
   if (!OurOk || !TheirOk) {
     spdlog::info("fail to construct graph representation of revisions");
     return;
   }
-  spdlog::info("graph built successfully, info:\nOur:\n\t{} nodes, {} edges\n"
+  spdlog::info("graph built successfully, stat:\nOur:\n\t{} nodes, {} edges\n"
                "Base:\n\t{} nodes, {} edges\nTheir:\n\t{} nodes, {} edges",
                OurBuilder.numVertices(), OurBuilder.numEdges(),
                BaseBuilder.numVertices(), BaseBuilder.numEdges(),
