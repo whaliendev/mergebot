@@ -718,7 +718,8 @@ GraphBuilder::parseEnumNode(const ts::Node &Node, bool IsConflicting,
   return std::make_shared<EnumNode>(
       NodeCount++, IsConflicting, NodeKind::ENUM, EnumName, QualifiedName,
       OriginalSignature, ts::getNodeComment(Node), Node.startPoint(),
-      std::move(USR), ts::beforeFirstChildEOLs(Node), EnumKey, Attrs, EnumBase);
+      std::move(USR), Node.text(), ts::beforeFirstChildEOLs(Node), EnumKey,
+      Attrs, EnumBase);
 }
 
 std::pair<std::shared_ptr<TypeDeclNode>, TypeDeclNode::TypeDeclKind>

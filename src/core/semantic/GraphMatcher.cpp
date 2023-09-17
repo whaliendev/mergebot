@@ -3,6 +3,13 @@
 //
 
 #include "mergebot/core/semantic/GraphMatcher.h"
+#include "mergebot/core/model/matcher/EnumMatcher.h"
+#include "mergebot/core/model/matcher/FieldDeclMatcher.h"
+#include "mergebot/core/model/matcher/LinkageSpecListMatcher.h"
+#include "mergebot/core/model/matcher/TranslationUnitMatcher.h"
+#include "mergebot/core/model/matcher/TypeSpecifierMatcher.h"
+
+// #define MB_DEBUG
 
 namespace mergebot::sa {
 void GraphMatcher::topDownMatch() {
@@ -37,10 +44,73 @@ void GraphMatcher::topDownMatch() {
   });
 }
 
-void GraphMatcher::bottomUpMatch() {}
+void GraphMatcher::bottomUpMatch() {
+  /// Assume that only nodes of the same type are allowed to match.
+  // translation unit
+  std::vector<std::shared_ptr<SemanticNode>> &BaseUnmatchedTUs =
+      Matching.PossiblyDeleted[NodeKind::TRANSLATION_UNIT];
+  std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedTUs =
+      Matching.PossiblyAdded[NodeKind::TRANSLATION_UNIT];
+  if (BaseUnmatchedTUs.size() && RevisionUnmatchedTUs.size()) {
+    TranslationUnitMatcher TUMatcher;
+    TUMatcher.match(Matching, BaseUnmatchedTUs, RevisionUnmatchedTUs);
+  }
+
+  /// linkage spec list
+  std::vector<std::shared_ptr<SemanticNode>> &BaseUnmatchedLinkageSpecs =
+      Matching.PossiblyDeleted[NodeKind::LINKAGE_SPEC_LIST];
+  std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedLinkageSpecs =
+      Matching.PossiblyAdded[NodeKind::LINKAGE_SPEC_LIST];
+  if (BaseUnmatchedLinkageSpecs.size() &&
+      RevisionUnmatchedLinkageSpecs.size()) {
+    LinkageSpecListMatcher LSLMatcher;
+    LSLMatcher.match(Matching, BaseUnmatchedLinkageSpecs,
+                     RevisionUnmatchedLinkageSpecs);
+  }
+
+  /// namespace doesn't need to do similarity match
+
+  /// type class, struct, union
+  std::vector<std::shared_ptr<SemanticNode>> &BaseUnmatchedTypes =
+      Matching.PossiblyDeleted[NodeKind::TYPE];
+  std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedTypes =
+      Matching.PossiblyAdded[NodeKind::TYPE];
+  if (BaseUnmatchedTypes.size() && RevisionUnmatchedTypes.size()) {
+    TypeSpecifierMatcher TypeMatcher;
+    TypeMatcher.match(Matching, BaseUnmatchedTypes, RevisionUnmatchedTypes);
+  }
+
+  /// enum
+  std::vector<std::shared_ptr<SemanticNode>> &BaseUnmatchedEnums =
+      Matching.PossiblyDeleted[NodeKind::Enum];
+  std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedEnums =
+      Matching.PossiblyAdded[NodeKind::Enum];
+  if (BaseUnmatchedEnums.size() && RevisionUnmatchedEnums.size()) {
+    EnumMatcher EMatcher;
+    EMatcher.match(Matching, BaseUnmatchedEnums, RevisionUnmatchedEnums);
+  }
+
+  //
+  std::vector<std::shared_ptr<SemanticNode>> &BaseUnmatchedFields =
+      Matching.PossiblyDeleted[NodeKind::FIELD_DECLARATION];
+  std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedFields =
+      Matching.PossiblyAdded[NodeKind::FIELD_DECLARATION];
+  if (BaseUnmatchedFields.size() && RevisionUnmatchedFields.size()) {
+    FieldDeclMatcher FDMatcher;
+    FDMatcher.match(Matching, BaseUnmatchedFields, RevisionUnmatchedFields);
+  }
+}
 
 TwoWayMatching GraphMatcher::match() {
   topDownMatch();
+#ifdef MB_DEBUG
+  spdlog::debug("one one matching size: {}", Matching.OneOneMatching.size());
+  for (auto &[BaseNode, RevisionNode] : Matching.OneOneMatching) {
+    spdlog::debug("kind: {}, matching: {} -> {}",
+                  magic_enum::enum_name(BaseNode->getKind()),
+                  BaseNode->QualfiedName, RevisionNode->QualifiedName);
+  }
+#endif
   bottomUpMatch();
   return Matching;
 }

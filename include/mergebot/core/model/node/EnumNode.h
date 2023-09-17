@@ -14,17 +14,19 @@ public:
   std::string Attrs;
   std::string EnumBase;
 
+  std::string Body;
+
   EnumNode(int NodeId, bool NeedToMerge, NodeKind Kind,
            const std::string &DisplayName, const std::string &QualifiedName,
            const std::string &OriginalSignature, std::string &&Comment,
            const std::optional<ts::Point> &Point, std::string &&USR,
-           size_t BeforeFirstChildEOL, const std::string &Key,
-           const std::string &Attrs, const std::string &Base,
-           bool IsSynthetic = false)
+           std::string &&Body, size_t BeforeFirstChildEOL,
+           const std::string &Key, const std::string &Attrs,
+           const std::string &Base, bool IsSynthetic = false)
       : CompositeNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                       OriginalSignature, std::move(Comment), Point,
                       std::move(USR), BeforeFirstChildEOL, IsSynthetic),
-        EnumKey(Key), Attrs(Attrs), EnumBase(Base) {}
+        EnumKey(Key), Attrs(Attrs), EnumBase(Base), Body(Body) {}
 
   /// use CompositeNode's hashSignature, no need to rewrite
 

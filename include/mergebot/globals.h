@@ -12,6 +12,8 @@
 namespace mergebot {
 extern const std::string MBDIR;
 extern const std::string LOG_FOLDER;
+extern const double MIN_SIMI;
+extern const double HIGH_SIMI;
 }  // namespace mergebot
 
 #endif  // MB_GLOBALS_H

@@ -3,12 +3,19 @@
 //
 
 #include "mergebot/core/semantic/GraphMerger.h"
+#include "mergebot/core/semantic/GraphMatcher.h"
+#include <oneapi/tbb/parallel_invoke.h>
 
 namespace mergebot {
 namespace sa {
 
-void GraphMerger::ThreeWayMatch() {}
+void GraphMerger::threeWayMatch() {
+  GraphMatcher OurMatcher(BaseGraph, OurGraph);
+  GraphMatcher TheirMatcher(BaseGraph, TheirGraph);
+  tbb::parallel_invoke([&]() { OurMatching = OurMatcher.match(); },
+                       [&]() { TheirMatching = TheirMatcher.match(); });
+}
 
-void GraphMerger::ThreeWayMerge() {}
+void GraphMerger::threeWayMerge() {}
 } // namespace sa
 } // namespace mergebot

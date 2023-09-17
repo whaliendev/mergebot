@@ -6,6 +6,8 @@
 #define MB_GRAPHMERGER_H
 
 #include "mergebot/core/handler/SAHandler.h"
+#include "mergebot/core/model/mapping/ThreeWayMapping.h"
+#include "mergebot/core/model/mapping/TwoWayMatching.h"
 #include "mergebot/core/semantic/GraphBuilder.h"
 namespace mergebot {
 namespace sa {
@@ -18,9 +20,11 @@ public:
       : Meta(Meta), MergedDir((fs::path(Meta.MSCacheDir) / Dest).string()),
         OurGraph(OurGraph), BaseGraph(BaseGraph), TheirGraph(TheirGraph) {}
 
-  void ThreeWayMatch();
+  void threeWayMatch();
 
-  void ThreeWayMerge();
+  void threeWayMerge();
+
+  std::string getMergedDir() const { return MergedDir; }
 
 private:
   const ProjectMeta &Meta;
@@ -28,6 +32,9 @@ private:
   SemanticGraph &OurGraph;
   SemanticGraph &BaseGraph;
   SemanticGraph &TheirGraph;
+  TwoWayMatching OurMatching;
+  TwoWayMatching TheirMatching;
+  std::vector<ThreeWayMapping> Mappings;
 };
 
 } // namespace sa

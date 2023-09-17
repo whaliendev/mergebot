@@ -8,11 +8,15 @@
 #include "mergebot/core/model/SemanticNode.h"
 #include "mergebot/core/model/enum/NodeKind.h"
 #include <boost/bimap.hpp>
+#include <boost/bimap/unordered_set_of.hpp>
 #include <unordered_map>
 namespace mergebot::sa {
 struct TwoWayMatching {
-  using BiMap = boost::bimap<std::shared_ptr<SemanticNode>,
-                             std::shared_ptr<SemanticNode>>;
+  using BiMap = boost::bimap<
+      boost::bimaps::unordered_set_of<std::shared_ptr<SemanticNode>,
+                                      SemanticNodeHasher, SemanticNodeEqual>,
+      boost::bimaps::unordered_set_of<std::shared_ptr<SemanticNode>,
+                                      SemanticNodeHasher, SemanticNodeEqual>>;
   BiMap OneOneMatching;
   std::unordered_map<NodeKind, std::vector<std::shared_ptr<SemanticNode>>>
       PossiblyDeleted; // possibly deleted
