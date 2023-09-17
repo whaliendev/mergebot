@@ -5,6 +5,8 @@
 #include "mergebot/core/semantic/GraphMatcher.h"
 #include "mergebot/core/model/matcher/EnumMatcher.h"
 #include "mergebot/core/model/matcher/FieldDeclMatcher.h"
+#include "mergebot/core/model/matcher/FuncDefMathcer.h"
+#include "mergebot/core/model/matcher/FuncSpecialMemberMatcher.h"
 #include "mergebot/core/model/matcher/LinkageSpecListMatcher.h"
 #include "mergebot/core/model/matcher/TranslationUnitMatcher.h"
 #include "mergebot/core/model/matcher/TypeSpecifierMatcher.h"
@@ -56,7 +58,7 @@ void GraphMatcher::bottomUpMatch() {
     TUMatcher.match(Matching, BaseUnmatchedTUs, RevisionUnmatchedTUs);
   }
 
-  /// linkage spec list
+  /// TODO(hwa): add body similarity calc, linkage spec list
   std::vector<std::shared_ptr<SemanticNode>> &BaseUnmatchedLinkageSpecs =
       Matching.PossiblyDeleted[NodeKind::LINKAGE_SPEC_LIST];
   std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedLinkageSpecs =
@@ -82,15 +84,15 @@ void GraphMatcher::bottomUpMatch() {
 
   /// enum
   std::vector<std::shared_ptr<SemanticNode>> &BaseUnmatchedEnums =
-      Matching.PossiblyDeleted[NodeKind::Enum];
+      Matching.PossiblyDeleted[NodeKind::ENUM];
   std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedEnums =
-      Matching.PossiblyAdded[NodeKind::Enum];
+      Matching.PossiblyAdded[NodeKind::ENUM];
   if (BaseUnmatchedEnums.size() && RevisionUnmatchedEnums.size()) {
     EnumMatcher EMatcher;
     EMatcher.match(Matching, BaseUnmatchedEnums, RevisionUnmatchedEnums);
   }
 
-  //
+  // field declaration
   std::vector<std::shared_ptr<SemanticNode>> &BaseUnmatchedFields =
       Matching.PossiblyDeleted[NodeKind::FIELD_DECLARATION];
   std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedFields =
@@ -99,6 +101,31 @@ void GraphMatcher::bottomUpMatch() {
     FieldDeclMatcher FDMatcher;
     FDMatcher.match(Matching, BaseUnmatchedFields, RevisionUnmatchedFields);
   }
+
+  // function definition
+  std::vector<std::shared_ptr<SemanticNode>> &BaseUnmatchedFuncDefs =
+      Matching.PossiblyDeleted[NodeKind::FUNC_DEF];
+  std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedFuncDefs =
+      Matching.PossiblyAdded[NodeKind::FUNC_DEF];
+  if (BaseUnmatchedFuncDefs.size() && RevisionUnmatchedFuncDefs.size()) {
+    FuncDefMatcher FDMatcher;
+    FDMatcher.match(Matching, BaseUnmatchedFuncDefs, RevisionUnmatchedFuncDefs);
+  }
+
+  // no need to do this for operator cast
+
+  // func special member
+  std::vector<std::shared_ptr<SemanticNode>> &BaseUnmatchedFSMembers =
+      Matching.PossiblyDeleted[NodeKind::FUNC_SPECIAL_MEMBER];
+  std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedFSMembers =
+      Matching.PossiblyAdded[NodeKind::FUNC_SPECIAL_MEMBER];
+  if (BaseUnmatchedFSMembers.size() && RevisionUnmatchedFSMembers.size()) {
+    FuncSpecialMemberMatcher FSMMatcher;
+    FSMMatcher.match(Matching, BaseUnmatchedFSMembers,
+                     RevisionUnmatchedFSMembers);
+  }
+
+  // no need to do this for orphan comment, textual, access specifier
 }
 
 TwoWayMatching GraphMatcher::match() {
@@ -108,10 +135,33 @@ TwoWayMatching GraphMatcher::match() {
   for (auto &[BaseNode, RevisionNode] : Matching.OneOneMatching) {
     spdlog::debug("kind: {}, matching: {} -> {}",
                   magic_enum::enum_name(BaseNode->getKind()),
-                  BaseNode->QualfiedName, RevisionNode->QualifiedName);
+                  BaseNode->OriginalSignature, RevisionNode->OriginalSignature);
   }
 #endif
   bottomUpMatch();
+#ifdef MB_DEBUG
+  auto format_unmatched_map =
+      [](const std::unordered_map<
+          NodeKind, std::vector<std::shared_ptr<SemanticNode>>> &map)
+      -> std::string {
+    std::ostringstream oss;
+    oss << "{\n";
+    for (const auto &kv : map) {
+      std::ostringstream sigs;
+      for (const auto &node : kv.second) {
+        sigs << node->OriginalSignature << ", ";
+      }
+      oss << fmt::format("    {}: [{}], \n", magic_enum::enum_name(kv.first),
+                         sigs.str());
+    }
+    oss << "}";
+    return oss.str();
+  };
+  spdlog::info("possibly deleted: {}",
+               format_unmatched_map(Matching.PossiblyDeleted));
+  spdlog::info("possibly added: {}",
+               format_unmatched_map(Matching.PossiblyAdded));
+#endif
   return Matching;
 }
 } // namespace mergebot::sa

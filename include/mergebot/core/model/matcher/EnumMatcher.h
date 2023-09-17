@@ -25,10 +25,11 @@ struct EnumMatcher {
         auto *Base = llvm::dyn_cast<EnumNode>(BaseNode.get());
         auto *Revision = llvm::dyn_cast<EnumNode>(RevisionNode.get());
         if (Base && Revision && isMatched(Base, Revision)) {
-          spdlog::debug("refactor: {}({}) -> {}({})", Base->QualifiedName,
-                        magic_enum::enum_name(Base->getKind()),
-                        Revision->QualifiedName,
-                        magic_enum::enum_name(Revision->getKind()));
+          //          spdlog::debug("refactor: {}({}) -> {}({})",
+          //          Base->OriginalSignature,
+          //                        magic_enum::enum_name(Base->getKind()),
+          //                        Revision->OriginalSignature,
+          //                        magic_enum::enum_name(Revision->getKind()));
           Matching.OneOneMatching.insert({BaseNode, RevisionNode});
 
           auto BaseQualifiedName = BaseNode->QualifiedName;

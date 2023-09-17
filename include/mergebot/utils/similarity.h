@@ -35,7 +35,7 @@ class SimilarityErrKindEnum {
 double cosine(const std::vector<double>& a, const std::vector<double>& b);
 
 template <typename T>
-double jaccard(const std::vector<T>& a, const std::vector<T>& b) {
+double jaccard(std::vector<T>& a, std::vector<T>& b) {
   if (a.empty() || b.empty()) {
     return SimilarityErrKind::ErrEmptyVector;
   }

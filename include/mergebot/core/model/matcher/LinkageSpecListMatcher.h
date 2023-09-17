@@ -24,10 +24,11 @@ struct LinkageSpecListMatcher {
         auto *Base = llvm::dyn_cast<LinkageSpecNode>(BaseNode.get());
         auto *Revision = llvm::dyn_cast<LinkageSpecNode>(RevisionNode.get());
         if (Base && Revision && isMatched(Base, Revision)) {
-          spdlog::debug("refactor: {}({}) -> {}({})", Base->QualifiedName,
-                        magic_enum::enum_name(Base->getKind()),
-                        Revision->QualifiedName,
-                        magic_enum::enum_name(Revision->getKind()));
+          //          spdlog::debug("refactor: {}({}) -> {}({})",
+          //          Base->OriginalSignature,
+          //                        magic_enum::enum_name(Base->getKind()),
+          //                        Revision->OriginalSignature,
+          //                        magic_enum::enum_name(Revision->getKind()));
           Matching.OneOneMatching.insert({BaseNode, RevisionNode});
 
           auto BaseQualifiedName = BaseNode->QualifiedName;
@@ -55,7 +56,6 @@ struct LinkageSpecListMatcher {
 private:
   bool isMatched(const LinkageSpecNode *BaseNode,
                  const LinkageSpecNode *RevisionNode) {
-    // TODO(hwa): compare body
     if (BaseNode->ParentSignatureHash != RevisionNode->ParentSignatureHash) {
       return false;
     }

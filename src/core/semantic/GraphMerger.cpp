@@ -12,8 +12,15 @@ namespace sa {
 void GraphMerger::threeWayMatch() {
   GraphMatcher OurMatcher(BaseGraph, OurGraph);
   GraphMatcher TheirMatcher(BaseGraph, TheirGraph);
-  tbb::parallel_invoke([&]() { OurMatching = OurMatcher.match(); },
-                       [&]() { TheirMatching = TheirMatcher.match(); });
+  tbb::parallel_invoke(
+      [&]() {
+        spdlog::debug("three way match between our side and base side");
+        OurMatching = OurMatcher.match();
+      },
+      [&]() {
+        spdlog::debug("three way match between their side and base side");
+        TheirMatching = TheirMatcher.match();
+      });
 }
 
 void GraphMerger::threeWayMerge() {}

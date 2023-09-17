@@ -10,9 +10,9 @@
 namespace mergebot::sa {
 class EnumNode : public CompositeNode {
 public:
-  std::string EnumKey;
-  std::string Attrs;
-  std::string EnumBase;
+  std::string EnumKey;  // enum class, enum struct, enum
+  std::string Attrs;    // [[]]
+  std::string EnumBase; // : int
 
   std::string Body;
 

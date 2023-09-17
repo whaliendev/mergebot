@@ -20,10 +20,11 @@ struct TranslationUnitMatcher {
         assert(llvm::isa<TranslationUnitNode>(BaseNode.get()) &&
                llvm::isa<TranslationUnitNode>(RevisionNode.get()));
         if (BaseNode->QualifiedName == RevisionNode->QualifiedName) {
-          spdlog::debug("refactor: {}({}) -> {}({})", BaseNode->QualifiedName,
-                        magic_enum::enum_name(BaseNode->getKind()),
-                        RevisionNode->QualifiedName,
-                        magic_enum::enum_name(RevisionNode->getKind()));
+          //          spdlog::debug("refactor: {}({}) -> {}({})",
+          //                        BaseNode->OriginalSignature,
+          //                        magic_enum::enum_name(BaseNode->getKind()),
+          //                        RevisionNode->OriginalSignature,
+          //                        magic_enum::enum_name(RevisionNode->getKind()));
           Matching.OneOneMatching.insert({BaseNode, RevisionNode});
           // take care of equality match of std::shared_ptr<SemanticNode>
           BaseNodes.erase(std::remove_if(BaseNodes.begin(), BaseNodes.end(),

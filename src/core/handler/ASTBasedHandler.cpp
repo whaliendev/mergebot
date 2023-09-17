@@ -143,29 +143,29 @@ void ASTBasedHandler::resolveConflictFiles(
                IntermediateGraphsDir.string());
 #endif
 
-  SemanticGraph &OurGraph = OurBuilder.graph();
-  auto verticesPair = boost::vertices(OurGraph);
-  for (auto It = verticesPair.first; It != verticesPair.second; ++It) {
-    if (OurGraph[*It]->NeedToMerge) {
-      PrettyPrintTU(OurBuilder.graph()[*It],
-                    fs::path(Meta.MSCacheDir) / "merged");
-    }
-  }
-  //  Start = tbb::tick_count::now();
-  //  GraphMerger Merger(Meta, OurBuilder.graph(), BaseBuilder.graph(),
-  //                     TheirBuilder.graph());
-  //  Merger.threeWayMatch();
-  //  End = tbb::tick_count::now();
-  //  spdlog::info("it takes {} ms to match three revision graphs",
-  //               (End - Start).seconds() * 1000);
-  //
-  //  Start = tbb::tick_count::now();
-  //  Merger.threeWayMerge();
-  //  End = tbb::tick_count::now();
-  //  spdlog::info("it takes {} ms to merge three revision graphs, merged
-  //  sources "
-  //               "destination: {}",
-  //               (End - Start).seconds() * 1000, Merger.getMergedDir());
+  Start = tbb::tick_count::now();
+  GraphMerger Merger(Meta, OurBuilder.graph(), BaseBuilder.graph(),
+                     TheirBuilder.graph());
+  Merger.threeWayMatch();
+  End = tbb::tick_count::now();
+  spdlog::info("it takes {} ms to match three revision graphs",
+               (End - Start).seconds() * 1000);
+
+  Start = tbb::tick_count::now();
+  Merger.threeWayMerge();
+  End = tbb::tick_count::now();
+  spdlog::info("it takes {} ms to merge three revision graphs, merged sources "
+               "destination: {}",
+               (End - Start).seconds() * 1000, Merger.getMergedDir());
+
+  //  SemanticGraph &OurGraph = OurBuilder.graph();
+  //  auto verticesPair = boost::vertices(OurGraph);
+  //  for (auto It = verticesPair.first; It != verticesPair.second; ++It) {
+  //    if (OurGraph[*It]->NeedToMerge) {
+  //      PrettyPrintTU(OurBuilder.graph()[*It],
+  //                    fs::path(Meta.MSCacheDir) / "merged");
+  //    }
+  //  }
 }
 
 /**

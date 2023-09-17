@@ -62,10 +62,11 @@ struct TypeSpecifierMatcher {
             continue;
           }
 
-          spdlog::debug("refactor: {}({}) -> {}({})", BaseNode->QualifiedName,
-                        magic_enum::enum_name(BaseNode->getKind()),
-                        RevisionNode->QualifiedName,
-                        magic_enum::enum_name(RevisionNode->getKind()));
+          //          spdlog::debug("refactor: {}({}) -> {}({})",
+          //                        BaseNode->OriginalSignature,
+          //                        magic_enum::enum_name(BaseNode->getKind()),
+          //                        RevisionNode->OriginalSignature,
+          //                        magic_enum::enum_name(RevisionNode->getKind()));
           Matching.OneOneMatching.insert({BaseNode, RevisionNode});
 
           BaseNodes.erase(std::remove_if(BaseNodes.begin(), BaseNodes.end(),
@@ -103,6 +104,7 @@ private:
 
   double calcSimilarity(const TypeDeclNode *BaseNode,
                         const TypeDeclNode *RevisionNode) {
+    // If we add body similarity match, we may predict super type extraction
     size_t IndicatorNum = 0;
     double SimSum = 0;
     auto BaseRefs = BaseNode->References;
