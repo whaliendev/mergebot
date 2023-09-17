@@ -9,6 +9,6 @@ const std::string MBDIR = "~/.mergebot";
 
 const std::string LOG_FOLDER = "./logs";
 
-const double MINI_SIMI = 0.618;
+const double MIN_SIMI = 0.618;
 const double HIGH_SIMI = 0.78;
 }  // namespace mergebot
