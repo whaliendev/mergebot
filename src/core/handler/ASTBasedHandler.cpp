@@ -11,6 +11,7 @@
 #include "mergebot/core/semantic/GraphBuilder.h"
 #include "mergebot/core/semantic/GraphMerger.h"
 #include "mergebot/core/semantic/SourceCollectorV2.h"
+#include "mergebot/core/semantic/pretty_printer.h"
 #include "mergebot/filesystem.h"
 #include "mergebot/utils/stringop.h"
 #include <clang/Tooling/CompilationDatabase.h>
@@ -142,8 +143,29 @@ void ASTBasedHandler::resolveConflictFiles(
                IntermediateGraphsDir.string());
 #endif
 
-  GraphMerger Merger(Meta, OurBuilder.graph(), BaseBuilder.graph(),
-                     TheirBuilder.graph());
+  SemanticGraph &OurGraph = OurBuilder.graph();
+  auto verticesPair = boost::vertices(OurGraph);
+  for (auto It = verticesPair.first; It != verticesPair.second; ++It) {
+    if (OurGraph[*It]->NeedToMerge) {
+      PrettyPrintTU(OurBuilder.graph()[*It],
+                    fs::path(Meta.MSCacheDir) / "merged");
+    }
+  }
+  //  Start = tbb::tick_count::now();
+  //  GraphMerger Merger(Meta, OurBuilder.graph(), BaseBuilder.graph(),
+  //                     TheirBuilder.graph());
+  //  Merger.threeWayMatch();
+  //  End = tbb::tick_count::now();
+  //  spdlog::info("it takes {} ms to match three revision graphs",
+  //               (End - Start).seconds() * 1000);
+  //
+  //  Start = tbb::tick_count::now();
+  //  Merger.threeWayMerge();
+  //  End = tbb::tick_count::now();
+  //  spdlog::info("it takes {} ms to merge three revision graphs, merged
+  //  sources "
+  //               "destination: {}",
+  //               (End - Start).seconds() * 1000, Merger.getMergedDir());
 }
 
 /**
