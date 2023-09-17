@@ -30,7 +30,7 @@ public:
     size_t H = 1;
     mergebot::hash_combine(H, getKind());
     mergebot::hash_combine(H, TUPath);
-    mergebot::hash_combine(H, this->DisplayName);
+    mergebot::hash_combine(H, this->QualifiedName);
     return H;
   }
 

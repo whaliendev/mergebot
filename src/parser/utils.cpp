@@ -248,7 +248,7 @@ FuncSpecialMemberInfo extractFuncSpecialMemberInfo(const std::string &code) {
   FuncSpecialMemberInfo ret;
 
   const std::string pattern =
-      R"((template\s*<[^>]*>)?\s*((\s*\[\[[^\]]+\]\])*)?\s*((extern|static|constexpr|explicit|friend)\s*)*([a-zA-Z_][a-zA-Z0-9_:]*)\s*\(([^)]*)\)\s*(:\s*[^{]*)?\s*(\{[^}]*\}|=\s*default|=\s*delete))";
+      R"((template\s*<[^>]*>)?\s*((\s*\[\[[^\]]+\]\])*)?\s*((extern|static|constexpr|explicit|friend)\s*)*([~a-zA-Z_][a-zA-Z0-9_:]*)\s*\(([^)]*)\)\s*(:\s*[^{]*)?\s*(\{[^}]*\}|=\s*default|=\s*delete))";
   re2::RE2 re(pattern);
   re2::StringPiece input(code);
   re2::StringPiece func_name_pieces;

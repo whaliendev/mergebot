@@ -192,23 +192,29 @@ private:
    */
   /// Inclusion analysis of conflicts caused by long-standing unmerged branches
   /// can be difficult
-  std::unordered_map<std::shared_ptr<SemanticNode>, std::vector<std::string>>
-      IncludeEdges; // 通过计算相对路径
-
-  std::unordered_map<std::shared_ptr<SemanticNode>, std::vector<std::string>>
-      InheritEdges; // 通过记录继承关系 // identifier
-
-  std::unordered_map<std::shared_ptr<SemanticNode>, std::vector<std::string>>
-      implementEdges;
-
-  std::unordered_map<std::shared_ptr<SemanticNode>, std::vector<std::string>>
-      ReadFieldEdges; // function里着重注意
-
-  std::unordered_map<std::shared_ptr<SemanticNode>, std::vector<std::string>>
-      WriteFieldEdges; // function里着重注意
-
-  std::unordered_map<std::shared_ptr<SemanticNode>, std::vector<std::string>>
-      FunctionCallEdges;
+  //  std::unordered_map<std::shared_ptr<SemanticNode>,
+  //  std::vector<std::string>>
+  //      IncludeEdges; // 通过计算相对路径
+  //
+  //  std::unordered_map<std::shared_ptr<SemanticNode>,
+  //  std::vector<std::string>>
+  //      InheritEdges; // 通过记录继承关系 // identifier
+  //
+  //  std::unordered_map<std::shared_ptr<SemanticNode>,
+  //  std::vector<std::string>>
+  //      implementEdges;
+  //
+  //  std::unordered_map<std::shared_ptr<SemanticNode>,
+  //  std::vector<std::string>>
+  //      ReadFieldEdges; // function里着重注意
+  //
+  //  std::unordered_map<std::shared_ptr<SemanticNode>,
+  //  std::vector<std::string>>
+  //      WriteFieldEdges; // function里着重注意
+  //
+  //  std::unordered_map<std::shared_ptr<SemanticNode>,
+  //  std::vector<std::string>>
+  //      FunctionCallEdges;
 };
 
 } // namespace sa

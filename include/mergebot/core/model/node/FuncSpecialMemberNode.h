@@ -52,7 +52,7 @@ public:
 
     mergebot::hash_combine(H, getKind());
     mergebot::hash_combine(H, DefType);
-    mergebot::hash_combine(H, this->DisplayName);
+    mergebot::hash_combine(H, this->QualifiedName);
     mergebot::hash_combine(H, VectorHash<std::string>{}(ParameterTypes));
     mergebot::hash_combine(H, VectorHash<std::string>{}(InitList));
     return H;
@@ -66,6 +66,7 @@ public:
   std::vector<std::string> InitList;
 
   std::vector<std::string> ParameterTypes;
+  std::vector<std::string> References;
 };
 
 } // namespace sa

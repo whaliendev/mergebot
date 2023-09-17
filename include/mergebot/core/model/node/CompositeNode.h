@@ -34,7 +34,7 @@ public:
     //
     //    }
     mergebot::hash_combine(H, this->Kind);
-    mergebot::hash_combine(H, this->DisplayName);
+    mergebot::hash_combine(H, this->QualifiedName);
     return H;
   }
 

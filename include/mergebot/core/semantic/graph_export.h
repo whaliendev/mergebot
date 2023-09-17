@@ -52,12 +52,12 @@ struct SemanticNodeWriter {
     }
     if (!node->IsSynthetic) {
       out << fmt::format("[label={}, type={}, shape={}]",
-                         util::escaped(node->DisplayName),
+                         util::escaped(node->QualifiedName),
                          magic_enum::enum_name(node->getKind()),
                          getNodeKindShape(node->getKind()));
     } else {
       out << fmt::format("[label={}, type={}, shape={}, color={}]",
-                         util::escaped(node->DisplayName),
+                         util::escaped(node->QualifiedName),
                          magic_enum::enum_name(node->getKind()),
                          getNodeKindShape(node->getKind()), "lightslateblue");
     }

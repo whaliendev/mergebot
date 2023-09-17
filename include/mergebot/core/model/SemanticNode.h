@@ -27,7 +27,9 @@ public:
                const std::optional<ts::Point> &Point, std::string &&USR,
                bool IsSynthetic = false)
       : ID(NodeId), NeedToMerge(NeedToMerge), Kind(Kind),
-        DisplayName(QualifiedName + DisplayName), QualifiedName(QualifiedName),
+        DisplayName(DisplayName),
+        QualifiedName(getFullQualifiedName(QualifiedName,
+                                           getUnqualifiedName(DisplayName))),
         OriginalSignature(OriginalSignature), Comment(Comment),
         StartPoint(Point), USR(USR), AccessSpecifier(AccessSpecifierKind::None),
         IsSynthetic(IsSynthetic) {}
@@ -39,6 +41,30 @@ public:
   virtual size_t hashSignature() const = 0;
 
   virtual ~SemanticNode() = default;
+
+  std::vector<std::string> getNearestNeighborNames() const {
+    if (auto ParentPtr = Parent.lock()) {
+      std::string PrevNeighbor;
+      std::string NextNeighbor;
+      SemanticNode *prevSibling = nullptr;
+      bool Found = false;
+      for (auto &Child : ParentPtr->Children) {
+        if (Found) {
+          NextNeighbor = Child->QualifiedName;
+          break;
+        }
+        if (Child->hashSignature() == this->hashSignature()) {
+          Found = true;
+          if (prevSibling) {
+            PrevNeighbor = prevSibling->QualifiedName;
+          }
+        }
+        prevSibling = Child.get();
+      }
+      return {PrevNeighbor, NextNeighbor};
+    }
+    return {"", ""};
+  }
 
 public:
   // id in graph
@@ -73,12 +99,28 @@ public:
 
   bool IsSynthetic;
 
+  std::weak_ptr<SemanticNode> Parent;
   std::vector<std::shared_ptr<SemanticNode>> Children;
 
   NodeKind getKind() const { return Kind; }
 
   static bool classof(const SemanticNode *N) {
     return N->getKind() >= NodeKind::NODE && N->getKind() <= NodeKind::COUNT;
+  }
+};
+
+struct SemanticNodeHasher {
+  size_t
+  operator()(const std::shared_ptr<mergebot::sa::SemanticNode> &node) const {
+    return node->hashSignature();
+  }
+};
+
+struct SemanticNodeEqual {
+  bool
+  operator()(const std::shared_ptr<mergebot::sa::SemanticNode> &lhs,
+             const std::shared_ptr<mergebot::sa::SemanticNode> &rhs) const {
+    return *lhs == *rhs;
   }
 };
 

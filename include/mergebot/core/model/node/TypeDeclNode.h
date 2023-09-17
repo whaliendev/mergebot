@@ -41,7 +41,7 @@ public:
     size_t H = 1;
     mergebot::hash_combine(H, getKind());
     mergebot::hash_combine(H, Kind);
-    mergebot::hash_combine(H, DisplayName);
+    mergebot::hash_combine(H, QualifiedName);
     mergebot::hash_combine(H, IsFinal);
     mergebot::hash_combine(H, BaseClause);
     return H;
@@ -73,6 +73,8 @@ public:
   bool IsFinal;
   std::string BaseClause;
   std::string TemplateParameterList;
+
+  std::vector<std::string> References;
 };
 } // namespace mergebot::sa
 

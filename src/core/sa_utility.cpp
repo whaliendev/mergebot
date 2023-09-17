@@ -449,5 +449,22 @@ std::string trim(const std::string &code) {
   return str;
 }
 
+std::string getUnqualifiedName(std::string_view name) {
+  using namespace std::string_literals;
+  std::size_t pos = name.rfind("::");
+  if (pos == std::string::npos) {
+    return std::string(name);
+  }
+  return std::string(name.substr(pos + 2));
+}
+
+std::string getFullQualifiedName(const std::string &QualifiedName,
+                                 std::string &&Unqualified) {
+  if (util::ends_with(QualifiedName, "::")) {
+    return QualifiedName + Unqualified;
+  }
+  return QualifiedName + "::" + Unqualified;
+}
+
 } // namespace sa
 } // namespace mergebot

@@ -141,38 +141,37 @@ bool GraphBuilder::build() {
     }
   }
 
-  if (OnlyHeaderSourceMapping) {
-    std::vector<std::string> HeaderSourceMapping;
-    HeaderSourceMapping.reserve(SourceList.size());
-    std::for_each(
-        this->SourceList.begin(), this->SourceList.end(), [&](auto &P) {
-          std::string MainFile = (fs::path(SourceDir) / P).string();
-          Client.DidOpen(MainFile, util::file_get_content(MainFile));
-          auto URIOpt = Client.SwitchSourceHeader(MainFile);
-          if (URIOpt.has_value() && URIOpt.value() != nullptr) {
-            std::string AltFileScheme = URIOpt.value();
-            lsp::URIForFile AltUri = lsp::URIForFile(AltFileScheme);
-            std::string AltFilePath = AltUri.path();
-            HeaderSourceMapping.push_back(fs::relative(AltFilePath, SourceDir));
-          }
-          Client.DidClose(MainFile);
-        });
-    SourceList.insert(SourceList.end(), HeaderSourceMapping.begin(),
-                      HeaderSourceMapping.end());
-    SourceList.erase(std::unique(SourceList.begin(), SourceList.end()),
-                     SourceList.end());
-  }
+  //  if (OnlyHeaderSourceMapping) {
+  //    std::vector<std::string> HeaderSourceMapping;
+  //    HeaderSourceMapping.reserve(SourceList.size());
+  //    std::for_each(
+  //        this->SourceList.begin(), this->SourceList.end(), [&](auto &P) {
+  //          std::string MainFile = (fs::path(SourceDir) / P).string();
+  //          Client.DidOpen(MainFile, util::file_get_content(MainFile));
+  //          auto URIOpt = Client.SwitchSourceHeader(MainFile);
+  //          if (URIOpt.has_value() && URIOpt.value() != nullptr) {
+  //            std::string AltFileScheme = URIOpt.value();
+  //            lsp::URIForFile AltUri = lsp::URIForFile(AltFileScheme);
+  //            std::string AltFilePath = AltUri.path();
+  //            HeaderSourceMapping.push_back(fs::relative(AltFilePath,
+  //            SourceDir));
+  //          }
+  //          Client.DidClose(MainFile);
+  //        });
+  //    SourceList.insert(SourceList.end(), HeaderSourceMapping.begin(),
+  //                      HeaderSourceMapping.end());
+  //    SourceList.erase(std::unique(SourceList.begin(), SourceList.end()),
+  //                     SourceList.end());
+  //  }
 
   for (std::string const &Path : SourceList) {
     processTranslationUnit(Path);
   }
 
+  // lazy generation
   // now vertices are all added, we can add edges
-  //  addIncludeEdges();
-  addReferenceEdges();
-  addUseEdges();
-
-  // now all vertices and edges are fixed, we can generate context info for each
+  // now all vertices and edges are fixed,
+  // we can generate context info for each
   // vertex
 
   return true;
@@ -634,12 +633,15 @@ std::shared_ptr<FieldDeclarationNode> GraphBuilder::parseFieldDeclarationNode(
         break;
       }
     }
+    Declarator = DeclaratorText.substr(Offset);
     RowPos = StartPoint.row;
     ColPos = StartPoint.column + Offset;
 
     // 查找References
-    References = getReferences(
-        FilePath, {static_cast<int>(RowPos), static_cast<int>(ColPos)});
+    if (IsConflicting) {
+      References = getReferences(
+          FilePath, {static_cast<int>(RowPos), static_cast<int>(ColPos)});
+    }
   }
 
   std::string QualifiedName;
@@ -736,6 +738,7 @@ GraphBuilder::parseTypeDeclNode(const ts::Node &Node, const ts::Node &RealNode,
 
   std::string QualifiedName;
   std::string USR;
+  std::vector<std::string> References;
   auto [row, col] = Node.startPoint();
   std::optional<lsp::SymbolDetails> detailsOpt = getSymbolDetails(
       FilePath, lsp::Position{static_cast<int>(row + Info.LineOffset),
@@ -746,13 +749,22 @@ GraphBuilder::parseTypeDeclNode(const ts::Node &Node, const ts::Node &RealNode,
     QualifiedName = details.containerName.value_or("");
   }
 
+  if (IsConflicting) {
+    References =
+        getReferences(FilePath, {static_cast<int>(row + Info.LineOffset),
+                                 static_cast<int>(col + Info.ColOffset)});
+  }
+
+  std::shared_ptr<TypeDeclNode> TypeDeclPtr = std::make_shared<TypeDeclNode>(
+      NodeCount++, IsConflicting, NodeKind::TYPE, Info.ClassName, QualifiedName,
+      Info.OriginalSignature, ts::getNodeComment(Node), Node.startPoint(),
+      std::move(USR), ts::beforeFirstChildEOLs(RealNode), Kind,
+      std::move(Info.Attrs), Info.IsFinal, std::move(Info.BaseClause),
+      std::move(Info.TemplateParameterList));
+  TypeDeclPtr->References = std::move(References);
+
   return std::pair<std::shared_ptr<TypeDeclNode>, TypeDeclNode::TypeDeclKind>({
-      std::make_shared<TypeDeclNode>(
-          NodeCount++, IsConflicting, NodeKind::TYPE, Info.ClassName,
-          QualifiedName, Info.OriginalSignature, ts::getNodeComment(Node),
-          Node.startPoint(), std::move(USR), ts::beforeFirstChildEOLs(RealNode),
-          Kind, std::move(Info.Attrs), Info.IsFinal, std::move(Info.BaseClause),
-          std::move(Info.TemplateParameterList)),
+      TypeDeclPtr,
       Kind,
   });
 }
@@ -793,6 +805,7 @@ GraphBuilder::parseFuncDefNode(const ts::Node &Node, const ts::Node &RealNode,
 
   std::string QualifiedName;
   std::string USR;
+  std::vector<std::string> References;
   auto [row, col] = Node.startPoint();
   std::optional<lsp::SymbolDetails> detailsOpt = getSymbolDetails(
       FilePath, lsp::Position{static_cast<int>(row + DefInfo.LineOffset),
@@ -834,6 +847,12 @@ GraphBuilder::parseFuncDefNode(const ts::Node &Node, const ts::Node &RealNode,
     }
   }
 
+  if (IsConflicting) {
+    References =
+        getReferences(FilePath, {static_cast<int>(row + DefInfo.LineOffset),
+                                 static_cast<int>(col + DefInfo.ColOffset)});
+  }
+
   const std::optional<ts::Node> BodyOpt = RealNode.getChildByFieldName(
       ts::cpp::fields::field_body.name); // function body
   std::string BodyText = BodyOpt.has_value() ? BodyOpt.value().text() : "";
@@ -848,6 +867,7 @@ GraphBuilder::parseFuncDefNode(const ts::Node &Node, const ts::Node &RealNode,
       std::move(DefInfo.AfterParameterList));
 
   FuncDefNodePtr->ParameterTypes = std::move(ParameterTypeList);
+  FuncDefNodePtr->References = std::move(References);
 
   return FuncDefNodePtr;
 }
@@ -859,6 +879,7 @@ std::shared_ptr<FuncOperatorCastNode> GraphBuilder::parseFuncOperatorCastNode(
 
   std::string QualifiedName;
   std::string USR;
+  std::vector<std::string> References;
   auto [row, col] = Node.startPoint();
   std::optional<lsp::SymbolDetails> detailsOpt = getSymbolDetails(
       FilePath, lsp::Position{static_cast<int>(row + Info.LineOffset),
@@ -869,17 +890,26 @@ std::shared_ptr<FuncOperatorCastNode> GraphBuilder::parseFuncOperatorCastNode(
     QualifiedName = details.containerName.value_or("");
   }
 
+  if (IsConflicting) {
+    References =
+        getReferences(FilePath, {static_cast<int>(row + Info.LineOffset),
+                                 static_cast<int>(col + Info.ColOffset)});
+  }
+
   const std::optional<ts::Node> BodyOpt = Node.getChildByFieldName(
       ts::cpp::fields::field_body.name); // function body
   std::string BodyText = BodyOpt.has_value() ? BodyOpt.value().text() : "";
 
-  return std::make_shared<FuncOperatorCastNode>(
-      NodeCount++, IsConflicting, NodeKind::FUNC_OPERATOR_CAST, Info.FuncName,
-      QualifiedName, Info.OriginalSignature, ts::getNodeComment(Node),
-      Node.startPoint(), std::move(USR), std::move(BodyText),
-      ParentSignatureHash, ts::getFollowingEOLs(Node),
-      std::move(Info.TemplateParameterList), std::move(Info.Attrs),
-      std::move(Info.ParameterList), std::move(Info.AfterParameterList));
+  std::shared_ptr<FuncOperatorCastNode> FOpCastPtr =
+      std::make_shared<FuncOperatorCastNode>(
+          NodeCount++, IsConflicting, NodeKind::FUNC_OPERATOR_CAST,
+          Info.FuncName, QualifiedName, Info.OriginalSignature,
+          ts::getNodeComment(Node), Node.startPoint(), std::move(USR),
+          std::move(BodyText), ParentSignatureHash, ts::getFollowingEOLs(Node),
+          std::move(Info.TemplateParameterList), std::move(Info.Attrs),
+          std::move(Info.ParameterList), std::move(Info.AfterParameterList));
+  FOpCastPtr->References = std::move(References);
+  return FOpCastPtr;
 }
 
 std::shared_ptr<FuncSpecialMemberNode> GraphBuilder::parseFuncSpecialMemberNode(
@@ -890,6 +920,7 @@ std::shared_ptr<FuncSpecialMemberNode> GraphBuilder::parseFuncSpecialMemberNode(
 
   std::string QualifiedName;
   std::string USR;
+  std::vector<std::string> References;
   auto [row, col] = Node.startPoint();
   std::optional<lsp::SymbolDetails> detailsOpt = getSymbolDetails(
       FilePath, lsp::Position{static_cast<int>(row + Info.LineOffset),
@@ -931,6 +962,12 @@ std::shared_ptr<FuncSpecialMemberNode> GraphBuilder::parseFuncSpecialMemberNode(
     }
   }
 
+  if (IsConflicting) {
+    References =
+        getReferences(FilePath, {static_cast<int>(row + Info.LineOffset),
+                                 static_cast<int>(col + Info.ColOffset)});
+  }
+
   const std::optional<ts::Node> BodyOpt = Node.getChildByFieldName(
       ts::cpp::fields::field_body.name); // function body
   std::string BodyText = BodyOpt.has_value() ? BodyOpt.value().text() : "";
@@ -945,6 +982,7 @@ std::shared_ptr<FuncSpecialMemberNode> GraphBuilder::parseFuncSpecialMemberNode(
           std::move(Info.Attrs), std::move(Info.BeforeFuncName),
           std::move(Info.ParameterList), std::move(Info.InitList));
   FSMPtr->ParameterTypes = std::move(ParameterTypeList);
+  FSMPtr->References = std::move(References);
 
   return FSMPtr;
 }
@@ -1008,10 +1046,10 @@ void GraphBuilder::addReferenceEdges() {
           FieldDeclRawPtr->References.begin(),
           FieldDeclRawPtr->References.end(), [&](const auto &Reference) {
             // field can be referenced in many NodeKinds
-            auto It = std::find_if(rangePair.first, rangePair.second,
-                                   [&](const auto Vertex) {
-                                     return G[Vertex]->DisplayName == Reference;
-                                   });
+            auto It = std::find_if(
+                rangePair.first, rangePair.second, [&](const auto Vertex) {
+                  return G[Vertex]->QualifiedName == Reference;
+                });
             if (It != rangePair.second) {
               addEdge(*FieldDeclPair.second, *It,
                       SemanticEdge(EdgeCount++, EdgeKind::REFERENCE));
@@ -1061,7 +1099,7 @@ void GraphBuilder::addUseEdges() {
     std::for_each(FuncUses.begin(), FuncUses.end(), [&](const auto &UseType) {
       auto It = std::find_if(
           TypeDecls.begin(), TypeDecls.end(), [&](const auto &TypeDeclPair) {
-            return TypeDeclPair.first->DisplayName == UseType;
+            return TypeDeclPair.first->QualifiedName == UseType;
           });
       if (It != TypeDecls.end()) {
         addEdge(*FuncPair.second, *(It->second),
@@ -1172,6 +1210,7 @@ GraphBuilder::insertToGraphAndParent(
   vertex_descriptor CurDesc = addVertex(CurPtr);
   auto [_, Success] = addEdge(ParentDesc, CurDesc,
                               SemanticEdge(EdgeCount++, EdgeKind::CONTAIN));
+  CurPtr->Parent = ParentPtr;
   ParentPtr->Children.push_back(CurPtr);
   return {CurDesc, Success};
 }

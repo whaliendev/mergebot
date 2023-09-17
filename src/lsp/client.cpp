@@ -45,7 +45,7 @@ JSONRpcEndpoint::RecvResponse() {
     if (line.empty()) {
       break;
     } else if (util::starts_with(line, LEN_HEADER)) {
-      spdlog::debug("content-length line: {}", line);
+      //      spdlog::debug("content-length line: {}", line);
       line = line.substr(strlen(LEN_HEADER));
       char* end;
       bodySize = static_cast<ssize_t>(strtoll(line.c_str(), &end, 10));

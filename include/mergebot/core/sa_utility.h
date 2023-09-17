@@ -116,6 +116,11 @@ std::string_view extractCodeFromConflictRange(std::string_view Source,
                                               std::string_view EndMarker);
 
 std::string trim(std::string const &code);
+
+std::string getUnqualifiedName(std::string_view name);
+
+std::string getFullQualifiedName(const std::string &QualifiedName,
+                                 std::string &&Unqualified);
 } // namespace sa
 } // namespace mergebot
 

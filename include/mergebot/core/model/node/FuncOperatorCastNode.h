@@ -45,7 +45,7 @@ public:
 
     // visibility change is a refactoring, we intentionally don't count it
     mergebot::hash_combine(H, getKind());
-    mergebot::hash_combine(H, this->DisplayName);
+    mergebot::hash_combine(H, this->QualifiedName);
     std::string TmpStr = AfterParameterList;
     TmpStr.erase(std::remove_if(TmpStr.begin(), TmpStr.end(), ::isspace),
                  TmpStr.end());
@@ -58,6 +58,8 @@ public:
   std::string BeforeFuncName; // return value, virtual, storage specifier, etc.
   std::vector<std::string> ParameterList;
   std::string AfterParameterList;
+
+  std::vector<std::string> References;
 };
 } // namespace mergebot::sa
 
