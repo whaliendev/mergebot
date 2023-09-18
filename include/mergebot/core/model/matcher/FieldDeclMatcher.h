@@ -23,7 +23,8 @@ struct FieldDeclMatcher {
 
   void match(TwoWayMatching &Matching,
              std::vector<std::shared_ptr<SemanticNode>> &BaseNodes,
-             std::vector<std::shared_ptr<SemanticNode>> &RevisionNodes) {
+             std::vector<std::shared_ptr<SemanticNode>> &RevisionNodes,
+             const std::unordered_map<size_t, size_t> &RefactoredTypes) {
     FieldDeclGraph FDGraph(BaseNodes.size() + RevisionNodes.size());
 
     for (size_t i = 0; i < BaseNodes.size(); ++i) {
@@ -59,6 +60,20 @@ struct FieldDeclMatcher {
           auto Weight = get(boost::edge_weight, FDGraph, Edge);
           if (Weight < MIN_SIMI) {
             continue;
+          }
+
+          if (auto BaseParentPtr = BaseNode->Parent.lock()) {
+            if (auto RevParentPtr = RevisionNode->Parent.lock()) {
+              if (BaseParentPtr->hashSignature() !=
+                      RevParentPtr->hashSignature() ||
+                  RefactoredTypes.find(BaseParentPtr->hashSignature()) ==
+                      RefactoredTypes.end() ||
+                  RefactoredTypes.at(BaseParentPtr->hashSignature()) !=
+                      RevParentPtr->hashSignature()) {
+                continue;
+                // mark refactoring: field extraction
+              }
+            }
           }
 
           //          spdlog::debug("refactor: {}({}) -> {}({})",
@@ -105,6 +120,18 @@ private:
                         const FieldDeclarationNode *RevisionNode) {
     double SimAvg = 0;
 
+    if (auto BaseParentPtr = BaseNode->Parent.lock()) {
+      if (auto RevParentPtr = RevisionNode->Parent.lock()) {
+        double SimName = util::string_cosine(BaseParentPtr->QualifiedName,
+                                             RevParentPtr->QualifiedName) *
+                         0.2;
+        if (SimName < 0) {
+          SimName = 0;
+        }
+        SimAvg += SimName;
+      }
+    }
+
     if (!BaseNode->Declarator.empty() && !RevisionNode->Declarator.empty()) {
       double SimDeclarator =
           util::string_cosine(BaseNode->Declarator, RevisionNode->Declarator) *
@@ -133,18 +160,6 @@ private:
         SimNeighbors = 0;
       }
       SimAvg += SimNeighbors;
-    }
-
-    if (auto BaseParentPtr = BaseNode->Parent.lock()) {
-      if (auto RevParentPtr = RevisionNode->Parent.lock()) {
-        double SimName = util::string_cosine(BaseParentPtr->QualifiedName,
-                                             RevParentPtr->QualifiedName) *
-                         0.2;
-        if (SimName < 0) {
-          SimName = 0;
-        }
-        SimAvg += SimName;
-      }
     }
 
     return SimAvg;

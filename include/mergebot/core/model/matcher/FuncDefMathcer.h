@@ -24,7 +24,8 @@ struct FuncDefMatcher {
 
   void match(TwoWayMatching &Matching,
              std::vector<std::shared_ptr<SemanticNode>> &BaseNodes,
-             std::vector<std::shared_ptr<SemanticNode>> &RevisionNodes) {
+             std::vector<std::shared_ptr<SemanticNode>> &RevisionNodes,
+             const std::unordered_map<size_t, size_t> &RefactoredTypes) {
     FuncDefGraph FDGraph(BaseNodes.size() + RevisionNodes.size());
 
     for (size_t i = 0; i < BaseNodes.size(); ++i) {
@@ -60,6 +61,20 @@ struct FuncDefMatcher {
           auto Weight = get(boost::edge_weight, FDGraph, Edge);
           if (Weight < MIN_SIMI) {
             continue;
+          }
+
+          if (auto BaseParentPtr = BaseNode->Parent.lock()) {
+            if (auto RevParentPtr = RevisionNode->Parent.lock()) {
+              if (BaseParentPtr->hashSignature() !=
+                      RevParentPtr->hashSignature() ||
+                  RefactoredTypes.find(BaseParentPtr->hashSignature()) ==
+                      RefactoredTypes.end() ||
+                  RefactoredTypes.at(BaseParentPtr->hashSignature()) !=
+                      RevParentPtr->hashSignature()) {
+                continue;
+                // mark refactoring: field extraction
+              }
+            }
           }
 
           //          spdlog::debug("refactor: {}({}) -> {}({})",

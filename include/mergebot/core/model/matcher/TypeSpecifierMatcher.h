@@ -24,7 +24,8 @@ struct TypeSpecifierMatcher {
 
   void match(TwoWayMatching &Matching,
              std::vector<std::shared_ptr<SemanticNode>> &BaseNodes,
-             std::vector<std::shared_ptr<SemanticNode>> &RevisionNodes) {
+             std::vector<std::shared_ptr<SemanticNode>> &RevisionNodes,
+             std::unordered_map<size_t, size_t> &RefactoredTypes) {
     TypeDeclGraph TDGraph(BaseNodes.size() + RevisionNodes.size());
 
     for (size_t i = 0; i < BaseNodes.size(); ++i) {
@@ -68,6 +69,8 @@ struct TypeSpecifierMatcher {
           //                        RevisionNode->OriginalSignature,
           //                        magic_enum::enum_name(RevisionNode->getKind()));
           Matching.OneOneMatching.insert({BaseNode, RevisionNode});
+          RefactoredTypes.insert(
+              {BaseNode->hashSignature(), RevisionNode->hashSignature()});
 
           BaseNodes.erase(std::remove_if(BaseNodes.begin(), BaseNodes.end(),
                                          [&](const auto &Node) {

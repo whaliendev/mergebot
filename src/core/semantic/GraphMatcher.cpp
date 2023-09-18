@@ -77,9 +77,11 @@ void GraphMatcher::bottomUpMatch() {
       Matching.PossiblyDeleted[NodeKind::TYPE];
   std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedTypes =
       Matching.PossiblyAdded[NodeKind::TYPE];
+  std::unordered_map<size_t, size_t> RefactoredTypes;
   if (BaseUnmatchedTypes.size() && RevisionUnmatchedTypes.size()) {
     TypeSpecifierMatcher TypeMatcher;
-    TypeMatcher.match(Matching, BaseUnmatchedTypes, RevisionUnmatchedTypes);
+    TypeMatcher.match(Matching, BaseUnmatchedTypes, RevisionUnmatchedTypes,
+                      RefactoredTypes);
   }
 
   /// enum
@@ -99,7 +101,8 @@ void GraphMatcher::bottomUpMatch() {
       Matching.PossiblyAdded[NodeKind::FIELD_DECLARATION];
   if (BaseUnmatchedFields.size() && RevisionUnmatchedFields.size()) {
     FieldDeclMatcher FDMatcher;
-    FDMatcher.match(Matching, BaseUnmatchedFields, RevisionUnmatchedFields);
+    FDMatcher.match(Matching, BaseUnmatchedFields, RevisionUnmatchedFields,
+                    RefactoredTypes);
   }
 
   // function definition
@@ -109,7 +112,8 @@ void GraphMatcher::bottomUpMatch() {
       Matching.PossiblyAdded[NodeKind::FUNC_DEF];
   if (BaseUnmatchedFuncDefs.size() && RevisionUnmatchedFuncDefs.size()) {
     FuncDefMatcher FDMatcher;
-    FDMatcher.match(Matching, BaseUnmatchedFuncDefs, RevisionUnmatchedFuncDefs);
+    FDMatcher.match(Matching, BaseUnmatchedFuncDefs, RevisionUnmatchedFuncDefs,
+                    RefactoredTypes);
   }
 
   // no need to do this for operator cast
