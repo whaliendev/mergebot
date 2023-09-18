@@ -504,5 +504,43 @@ std::optional<std::string> commit_hash_of_rev(const std::string &revision,
       detail::corresponding_commit_hash(full_hash, repo_ptr);
   return commit_hash;
 }
+
+std::string git_merge_textual(const std::string &ours, const std::string &base,
+                              const std::string &theirs,
+                              const std::string &base_label,
+                              const std::string &their_label,
+                              const std::string &our_label) {
+  git_merge_file_input our_input = GIT_MERGE_FILE_INPUT_INIT;
+  our_input.ptr = ours.c_str();
+  our_input.size = ours.size();
+
+  git_merge_file_input base_input = GIT_MERGE_FILE_INPUT_INIT;
+  base_input.ptr = base.c_str();
+  base_input.size = base.size();
+
+  git_merge_file_input their_input = GIT_MERGE_FILE_INPUT_INIT;
+  their_input.ptr = theirs.c_str();
+  their_input.size = theirs.size();
+
+  git_merge_file_options opts = GIT_MERGE_FILE_OPTIONS_INIT;
+  opts.ancestor_label = base_label.c_str();
+  opts.our_label = our_label.c_str();
+  opts.their_label = their_label.c_str();
+  opts.flags = GIT_MERGE_FILE_STYLE_DIFF3 | GIT_MERGE_FILE_IGNORE_WHITESPACE;
+
+  git_merge_file_result result;
+  int error =
+      git_merge_file(&result, &our_input, &base_input, &their_input, &opts);
+  if (error < 0) {
+    const git_error *e = git_error_last();
+    spdlog::error("error to merge textual content {}/{}: {}", error, e->klass,
+                  e->message);
+    return "";
+  }
+
+  std::string merged_text(result.ptr, result.ptr + result.len);
+  git_merge_file_result_free(&result);
+  return merged_text;
+}
 }  // namespace util
 }  // namespace mergebot

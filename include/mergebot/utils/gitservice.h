@@ -216,6 +216,22 @@ std::optional<std::string> commit_hash_of_rev(const std::string& revision,
 std::optional<std::string> git_merge_base(const std::string& our,
                                           const std::string& their,
                                           const std::string& project_path);
+
+/// merge textual content, create diff3 style conflicts chunk
+/// Note it's the caller's duty to make sure git_libgit2_init is called before
+/// calling this function
+/// \param our our side textual content
+/// \param base base side textual content
+/// \param their their side textual content
+/// \param base_label base label
+/// \param their_label their label
+/// \param our_label our label
+/// \return merged textual content
+std::string git_merge_textual(const std::string& ours, const std::string& base,
+                              const std::string& theirs,
+                              const std::string& base_label = "ours",
+                              const std::string& their_label = "theirs",
+                              const std::string& our_label = "HEAD");
 }  // namespace util
 }  // namespace mergebot
 

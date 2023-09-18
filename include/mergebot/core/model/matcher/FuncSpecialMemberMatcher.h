@@ -63,6 +63,19 @@ struct FuncSpecialMemberMatcher {
             continue;
           }
 
+          //          if (auto BaseParentPtr = BaseNode->Parent.lock()) {
+          //            if (auto RevParentPtr = RevisionNode->Parent.lock()) {
+          //              if (BaseParentPtr->hashSignature() !=
+          //                      RevParentPtr->hashSignature() ||
+          //                  RefactoredTypes.at(BaseParentPtr->hashSignature())
+          //                  !=
+          //                      RevParentPtr->hashSignature()) {
+          //                continue;
+          //                // mark refactoring: field extraction
+          //              }
+          //            }
+          //          }
+
           //          spdlog::debug("refactor: {}({}) -> {}({})",
           //                        BaseNode->OriginalSignature,
           //                        magic_enum::enum_name(BaseNode->getKind()),
