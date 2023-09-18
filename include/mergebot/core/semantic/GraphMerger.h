@@ -9,6 +9,8 @@
 #include "mergebot/core/model/mapping/ThreeWayMapping.h"
 #include "mergebot/core/model/mapping/TwoWayMatching.h"
 #include "mergebot/core/semantic/GraphBuilder.h"
+#include <git2/global.h>
+
 namespace mergebot {
 namespace sa {
 using SemanticGraph = GraphBuilder::SemanticGraph;
@@ -18,7 +20,11 @@ public:
               SemanticGraph &BaseGraph, SemanticGraph &TheirGraph,
               const std::string Dest = "merged")
       : Meta(Meta), MergedDir((fs::path(Meta.MSCacheDir) / Dest).string()),
-        OurGraph(OurGraph), BaseGraph(BaseGraph), TheirGraph(TheirGraph) {}
+        OurGraph(OurGraph), BaseGraph(BaseGraph), TheirGraph(TheirGraph) {
+    git_libgit2_init();
+  }
+
+  ~GraphMerger() { git_libgit2_shutdown(); }
 
   void threeWayMatch();
 
@@ -27,6 +33,16 @@ public:
   std::string getMergedDir() const { return MergedDir; }
 
 private:
+  void mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode);
+
+  void GraphMerger::mergeChildrenByUnion(
+      const std::vector<std::shared_ptr<SemanticNode>> &OurChildren,
+      std::vector<std::shared_ptr<SemanticNode>> &BaseChildren,
+      const std::vector<std::shared_ptr<SemanticNode>> &TheirChildren);
+
+  std::string mergeText(const std::string &OurText, const std::string &BaseText,
+                        const std::string &TheirText);
+
   const ProjectMeta &Meta;
   std::string MergedDir;
   SemanticGraph &OurGraph;
