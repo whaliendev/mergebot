@@ -10,8 +10,6 @@ namespace mergebot {
 namespace sa {
 class CompositeNode : public SemanticNode {
 public:
-  size_t BeforeFirstChildEOL = 0;
-
   CompositeNode(int NodeId, bool NeedToMerge, NodeKind Kind,
                 const std::string &DisplayName,
                 const std::string &QualifiedName,
@@ -42,6 +40,8 @@ public:
     return N->getKind() >= NodeKind::COMPOSITE_NODE &&
            N->getKind() <= NodeKind::LAST_COMPOSITE_NODE;
   }
+
+  size_t BeforeFirstChildEOL = 0;
 };
 } // namespace sa
 } // namespace mergebot

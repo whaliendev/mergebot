@@ -3,7 +3,12 @@
 //
 
 #include "mergebot/core/semantic/GraphMerger.h"
+#include "mergebot/core/model/node/FieldDeclarationNode.h"
+#include "mergebot/core/model/node/FuncDefNode.h"
+#include "mergebot/core/model/node/FuncOperatorCastNode.h"
+#include "mergebot/core/model/node/FuncSpecialMemberNode.h"
 #include "mergebot/core/model/node/OrphanCommentNode.h"
+#include "mergebot/core/model/node/TextualNode.h"
 #include "mergebot/core/model/node/TranslationUnitNode.h"
 #include "mergebot/core/semantic/GraphMatcher.h"
 #include "mergebot/core/semantic/pretty_printer.h"
@@ -61,25 +66,119 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
       TheirMatching.OneOneMatching.left.at(BaseNode);
   if (OurNode && TheirNode) {
     if (llvm::isa<TerminalNode>(BaseNode.get())) {
-      if (auto OrphanCommentRawPtr =
-              llvm::dyn_cast<OrphanCommentNode>(BaseNode.get())) [[unlikely]] {
-        // when print comment, print its QualifiedName
-        OrphanCommentRawPtr->Body = mergeText(
-            OurNode->QualifiedName, OrphanCommentRawPtr->QualifiedName,
-            TheirNode->QualifiedName);
-      } else {
-        // 1. field declaration node, merge its textual content;
-        // 2. func def node, template parameter list, attrs, before func
-        // name, displayName, ParameterList, AfterParameterList, body
-        // 3. func operator cast, the same as func def node
-        // 4. func special member,
-        // 5. orphan comment
-        // 6. textual
+      auto BasePtr = llvm::cast<TerminalNode>(BaseNode.get());
+      auto OurPtr = llvm::cast<TerminalNode>(OurNode.get());
+      auto TheirPtr = llvm::cast<TerminalNode>(TheirNode.get());
+      if (BasePtr && OurPtr && TheirPtr) {
+        BasePtr->Body = mergeText(OurPtr->Body, BasePtr->Body, TheirPtr->Body);
       }
+
+      BaseNode->FollowingEOL = TheirNode->FollowingEOL;
+      BaseNode->Comment =
+          mergeText(OurNode->Comment, BaseNode->Comment, TheirNode->Comment);
+      // original signature, do not merge it initially
+      BaseNode->QualifiedName =
+          mergeText(OurNode->QualifiedName, BaseNode->QualifiedName,
+                    TheirNode->QualifiedName);
+      // in favor of theirs
+      BaseNode->AccessSpecifier = TheirNode->AccessSpecifier;
+      if (llvm::isa<FuncDefNode>(BaseNode.get()) ||
+          llvm::isa<FuncSpecialMemberNode>(BaseNode.get()) ||
+          llvm::isa<FuncOperatorCastNode>(BaseNode.get())) {
+        bool SkipSigMerge = false;
+        if (BaseNode->OriginalSignature == OurNode->OriginalSignature &&
+            BaseNode->OriginalSignature == TheirNode->OriginalSignature) {
+          SkipSigMerge = true;
+          llvm::cast<TerminalNode>(BaseNode.get())->SigUnchanged = true;
+        }
+        if (!SkipSigMerge) {
+          if (llvm::isa<FuncDefNode>(BaseNode.get())) {
+            // 2. func def node, template parameter list, attrs, before func
+            // name, displayName, ParameterList, AfterParameterList, body
+            auto BaseFuncPtr = llvm::cast<FuncDefNode>(BaseNode.get());
+            auto OurFuncPtr = llvm::cast<FuncDefNode>(OurNode.get());
+            auto TheirFuncPtr = llvm::cast<FuncDefNode>(TheirNode.get());
+            BaseFuncPtr->TemplateParameterList =
+                mergeText(OurFuncPtr->TemplateParameterList,
+                          BaseFuncPtr->TemplateParameterList,
+                          TheirFuncPtr->TemplateParameterList);
+            BaseFuncPtr->Attrs = mergeText(
+                OurFuncPtr->Attrs, BaseFuncPtr->Attrs, TheirFuncPtr->Attrs);
+            BaseFuncPtr->BeforeFuncName = mergeText(
+                OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
+                TheirFuncPtr->BeforeFuncName);
+            BaseFuncPtr->ParameterList = mergeListTextually(
+                OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
+                TheirFuncPtr->ParameterList);
+            BaseFuncPtr->AfterParameterList = mergeText(
+                OurFuncPtr->AfterParameterList, BaseFuncPtr->AfterParameterList,
+                TheirFuncPtr->AfterParameterList);
+          } else if (llvm::isa<FuncSpecialMemberNode>(BaseNode.get())) {
+            // 4. func special member,
+            auto BaseFuncPtr =
+                llvm::cast<FuncSpecialMemberNode>(BaseNode.get());
+            auto OurFuncPtr = llvm::cast<FuncSpecialMemberNode>(OurNode.get());
+            auto TheirFuncPtr =
+                llvm::cast<FuncSpecialMemberNode>(TheirNode.get());
+            BaseFuncPtr->TemplateParameterList =
+                mergeText(OurFuncPtr->TemplateParameterList,
+                          BaseFuncPtr->TemplateParameterList,
+                          TheirFuncPtr->TemplateParameterList);
+            if (BaseFuncPtr->Body.size()) {
+              BaseFuncPtr->DefType = FuncSpecialMemberNode::Plain;
+            } else {
+              BaseFuncPtr->DefType =
+                  OurFuncPtr->DefType == BaseFuncPtr->DefType
+                      ? TheirFuncPtr->DefType
+                      : (TheirFuncPtr->DefType == BaseFuncPtr->DefType
+                             ? OurFuncPtr->DefType
+                             : FuncSpecialMemberNode::Plain);
+            }
+            BaseFuncPtr->Attrs = mergeText(
+                OurFuncPtr->Attrs, BaseFuncPtr->Attrs, TheirFuncPtr->Attrs);
+            BaseFuncPtr->BeforeFuncName = mergeText(
+                OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
+                TheirFuncPtr->BeforeFuncName);
+            BaseFuncPtr->ParameterList = mergeListTextually(
+                OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
+                TheirFuncPtr->ParameterList);
+            BaseFuncPtr->InitList =
+                mergeListTextually(OurFuncPtr->InitList, BaseFuncPtr->InitList,
+                                   TheirFuncPtr->InitList);
+          } else if (llvm::isa<FuncOperatorCastNode>(BaseNode.get())) {
+            // 3. func operator cast, the same as func def node
+            auto BaseFuncPtr = llvm::cast<FuncOperatorCastNode>(BaseNode.get());
+            auto OurFuncPtr = llvm::cast<FuncOperatorCastNode>(OurNode.get());
+            auto TheirFuncPtr =
+                llvm::cast<FuncOperatorCastNode>(TheirNode.get());
+            BaseFuncPtr->TemplateParameterList =
+                mergeText(OurFuncPtr->TemplateParameterList,
+                          BaseFuncPtr->TemplateParameterList,
+                          TheirFuncPtr->TemplateParameterList);
+            BaseFuncPtr->Attrs = mergeText(
+                OurFuncPtr->Attrs, BaseFuncPtr->Attrs, TheirFuncPtr->Attrs);
+            BaseFuncPtr->BeforeFuncName = mergeText(
+                OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
+                TheirFuncPtr->BeforeFuncName);
+            BaseFuncPtr->ParameterList = mergeListTextually(
+                OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
+                TheirFuncPtr->ParameterList);
+            BaseFuncPtr->AfterParameterList = mergeText(
+                OurFuncPtr->AfterParameterList, BaseFuncPtr->AfterParameterList,
+                TheirFuncPtr->AfterParameterList);
+          }
+        }
+      }
+
+      BaseNode->OriginalSignature =
+          mergeText(OurNode->OriginalSignature, BaseNode->OriginalSignature,
+                    TheirNode->OriginalSignature);
     } else { // composite node
       assert(llvm::isa<CompositeNode>(BaseNode.get()));
+      BaseNode->FollowingEOL = TheirNode->FollowingEOL;
 
-      if (llvm::isa<TranslationUnitNode>(BaseNode.get())) {
+      // translation unit
+      if (llvm::isa<TranslationUnitNode>(BaseNode.get())) [[unlikely]] {
         auto BaseTU = llvm::dyn_cast<TranslationUnitNode>(BaseNode.get());
         auto OurTU = llvm::dyn_cast<TranslationUnitNode>(OurNode.get());
         auto TheirTU = llvm::dyn_cast<TranslationUnitNode>(TheirNode.get());
@@ -105,8 +204,6 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
       BaseNode->QualifiedName =
           mergeText(OurNode->QualifiedName, BaseNode->QualifiedName,
                     TheirNode->QualifiedName);
-      // in favor of their side
-      BaseNode->FollowingEOL = TheirNode->FollowingEOL;
 
       assert(llvm::isa<CompositeNode>(TheirNode.get()));
       auto BaseComposite = llvm::cast<CompositeNode>(BaseNode.get());
@@ -125,7 +222,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
 
 std::string GraphMerger::mergeText(const std::string &OurText,
                                    const std::string &BaseText,
-                                   const std::string &TheirText) {
+                                   const std::string &TheirText) const {
   if (OurText == BaseText) {
     return TheirText;
   }
@@ -279,6 +376,22 @@ GraphMerger::mergeStrVecByUnion(const std::vector<std::string> &V1,
             Ret.end());
 
   return Ret;
+}
+
+std::vector<std::string> GraphMerger::mergeListTextually(
+    const std::vector<std::string> &OurList,
+    const std::vector<std::string> &BaseList,
+    const std::vector<std::string> &TheirList) const {
+  std::string OurString = util::string_join(OurList, "\n");
+  std::string BaseString = util::string_join(BaseList, "\n");
+  std::string TheirString = util::string_join(TheirList, "\n");
+  std::string MergedString = mergeText(OurString, BaseString, TheirString);
+  std::vector<std::string> out;
+  std::transform(util::string_split(MergedString, "\n").begin(),
+                 util::string_split(MergedString, "\n").end(),
+                 std::back_inserter(out),
+                 [](const std::string_view &sv) { return std::string(sv); });
+  return out;
 }
 
 } // namespace sa

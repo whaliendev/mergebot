@@ -285,8 +285,9 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
           std::shared_ptr<SemanticNode> OrphanCommentPtr =
               std::make_shared<OrphanCommentNode>(
                   NodeCount++, IsConflicting, NodeKind::ORPHAN_COMMENT, Comment,
-                  Comment, "", "", Child.startPoint(), "", std::string(Comment),
-                  SRoot->hashSignature(), ts::getFollowingEOLs(Child));
+                  Comment, Comment, "", Child.startPoint(), "",
+                  std::string(Comment), SRoot->hashSignature(),
+                  ts::getFollowingEOLs(Child));
           insertToGraphAndParent(SRoot, SRootVDesc, OrphanCommentPtr);
           Idx +=
               CommentCnt - 1; // -1 as the loop end will auto increment Idx by 1
@@ -606,7 +607,7 @@ GraphBuilder::parseTextualNode(const ts::Node &Node, bool IsConflicting,
                                size_t ParentSignatureHash) {
   std::string TextContent = Node.text();
   return std::make_shared<TextualNode>(
-      NodeCount++, IsConflicting, NodeKind::TEXTUAL, TextContent, "",
+      NodeCount++, IsConflicting, NodeKind::TEXTUAL, TextContent, TextContent,
       TextContent, ts::getNodeComment(Node), Node.startPoint(), "",
       std::move(TextContent), ParentSignatureHash, ts::getFollowingEOLs(Node));
 }
@@ -1018,8 +1019,8 @@ void GraphBuilder::addIncludeEdges() {
                     NodeCount++, false, NodeKind::TRANSLATION_UNIT,
                     IncludedFile, "", "", "", std::nullopt,
                     std::string(IncludedFile), false, false,
-                    std::vector<std::string>(),
-                    std::vector<std::pair<ts::Point, std::string>>(), 0, true);
+                    std::vector<std::string>(), std::vector<std::string>(), 0,
+                    true);
             auto SyntheticVertex = addVertex(SyntheticPtr);
             addEdge(*TUPair.second, SyntheticVertex,
                     SemanticEdge(EdgeCount++, EdgeKind::INCLUDE, 1, true));

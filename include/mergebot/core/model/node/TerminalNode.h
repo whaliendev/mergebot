@@ -19,7 +19,8 @@ public:
       : SemanticNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
                      std::move(USR), IsSynthetic),
-        Body(std::move(Body)), ParentSignatureHash(ParentSignatureHash) {
+        Body(std::move(Body)), ParentSignatureHash(ParentSignatureHash),
+        SigUnchanged(false) {
     this->FollowingEOL = FollowingEOL;
   }
 
@@ -41,6 +42,9 @@ public:
 
   std::string Body;
   size_t ParentSignatureHash;
+
+  // for FuncDefNode, FuncSpecialMemberNode and FuncOperatorCastNode
+  bool SigUnchanged;
 };
 } // namespace sa
 } // namespace mergebot

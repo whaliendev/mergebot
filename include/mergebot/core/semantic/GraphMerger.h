@@ -46,7 +46,11 @@ private:
                      const std::vector<std::string> &V3) const;
 
   std::string mergeText(const std::string &OurText, const std::string &BaseText,
-                        const std::string &TheirText);
+                        const std::string &TheirText) const;
+  std::vector<std::string>
+  mergeListTextually(const std::vector<std::string> &OurList,
+                     const std::vector<std::string> &BaseList,
+                     const std::vector<std::string> &TheirList) const;
 
   const ProjectMeta &Meta;
   std::string MergedDir;
