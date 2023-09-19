@@ -103,14 +103,15 @@ std::pair<bool, std::vector<std::string>> getHeaderGuard(
   return {false, {}};
 }
 
-std::vector<std::pair<ts::Point, std::string>> getFrontDecls(
+std::pair<std::vector<std::string>, size_t> getFrontDecls(
     const ts::Node &TURoot, size_t &cnt) {
   const size_t childrenCnt = TURoot.childrenCount();
   if (cnt >= childrenCnt) {
     return {};
   }
 
-  std::vector<std::pair<ts::Point, std::string>> ret;
+  size_t lastRow = 0;
+  std::vector<std::string> FrontDecls;
   for (; cnt < childrenCnt;) {
     ts::Node node = TURoot.children[cnt];
     if (util::starts_with(node.type(), "preproc") ||
@@ -123,19 +124,21 @@ std::vector<std::pair<ts::Point, std::string>> getFrontDecls(
           node.endPoint().row - node.startPoint().row
               ? std::string(util::string_trim(node.text()))
               : node.text();
-      ret.push_back({node.startPoint(), textualContent});
+      FrontDecls.emplace_back(std::move(textualContent));
+      lastRow = node.endPoint().row;
       ++cnt;
     } else if (node.type() == ts::cpp::symbols::sym_comment.name) {
       size_t commentCnt = 0;
       auto [orphan, comment] = getComment(node, commentCnt);
-      ret.push_back({node.startPoint(), comment});
+      FrontDecls.emplace_back(std::move(comment));
+      lastRow = node.endPoint().row;
       cnt += commentCnt;
     } else {
       break;
     }
   }
 
-  return ret;
+  return {FrontDecls, lastRow};
 }
 
 bool isTypeDecl(const Node &node) {

@@ -35,10 +35,15 @@ public:
 private:
   void mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode);
 
-  void GraphMerger::mergeChildrenByUnion(
+  void threeWayMergeChildren(
       const std::vector<std::shared_ptr<SemanticNode>> &OurChildren,
       std::vector<std::shared_ptr<SemanticNode>> &BaseChildren,
       const std::vector<std::shared_ptr<SemanticNode>> &TheirChildren);
+
+  std::vector<std::string>
+  mergeStrVecByUnion(const std::vector<std::string> &V1,
+                     const std::vector<std::string> &V2,
+                     const std::vector<std::string> &V3) const;
 
   std::string mergeText(const std::string &OurText, const std::string &BaseText,
                         const std::string &TheirText);

@@ -79,6 +79,22 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
     } else { // composite node
       assert(llvm::isa<CompositeNode>(BaseNode.get()));
 
+      if (llvm::isa<TranslationUnitNode>(BaseNode.get())) {
+        auto BaseTU = llvm::dyn_cast<TranslationUnitNode>(BaseNode.get());
+        auto OurTU = llvm::dyn_cast<TranslationUnitNode>(OurNode.get());
+        auto TheirTU = llvm::dyn_cast<TranslationUnitNode>(TheirNode.get());
+        if (BaseTU && OurTU && TheirTU) {
+          assert(BaseTU->IsHeader == OurTU->IsHeader &&
+                 BaseTU->IsHeader == TheirTU->IsHeader &&
+                 "only files of the same type can be merged");
+          BaseTU->TraditionGuard = TheirTU->TraditionGuard;
+          BaseTU->HeaderGuard = TheirTU->HeaderGuard;
+          // merge front decls
+          BaseTU->FrontDecls = mergeStrVecByUnion(
+              OurTU->FrontDecls, BaseTU->FrontDecls, TheirTU->FrontDecls);
+        }
+      }
+
       std::string MergedComment =
           mergeText(OurNode->Comment, BaseNode->Comment, TheirNode->Comment);
       std::string MergedSignature =
@@ -92,9 +108,14 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
       // in favor of their side
       BaseNode->FollowingEOL = TheirNode->FollowingEOL;
 
+      assert(llvm::isa<CompositeNode>(TheirNode.get()));
+      auto BaseComposite = llvm::cast<CompositeNode>(BaseNode.get());
+      auto TheirComposite = llvm::cast<CompositeNode>(TheirNode.get());
+      BaseComposite->BeforeFirstChildEOL = TheirComposite->BeforeFirstChildEOL;
+
       // merge children
-      mergeChildrenByUnion(OurNode->Children, BaseNode->Children,
-                           TheirNode->Children);
+      threeWayMergeChildren(OurNode->Children, BaseNode->Children,
+                            TheirNode->Children);
     }
   } else {
     // base node exists, any one side doesn't exist, delete it
@@ -116,7 +137,7 @@ std::string GraphMerger::mergeText(const std::string &OurText,
   return MergedText;
 }
 
-void GraphMerger::mergeChildrenByUnion(
+void GraphMerger::threeWayMergeChildren(
     const std::vector<std::shared_ptr<SemanticNode>> &OurChildren,
     std::vector<std::shared_ptr<SemanticNode>> &BaseChildren,
     const std::vector<std::shared_ptr<SemanticNode>> &TheirChildren) {
@@ -214,6 +235,50 @@ void GraphMerger::mergeChildrenByUnion(
       ++i;
     }
   }
+}
+
+std::vector<std::string>
+GraphMerger::mergeStrVecByUnion(const std::vector<std::string> &V1,
+                                const std::vector<std::string> &V2,
+                                const std::vector<std::string> &V3) const {
+  std::vector<std::string> Ret;
+  Ret.reserve(V1.size() + V2.size() + V3.size());
+
+  Ret = V1;
+  std::unordered_map<std::string, int> Fences;
+  std::list<std::string> TmpList;
+  size_t InsertPos = 0;
+
+  for (size_t i = 0; i < V1.size(); ++i) {
+    Fences[V1[i]] = i;
+  }
+
+  for (const auto &Vec : {V2, V3}) {
+    TmpList.clear();
+    for (const auto &item : Vec) {
+      if (Fences.find(item) != Fences.end()) {
+        if (!TmpList.empty()) {
+          Ret.insert(Ret.begin() + InsertPos, TmpList.begin(), TmpList.end());
+          TmpList.clear();
+        }
+        InsertPos = Fences[item] + 1;
+      } else {
+        TmpList.push_back(item);
+      }
+    }
+    if (!TmpList.empty()) {
+      Ret.insert(Ret.end(), TmpList.begin(), TmpList.end());
+    }
+  }
+
+  std::unordered_set<std::string> Seen;
+  Ret.erase(std::remove_if(Ret.begin(), Ret.end(),
+                           [&Seen](const auto &Item) {
+                             return !Seen.insert(Item).second;
+                           }),
+            Ret.end());
+
+  return Ret;
 }
 
 } // namespace sa

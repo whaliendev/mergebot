@@ -12,14 +12,16 @@ namespace mergebot {
 namespace sa {
 class TranslationUnitNode : public CompositeNode {
 public:
-  TranslationUnitNode(
-      int NodeId, bool NeedToMerge, NodeKind Kind,
-      const std::string &DisplayName, const std::string &QualifiedName,
-      const std::string &OriginalSignature, std::string &&Comment,
-      const std::optional<ts::Point> &Point, std::string &&USR, bool IsHeader,
-      bool TraditionGuard, std::vector<std::string> &&HeaderGuard,
-      std::vector<std::pair<ts::Point, std::string>> &&FrontDecls,
-      size_t BeforeFirstChildEOL, bool IsSynthetic = false)
+  TranslationUnitNode(int NodeId, bool NeedToMerge, NodeKind Kind,
+                      const std::string &DisplayName,
+                      const std::string &QualifiedName,
+                      const std::string &OriginalSignature,
+                      std::string &&Comment,
+                      const std::optional<ts::Point> &Point, std::string &&USR,
+                      bool IsHeader, bool TraditionGuard,
+                      std::vector<std::string> &&HeaderGuard,
+                      std::vector<std::string> &&FrontDecls,
+                      size_t BeforeFirstChildEOL, bool IsSynthetic = false)
       : CompositeNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                       OriginalSignature, std::move(Comment), Point,
                       std::move(USR), BeforeFirstChildEOL, IsSynthetic),
@@ -63,7 +65,7 @@ public:
   /// using fs = std::filesystem;
   /// typedef std::map<int, int> IntMap;
   /// @endcode
-  std::vector<std::pair<ts::Point, std::string>> FrontDecls;
+  std::vector<std::string> FrontDecls;
 };
 } // namespace sa
 } // namespace mergebot

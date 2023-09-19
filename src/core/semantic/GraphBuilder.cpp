@@ -529,13 +529,12 @@ std::shared_ptr<TranslationUnitNode> GraphBuilder::parseTranslationUnit(
     }
   }
 
-  std::vector<std::pair<ts::Point, std::string>> FrontDecls =
-      ts::getFrontDecls(TURoot, FrontDeclCnt);
+  auto [FrontDecls, LastRow] = ts::getFrontDecls(TURoot, FrontDeclCnt);
 
   size_t BeforeFirstChildEOL = 1;
   if (FrontDecls.size() && FrontDeclCnt < TURoot.childrenCount()) {
-    BeforeFirstChildEOL = TURoot.children[FrontDeclCnt].startPoint().row -
-                          FrontDecls.back().first.row - 1;
+    BeforeFirstChildEOL =
+        TURoot.children[FrontDeclCnt].startPoint().row - LastRow - 1;
   }
 
   return std::make_shared<TranslationUnitNode>(

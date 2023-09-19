@@ -32,7 +32,7 @@ int nextSiblingDistance(const ts::Node &node, bool named = false);
 std::pair<bool, std::vector<std::string>> getHeaderGuard(
     const ts::Node &TUNode, size_t &BeforeBodyChildCnt, ts::Node &TURoot);
 
-std::vector<std::pair<ts::Point, std::string>> getFrontDecls(
+std::pair<std::vector<std::string>, size_t> getFrontDecls(
     const ts::Node &TURoot, size_t &cnt);
 
 std::pair<bool, std::string> getComment(const ts::Node &commentNode,
