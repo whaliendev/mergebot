@@ -186,7 +186,7 @@ ClassInfo extractClassInfo(const std::string &code) {
   ClassInfo ret;
 
   const std::string pattern =
-      R"(((template\s*<[^>]*>)?\s*(class|struct|union)\s*((\s*\[\[[^\]]+\]\])*)?\s*([a-zA-Z_][a-zA-Z0-9_:<>]*)?\s*(final)?\s*(:\s*[^\{]*)?)\s*\{)";
+      R"(((template\s*<[^>]*>)?\s*(class|struct|union)\s*((\s*\[\[[^\]]+\]\])*)?\s*([a-zA-Z_][a-zA-Z0-9_:<>]*)?\s*(final)?\s*(:\s*[^\{]*)?\s*)\{)";
   std::string Final;
   re2::RE2 re(pattern);
   re2::StringPiece input(code);

@@ -28,8 +28,7 @@ public:
                bool IsSynthetic = false)
       : ID(NodeId), NeedToMerge(NeedToMerge), Kind(Kind),
         DisplayName(DisplayName),
-        QualifiedName(getFullQualifiedName(QualifiedName,
-                                           getUnqualifiedName(DisplayName))),
+        QualifiedName(getFullQualifiedName(QualifiedName, DisplayName)),
         OriginalSignature(OriginalSignature), Comment(Comment),
         StartPoint(Point), USR(USR), AccessSpecifier(AccessSpecifierKind::None),
         IsSynthetic(IsSynthetic) {}

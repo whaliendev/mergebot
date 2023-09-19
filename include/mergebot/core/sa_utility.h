@@ -120,7 +120,7 @@ std::string trim(std::string const &code);
 std::string getUnqualifiedName(std::string_view name);
 
 std::string getFullQualifiedName(const std::string &QualifiedName,
-                                 std::string &&Unqualified);
+                                 const std::string &DisplayName);
 } // namespace sa
 } // namespace mergebot
 

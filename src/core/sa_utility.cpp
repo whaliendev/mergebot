@@ -458,12 +458,13 @@ std::string getUnqualifiedName(std::string_view name) {
   return std::string(name.substr(pos + 2));
 }
 
-std::string getFullQualifiedName(const std::string &QualifiedName,
-                                 std::string &&Unqualified) {
-  if (util::ends_with(QualifiedName, "::")) {
-    return QualifiedName + Unqualified;
-  }
-  return QualifiedName + "::" + Unqualified;
+std::string sa::getFullQualifiedName(const std::string &QualifiedName,
+                                     const std::string &DisplayName) {
+  if (QualifiedName.empty())
+    return DisplayName;
+  if (util::ends_with(QualifiedName, "::"))
+    return QualifiedName + getUnqualifiedName(DisplayName);
+  return QualifiedName + "::" + getUnqualifiedName(DisplayName);
 }
 
 } // namespace sa
