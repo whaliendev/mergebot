@@ -21,7 +21,7 @@ public:
                       bool IsHeader, bool TraditionGuard,
                       std::vector<std::string> &&HeaderGuard,
                       std::vector<std::string> &&FrontDecls,
-                      size_t BeforeFirstChildEOL, bool IsSynthetic = false)
+                      int BeforeFirstChildEOL, bool IsSynthetic = false)
       : CompositeNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                       OriginalSignature, std::move(Comment), Point,
                       std::move(USR), BeforeFirstChildEOL, IsSynthetic),

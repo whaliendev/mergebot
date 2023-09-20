@@ -20,9 +20,9 @@ public:
            const std::string &DisplayName, const std::string &QualifiedName,
            const std::string &OriginalSignature, std::string &&Comment,
            const std::optional<ts::Point> &Point, std::string &&USR,
-           std::string &&Body, size_t BeforeFirstChildEOL,
-           const std::string &Key, const std::string &Attrs,
-           const std::string &Base, bool IsSynthetic = false)
+           std::string &&Body, int BeforeFirstChildEOL, const std::string &Key,
+           const std::string &Attrs, const std::string &Base,
+           bool IsSynthetic = false)
       : CompositeNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                       OriginalSignature, std::move(Comment), Point,
                       std::move(USR), BeforeFirstChildEOL, IsSynthetic),

@@ -23,8 +23,8 @@ public:
                const std::string &DisplayName, const std::string &QualifiedName,
                const std::string &OriginalSignature, std::string &&Comment,
                const std::optional<ts::Point> &Point, std::string &&USR,
-               size_t BeforeFirstChildEOL, TypeDeclKind Type,
-               std::string &&Attrs, bool IsFinal, std::string &&BaseClause,
+               int BeforeFirstChildEOL, TypeDeclKind Type, std::string &&Attrs,
+               bool IsFinal, std::string &&BaseClause,
                std::string &&TemplateParameterList, bool IsSynthetic = false)
       : CompositeNode(NodeId, NeedToMerge, NKind, DisplayName, QualifiedName,
                       OriginalSignature, std::move(Comment), Point,

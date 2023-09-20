@@ -57,17 +57,22 @@ int nextSiblingDistance(const Node &node, bool named /* = false */) {
   std::optional<ts::Node> next =
       named ? node.nextNamedSibling() : node.nextSibling();
   if (next.has_value()) {
-    dis = next.value().startPoint().row - node.endPoint().row - 1;
+    dis = next.value().startPoint().row - node.endPoint().row;
   }
   return dis;
 }
 
-size_t beforeFirstChildEOLs(const ts::Node &node) {
+int beforeFirstChildEOLs(const ts::Node &node) {
   auto bodyNodeOpt = node.getChildByFieldName(ts::cpp::fields::field_body.name);
   assert(bodyNodeOpt.has_value() &&
          "invariant: body node of node should exist");
   const ts::Node bodyNode = bodyNodeOpt.value();
-  return bodyNode.startPoint().row - node.endPoint().row - 1;
+  int offset = bodyNode.startPoint().row - node.endPoint().row;
+  if (bodyNode.namedChildren().size() > 0) {
+    const ts::Node firstChild = bodyNode.namedChildren()[0];
+    offset = firstChild.startPoint().row - node.endPoint().row;
+  }
+  return offset < 0 ? 0 : offset;
 }
 
 std::pair<bool, std::vector<std::string>> getHeaderGuard(
@@ -91,12 +96,18 @@ std::pair<bool, std::vector<std::string>> getHeaderGuard(
     }
     const ts::Node defineNode = HeaderGuardNode.namedChildren()[1];
     if (defineNode.type() == ts::cpp::symbols::sym_preproc_def.name) {
-      TURoot = HeaderGuardNode;  // 更改TURoot为ifdef block
-      BeforeBodyChildCnt = 2;    // first two is identifier and define
+      TURoot = HeaderGuardNode;    // 更改TURoot为ifdef block
+      BeforeBodyChildCnt = 2 + 1;  // first two is identifier and define
       size_t first_newline = HeaderGuardNode.text().find('\n');
       std::string ifndefText = HeaderGuardNode.text().substr(0, first_newline);
       std::string endifText = HeaderGuardNode.text().substr(
           HeaderGuardNode.text().rfind('\n') + 1, std::string::npos);
+      if (HeaderGuardNode.nextSibling()) {
+        const ts::Node nextSibling = HeaderGuardNode.nextSibling().value();
+        if (nextSibling.type() == ts::cpp::symbols::sym_comment.name) {
+          endifText += nextSibling.text();
+        }
+      }
       return {true, {ifndefText, defineNode.text(), endifText}};
     }
   }
@@ -177,12 +188,13 @@ std::pair<bool, std::string> getComment(const Node &commentNode,
   }
 }
 
-size_t getFollowingEOLs(const Node &node) {
-  std::optional<ts::Node> nextSiblingOpt = node.nextSibling();
+int getFollowingEOLs(const Node &node) {
+  std::optional<ts::Node> nextSiblingOpt = node.nextNamedSibling();
   if (!nextSiblingOpt.has_value()) {
     return 0;
   }
-  return nextSiblingOpt.value().startPoint().row - node.endPoint().row - 1;
+  int offset = nextSiblingOpt.value().startPoint().row - node.endPoint().row;
+  return offset < 0 ? 0 : offset;
 }
 
 ClassInfo extractClassInfo(const std::string &code) {

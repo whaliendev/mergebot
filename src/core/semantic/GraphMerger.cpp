@@ -224,7 +224,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
     }
   } else {
     // base node exists, any one side doesn't exist, delete it
-    BaseNode.reset();
+    BaseNode = nullptr;
   }
 }
 
@@ -260,6 +260,7 @@ void GraphMerger::threeWayMergeChildren(
             TheirMatching.OneOneMatching.left.end()) {
       Fences.emplace_back(i);
       mergeSemanticNode(BaseChild);
+      //      spdlog::info("BaseChild deleted: {}", BaseChild.get() == nullptr);
     }
   }
 

@@ -276,7 +276,6 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
       if (details::IsTextualNode(ChildType)) {
         std::shared_ptr<SemanticNode> TextualPtr =
             parseTextualNode(Child, IsConflicting, SRoot->hashSignature());
-        TextualPtr->FollowingEOL = ts::getFollowingEOLs(Child);
         insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
       } else if (ChildType == symbols::sym_comment.name) {
         size_t CommentCnt = 0;
@@ -295,7 +294,6 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
       } else if (ChildType == symbols::sym_field_declaration.name) {
         std::shared_ptr<SemanticNode> FieldDeclPtr = parseFieldDeclarationNode(
             Child, IsConflicting, SRoot->hashSignature(), FilePath);
-        FieldDeclPtr->FollowingEOL = ts::getFollowingEOLs(Child);
         insertToGraphAndParent(SRoot, SRootVDesc, FieldDeclPtr);
       } else if (ChildType == symbols::sym_function_definition.name) {
         const std::optional<ts::Node> TypeOpt =
@@ -380,7 +378,6 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
           } else {
             std::shared_ptr<TextualNode> TextualPtr =
                 parseTextualNode(Child, IsConflicting, SRoot->hashSignature());
-            TextualPtr->FollowingEOL = ts::getFollowingEOLs(Child);
             insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
           }
         } else if (Kind == CLASS_TEMPLATE) {
@@ -401,7 +398,6 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
           } else {
             std::shared_ptr<TextualNode> TextualPtr =
                 parseTextualNode(Child, IsConflicting, SRoot->hashSignature());
-            TextualPtr->FollowingEOL = ts::getFollowingEOLs(Child);
             insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
           }
         } else {
@@ -532,11 +528,15 @@ std::shared_ptr<TranslationUnitNode> GraphBuilder::parseTranslationUnit(
 
   auto [FrontDecls, LastRow] = ts::getFrontDecls(TURoot, FrontDeclCnt);
 
-  size_t BeforeFirstChildEOL = 1;
-  if (FrontDecls.size() && FrontDeclCnt < TURoot.childrenCount()) {
-    BeforeFirstChildEOL =
-        TURoot.children[FrontDeclCnt].startPoint().row - LastRow - 1;
-  }
+  int BeforeFirstChildEOL = 1;
+  //  int BeforeFirstChildEOL = 1;
+  //  if (FrontDecls.size() && FrontDeclCnt < TURoot.childrenCount()) {
+  //    BeforeFirstChildEOL =
+  //        TURoot.children[FrontDeclCnt].startPoint().row - LastRow;
+  //    if (BeforeFirstChildEOL < 0) {
+  //      BeforeFirstChildEOL = 0;
+  //    }
+  //  }
 
   return std::make_shared<TranslationUnitNode>(
       NodeCount++, IsConflicting, NodeKind::TRANSLATION_UNIT, Path,
@@ -583,7 +583,7 @@ GraphBuilder::parseNamespaceNode(const ts::Node &Node, bool IsConflicting,
   }
 
   std::string Comment = getNodeComment(Node);
-  size_t BeforeFirstChildEOL = ts::beforeFirstChildEOLs(Node);
+  int BeforeFirstChildEOL = ts::beforeFirstChildEOLs(Node);
 
   std::string NSComment;
   if (Node.nextSibling().has_value() &&
@@ -606,6 +606,18 @@ std::shared_ptr<TextualNode>
 GraphBuilder::parseTextualNode(const ts::Node &Node, bool IsConflicting,
                                size_t ParentSignatureHash) {
   std::string TextContent = Node.text();
+  if (Node.type() == ts::cpp::symbols::sym_enumerator.name) {
+    if (Node.nextSibling().has_value()) {
+      ts::Node nextSibling = Node.nextSibling().value();
+      if (nextSibling.text().find(",") != std::string::npos) {
+        TextContent += ",";
+      }
+    }
+  }
+  if (details::IsClassSpecifier(Node.type()) ||
+      Node.type() == ts::cpp::symbols::sym_enum_specifier.name) {
+    TextContent += ";";
+  }
   return std::make_shared<TextualNode>(
       NodeCount++, IsConflicting, NodeKind::TEXTUAL, TextContent, TextContent,
       TextContent, ts::getNodeComment(Node), Node.startPoint(), "",
@@ -672,8 +684,9 @@ GraphBuilder::parseLinkageSpecNode(const ts::Node &Node, bool IsConflicting,
                                    size_t ParentSignatureHash) {
   return std::make_shared<LinkageSpecNode>(
       NodeCount++, IsConflicting, NodeKind::LINKAGE_SPEC_LIST,
-      "extern \"C\" {}", "", "", ts::getNodeComment(Node), Node.startPoint(),
-      "", ts::beforeFirstChildEOLs(Node), ParentSignatureHash);
+      "extern \"C\" {}", "", "extern \"C\" ", ts::getNodeComment(Node),
+      Node.startPoint(), "", ts::beforeFirstChildEOLs(Node),
+      ParentSignatureHash);
 }
 
 std::shared_ptr<EnumNode>

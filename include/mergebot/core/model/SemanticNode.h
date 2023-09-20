@@ -92,7 +92,7 @@ public:
   NodeContext Context;
 
   /// for preserving original format
-  int FollowingEOL = 1;
+  int FollowingEOL = 0;
 
   AccessSpecifierKind AccessSpecifier = AccessSpecifierKind::None;
 

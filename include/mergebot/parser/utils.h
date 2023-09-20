@@ -20,7 +20,7 @@ std::pair<size_t, std::string> getTranslationUnitComment(const ts::Node &root);
 
 std::string getNodeComment(const ts::Node &node);
 
-size_t beforeFirstChildEOLs(const ts::Node &node);
+int beforeFirstChildEOLs(const ts::Node &node);
 
 int nextSiblingDistance(const ts::Node &node, bool named = false);
 
@@ -40,7 +40,7 @@ std::pair<bool, std::string> getComment(const ts::Node &commentNode,
 
 bool isTypeDecl(const ts::Node &node);
 
-size_t getFollowingEOLs(const ts::Node &node);
+int getFollowingEOLs(const ts::Node &node);
 
 struct ClassInfo {
   std::string OriginalSignature;
