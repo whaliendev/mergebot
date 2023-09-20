@@ -281,12 +281,12 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
         size_t CommentCnt = 0;
         auto [Orphan, Comment] = ts::getComment(Child, CommentCnt);
         if (Orphan) {
+          // FollowingEOL to 1: fix for inline comment
           std::shared_ptr<SemanticNode> OrphanCommentPtr =
               std::make_shared<OrphanCommentNode>(
                   NodeCount++, IsConflicting, NodeKind::ORPHAN_COMMENT, Comment,
                   Comment, Comment, "", Child.startPoint(), "",
-                  std::string(Comment), SRoot->hashSignature(),
-                  ts::getFollowingEOLs(Child));
+                  std::string(Comment), SRoot->hashSignature(), 1);
           insertToGraphAndParent(SRoot, SRootVDesc, OrphanCommentPtr);
           Idx +=
               CommentCnt - 1; // -1 as the loop end will auto increment Idx by 1

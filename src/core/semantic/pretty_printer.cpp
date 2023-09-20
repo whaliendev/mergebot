@@ -21,9 +21,9 @@ std::string printFuncDefNodeSignature(const FuncDefNode *func) {
   if (TemplateParameterList.size() >= 10) {
     ss << TemplateParameterList << "\n";
   } else {
-    ss << TemplateParameterList.size() ? TemplateParameterList + " " : "";
+    ss << (TemplateParameterList.size() ? TemplateParameterList + " " : "");
   }
-  ss << func->Attrs << func->BeforeFuncName;
+  ss << func->Attrs << func->BeforeFuncName << func->DisplayName;
   ss << fmt::format("({})", fmt::join(func->ParameterList.begin(),
                                       func->ParameterList.end(), ", "));
   ss << func->AfterParameterList;
@@ -36,9 +36,9 @@ std::string printFuncOperatorCastSignature(const FuncOperatorCastNode *func) {
   if (TemplateParameterList.size() >= 10) {
     ss << TemplateParameterList << "\n";
   } else {
-    ss << TemplateParameterList.size() ? TemplateParameterList + " " : "";
+    ss << (TemplateParameterList.size() ? TemplateParameterList + " " : "");
   }
-  ss << func->Attrs << func->BeforeFuncName;
+  ss << func->Attrs << func->BeforeFuncName << func->DisplayName;
   ss << fmt::format("({})", fmt::join(func->ParameterList.begin(),
                                       func->ParameterList.end(), ", "));
   ss << func->AfterParameterList;
@@ -51,9 +51,9 @@ std::string printFuncSpecialMemberSignature(const FuncSpecialMemberNode *func) {
   if (TemplateParameterList.size() >= 10) {
     ss << TemplateParameterList << "\n";
   } else {
-    ss << TemplateParameterList.size() ? TemplateParameterList + " " : "";
+    ss << (TemplateParameterList.size() ? TemplateParameterList + " " : "");
   }
-  ss << func->Attrs << func->BeforeFuncName;
+  ss << func->Attrs << func->BeforeFuncName << func->DisplayName;
   ss << fmt::format("({})", fmt::join(func->ParameterList.begin(),
                                       func->ParameterList.end(), ", "));
   if (func->InitList.size()) {
@@ -106,7 +106,7 @@ std::string prettyPrintNode(const std::shared_ptr<SemanticNode> &Node) {
     auto CompositePtr = llvm::cast<CompositeNode>(Node.get());
     if (!llvm::isa<TranslationUnitNode>(Node.get())) {
       ss << Node->Comment;
-      ss << Node->OriginalSignature << "{\n";
+      ss << Node->OriginalSignature << "{";
       for (int i = 0; i < CompositePtr->BeforeFirstChildEOL; ++i) {
         ss << "\n";
       }

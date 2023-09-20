@@ -33,15 +33,25 @@ std::pair<size_t, std::string> getTranslationUnitComment(const ts::Node &root) {
 std::string getNodeComment(const Node &node) {
   std::stringstream comment;
   std::optional<ts::Node> previous = node.prevSibling();
-  if (!previous.has_value() || !previous.value().isNamed() ||
+  if (!previous.has_value() ||
       previous.value().type() != ts::cpp::symbols::sym_comment.name) {
     return "";
   }
+  ts::Node mostPreviousComment = node;
   std::vector<std::string> previousComments;
-  while (previous.has_value() && previous.value().isNamed() &&
+  while (previous.has_value() &&
          previous.value().type() == ts::cpp::symbols::sym_comment.name) {
-    previousComments.push_back(previous.value().text());
+    mostPreviousComment = previous.value();
+    previousComments.push_back(mostPreviousComment.text());
     previous = previous.value().prevSibling();
+  }
+
+  // fix for inline comment
+  if (previous.has_value()) {
+    if (mostPreviousComment.startPoint().row ==
+        previous.value().endPoint().row) {
+      return "";
+    }
   }
 
   for (auto it = previousComments.rbegin(); it != previousComments.rend();
@@ -70,7 +80,8 @@ int beforeFirstChildEOLs(const ts::Node &node) {
   int offset = bodyNode.startPoint().row - node.endPoint().row;
   if (bodyNode.namedChildren().size() > 0) {
     const ts::Node firstChild = bodyNode.namedChildren()[0];
-    offset = firstChild.startPoint().row - node.endPoint().row;
+    // as node.endPoint exceeds firstChild.startPoint
+    offset = firstChild.startPoint().row - node.startPoint().row;
   }
   return offset < 0 ? 0 : offset;
 }
@@ -168,6 +179,18 @@ std::pair<bool, std::string> getComment(const Node &commentNode,
                                         size_t &commentCnt) {
   assert(commentNode.type() == ts::cpp::symbols::sym_comment.name &&
          "invariant: node should be a comment");
+  bool orphan = false;
+  std::optional<ts::Node> prevNodeOpt = commentNode.prevSibling();
+  if (prevNodeOpt.has_value()) {
+    ts::Node prevNode = prevNodeOpt.value();
+    if (prevNode.endPoint().row == commentNode.startPoint().row) {
+      // 如果comment和上一个Node在同一行，那么我们特殊处理为Orphan Comment。
+      // 因为我们对non-orphan
+      // comment的判定为在上方注释该node的comment，否则会有comment消失的bug
+      orphan = true;
+    }
+  }
+
   ts::Node prevComment = commentNode;
   ts::Node curComment = commentNode;
   std::stringstream ret;
@@ -184,7 +207,7 @@ std::pair<bool, std::string> getComment(const Node &commentNode,
   if (curComment.startPoint().row - prevComment.endPoint().row > 1) {
     return {true, ret.str()};
   } else {
-    return {false, ret.str()};
+    return {orphan, ret.str()};
   }
 }
 

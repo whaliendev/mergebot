@@ -11,7 +11,7 @@
 #include "mergebot/core/model/matcher/TranslationUnitMatcher.h"
 #include "mergebot/core/model/matcher/TypeSpecifierMatcher.h"
 
-// #define MB_DEBUG
+#define MB_DEBUG
 
 namespace mergebot::sa {
 void GraphMatcher::topDownMatch() {

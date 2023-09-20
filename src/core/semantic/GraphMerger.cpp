@@ -77,7 +77,16 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
       auto BasePtr = llvm::cast<TerminalNode>(BaseNode.get());
       auto OurPtr = llvm::cast<TerminalNode>(OurNode.get());
       auto TheirPtr = llvm::cast<TerminalNode>(TheirNode.get());
+
       if (BasePtr && OurPtr && TheirPtr) {
+        if (BasePtr->ParentSignatureHash != OurPtr->ParentSignatureHash ||
+            BasePtr->ParentSignatureHash != TheirPtr->ParentSignatureHash) {
+          BaseNode = nullptr;
+          spdlog::info("supertype extraction detected: {}",
+                       BasePtr->OriginalSignature);
+          return;
+        }
+
         BasePtr->Body = mergeText(OurPtr->Body, BasePtr->Body, TheirPtr->Body);
       }
 
@@ -225,6 +234,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
   } else {
     // base node exists, any one side doesn't exist, delete it
     BaseNode = nullptr;
+    spdlog::info("<<< miss match here");
   }
 }
 
@@ -260,19 +270,23 @@ void GraphMerger::threeWayMergeChildren(
             TheirMatching.OneOneMatching.left.end()) {
       Fences.emplace_back(i);
       mergeSemanticNode(BaseChild);
-      //      spdlog::info("BaseChild deleted: {}", BaseChild.get() == nullptr);
+      spdlog::info("BaseChild deleted: {}", BaseChild.get() == nullptr);
     }
   }
 
   // 处理 OurChildren
   for (const auto &OurChild : OurChildren) {
-    if (FenceIdx < 0) {
-      FenceIdx = FenceIdx + 1 >= 0 ? FenceIdx : -1;
-      InsertPos = Fences[FenceIdx + 1];
-    } else if (FenceIdx >= static_cast<int>(Fences.size() - 1)) {
+    if (Fences.empty()) {
       InsertPos = BaseChildren.size();
     } else {
-      InsertPos = Fences[FenceIdx + 1];
+      if (FenceIdx < 0) {
+        FenceIdx = FenceIdx + 1 >= 0 ? FenceIdx : -1;
+        InsertPos = Fences[FenceIdx + 1];
+      } else if (FenceIdx >= static_cast<int>(Fences.size() - 1)) {
+        InsertPos = BaseChildren.size();
+      } else {
+        InsertPos = Fences[FenceIdx + 1];
+      }
     }
 
     if (OurMatching.OneOneMatching.right.find(OurChild) !=
@@ -296,13 +310,17 @@ void GraphMerger::threeWayMergeChildren(
   FenceIdx = -1;
   // 处理 TheirChildren
   for (const auto &TheirChild : TheirChildren) {
-    if (FenceIdx == -1) {
-      FenceIdx = FenceIdx + 1 >= 0 ? FenceIdx : -1;
-      InsertPos = Fences[FenceIdx + 1];
-    } else if (FenceIdx >= static_cast<int>(Fences.size() - 1)) {
+    if (Fences.empty()) {
       InsertPos = BaseChildren.size();
     } else {
-      InsertPos = Fences[FenceIdx + 1];
+      if (FenceIdx == -1) {
+        FenceIdx = FenceIdx + 1 >= 0 ? FenceIdx : -1;
+        InsertPos = Fences[FenceIdx + 1];
+      } else if (FenceIdx >= static_cast<int>(Fences.size() - 1)) {
+        InsertPos = BaseChildren.size();
+      } else {
+        InsertPos = Fences[FenceIdx + 1];
+      }
     }
 
     if (TheirMatching.OneOneMatching.right.find(TheirChild) !=
