@@ -51,10 +51,12 @@ public:
     }
 
     mergebot::hash_combine(H, getKind());
-    mergebot::hash_combine(H, DefType);
-    mergebot::hash_combine(H, this->QualifiedName);
-    mergebot::hash_combine(H, VectorHash<std::string>{}(ParameterTypes));
-    mergebot::hash_combine(H, VectorHash<std::string>{}(InitList));
+    mergebot::hash_combine(H, OriginalSignature);
+    //    mergebot::hash_combine(H, getKind());
+    //    mergebot::hash_combine(H, DefType);
+    //    mergebot::hash_combine(H, this->QualifiedName);
+    //    mergebot::hash_combine(H, VectorHash<std::string>{}(ParameterTypes));
+    //    mergebot::hash_combine(H, VectorHash<std::string>{}(InitList));
     return H;
   }
 

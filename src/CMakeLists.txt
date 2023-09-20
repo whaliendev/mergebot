@@ -22,9 +22,23 @@ file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ./*.cpp ./*.hpp)
 list(FILTER SRC_FILES EXCLUDE REGEX "core/.*")
 # if llvm compiles with -fno-rtti, all dependent srcs should compile with -fno-rtti
 file(GLOB_RECURSE RTTI_DISABLED_SRCS CONFIGURE_DEPENDS ./core/*.cpp ./core/*.hpp)
+# 定义一个列表，其中包含您要查找的所有字符串
+set(EXCLUDE_STRINGS "ASTBasedHandler" "GraphMerger" "graph_export")
+
 foreach (file ${RTTI_DISABLED_SRCS})
-    string(FIND ${file} "ASTBasedHandler" position)
-    if (${position} EQUAL -1)
+    set(EXCLUDE_FILE FALSE)
+
+    # 检查文件名是否包含列表中的任何一个字符串
+    foreach (exclude_string ${EXCLUDE_STRINGS})
+        string(FIND ${file} ${exclude_string} position)
+        if (NOT ${position} EQUAL -1)
+            set(EXCLUDE_FILE TRUE)
+            break()
+        endif ()
+    endforeach ()
+
+    # 如果文件名不包含任何排除字符串，则设置编译标志
+    if (NOT ${EXCLUDE_FILE})
         set_source_files_properties(${file} PROPERTIES COMPILE_FLAGS "-fno-rtti")
     endif ()
 endforeach ()

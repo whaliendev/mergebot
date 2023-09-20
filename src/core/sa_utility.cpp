@@ -458,8 +458,13 @@ std::string getUnqualifiedName(std::string_view name) {
   return std::string(name.substr(pos + 2));
 }
 
-std::string sa::getFullQualifiedName(const std::string &QualifiedName,
-                                     const std::string &DisplayName) {
+std::string getFullQualifiedName(const std::string &QualifiedName,
+                                 const std::string &DisplayName,
+                                 NodeKind Kind) {
+  if (Kind == NodeKind::TRANSLATION_UNIT || Kind == NodeKind::LINKAGE_SPEC_LIST)
+    return QualifiedName + DisplayName;
+  if (Kind == NodeKind::ORPHAN_COMMENT || Kind == NodeKind::TEXTUAL)
+    return QualifiedName;
   if (QualifiedName.empty())
     return DisplayName;
   if (util::ends_with(QualifiedName, "::"))

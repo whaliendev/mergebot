@@ -24,13 +24,6 @@ public:
 
   size_t ParentSignatureHash;
 
-  size_t hashSignature() const override {
-    size_t H = 1;
-    mergebot::hash_combine(H, this->ParentSignatureHash);
-    mergebot::hash_combine(H, this->Body);
-    return H;
-  }
-
   static bool classof(const SemanticNode *N) {
     return N->getKind() == NodeKind::TEXTUAL;
   }

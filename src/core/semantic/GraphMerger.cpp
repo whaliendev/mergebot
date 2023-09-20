@@ -11,6 +11,7 @@
 #include "mergebot/core/model/node/TextualNode.h"
 #include "mergebot/core/model/node/TranslationUnitNode.h"
 #include "mergebot/core/semantic/GraphMatcher.h"
+#include "mergebot/core/semantic/graph_export.h"
 #include "mergebot/core/semantic/pretty_printer.h"
 #include "mergebot/utils/gitservice.h"
 #include <oneapi/tbb/parallel_invoke.h>
@@ -57,6 +58,13 @@ void GraphMerger::threeWayMerge() {
       PrettyPrintTU(BaseNodePtr, MergedDir);
     }
   }
+  // meaning less, as the graph info is fixed
+  //  ExportGraphToDot(BaseGraph,
+  //                   fs::path(Meta.MSCacheDir) / "graphs" / "merged.dot",
+  //                   false);
+  //  spdlog::info("Merged Graph info:\nvertices: {}\nedges: {}",
+  //               boost::num_vertices(BaseGraph), boost::num_edges(BaseGraph));
+  spdlog::info("merge completed. ");
 }
 
 void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
@@ -318,20 +326,21 @@ void GraphMerger::threeWayMergeChildren(
   BaseChildren.erase(std::remove_if(BaseChildren.begin(), BaseChildren.end(),
                                     [](const auto &Node) { return !Node; }),
                      BaseChildren.end());
+  // TODO(hwa): what if two nodes are from different side however are the same?
   // remove duplicate elements appear in our and their graph,
   // while not appear before in the base graph
-  std::unordered_set<std::string> Seen;
-  size_t i = 0;
-  while (i < BaseChildren.size()) {
-    auto &Node = BaseChildren[i];
-    if (Seen.find(Node->QualifiedName) != Seen.end()) {
-      std::swap(BaseChildren[i], BaseChildren[BaseChildren.size() - 1]);
-      BaseChildren.pop_back();
-    } else {
-      Seen.insert(Node->QualifiedName);
-      ++i;
-    }
-  }
+  //  std::unordered_set<std::string> Seen;
+  //  size_t i = 0;
+  //  while (i < BaseChildren.size()) {
+  //    auto &Node = BaseChildren[i];
+  //    if (Seen.find(Node->QualifiedName) != Seen.end()) {
+  //      std::swap(BaseChildren[i], BaseChildren[BaseChildren.size() - 1]);
+  //      BaseChildren.pop_back();
+  //    } else {
+  //      Seen.insert(Node->QualifiedName);
+  //      ++i;
+  //    }
+  //  }
 }
 
 std::vector<std::string>
@@ -387,10 +396,11 @@ std::vector<std::string> GraphMerger::mergeListTextually(
   std::string TheirString = util::string_join(TheirList, "\n");
   std::string MergedString = mergeText(OurString, BaseString, TheirString);
   std::vector<std::string> out;
-  std::transform(util::string_split(MergedString, "\n").begin(),
-                 util::string_split(MergedString, "\n").end(),
-                 std::back_inserter(out),
-                 [](const std::string_view &sv) { return std::string(sv); });
+  std::vector<std::string_view> Splitted =
+      util::string_split(MergedString, "\n");
+  for (const auto sv : Splitted) {
+    out.emplace_back(std::string(sv));
+  }
   return out;
 }
 

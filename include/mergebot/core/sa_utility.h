@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "mergebot/core/model/ConflictFile.h"
+#include "mergebot/core/model/enum/NodeKind.h"
 #include "mergebot/server/vo/ResolutionResultVO.h"
 
 namespace mergebot {
@@ -120,7 +121,7 @@ std::string trim(std::string const &code);
 std::string getUnqualifiedName(std::string_view name);
 
 std::string getFullQualifiedName(const std::string &QualifiedName,
-                                 const std::string &DisplayName);
+                                 const std::string &DisplayName, NodeKind Kind);
 } // namespace sa
 } // namespace mergebot
 

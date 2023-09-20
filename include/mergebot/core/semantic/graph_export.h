@@ -94,24 +94,10 @@ struct SemanticEdgeWriter {
 };
 
 bool ExportGraphToDot(const GraphBuilder::SemanticGraph &g,
-                      const std::string &filename, bool showSynthetic = true) {
-  std::ofstream destStream;
-  destStream.open(filename, std::ios::out | std::ios::trunc);
-  if (!destStream.is_open()) {
-    return false;
-  }
-  boost::write_graphviz(destStream, g, SemanticNodeWriter(g, showSynthetic),
-                        SemanticEdgeWriter(g, showSynthetic));
-  destStream.close();
-  return true;
-}
+                      const std::string &filename, bool showSynthetic = true);
 
 bool ExportGraphToStdOut(const GraphBuilder::SemanticGraph &g,
-                         bool showSynthetic = true) {
-  boost::write_graphviz(std::cout, g, SemanticNodeWriter(g, showSynthetic),
-                        SemanticEdgeWriter(g, showSynthetic));
-  return true;
-}
+                         bool showSynthetic = true);
 
 } // namespace mergebot::sa
 
