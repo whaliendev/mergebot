@@ -113,7 +113,7 @@ std::string prettyPrintNode(const std::shared_ptr<SemanticNode> &Node) {
       for (const auto &Child : Node->Children) {
         ss << prettyPrintNode(Child);
       }
-      ss << "\n}";
+      ss << "}";
 
       if (auto NamespacePtr = llvm::dyn_cast<NamespaceNode>(Node.get())) {
         ss << " " + NamespacePtr->NSComment;
@@ -167,6 +167,7 @@ std::string PrettyPrintTU(const std::shared_ptr<SemanticNode> &TUNode,
   ss << details::prettyPrintNode(TUNode);
 
   if (TURawPtr->IsHeader && TURawPtr->TraditionGuard) {
+    assert(TURawPtr->HeaderGuard.size() >= 3);
     ss << TURawPtr->HeaderGuard[2];
   }
   util::file_overwrite_content(DestFile, ss.str());
