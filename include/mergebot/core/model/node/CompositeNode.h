@@ -23,15 +23,15 @@ public:
 
   size_t hashSignature() const override {
     size_t H = 1;
-    //    if (!this->USR.empty()) { // USR is the most important
-    //      mergebot::hash_combine(H, this->USR);
-    //      return H;
-    //    }
+    mergebot::hash_combine(H, getKind());
+    if (!this->USR.empty()) { // USR is the most important
+      mergebot::hash_combine(H, this->USR);
+      return H;
+    }
     // visibility change is a refactoring, we intentionally don't count it
     //    if (AccessSpecifier != AccessSpecifierKind::None) {
     //
     //    }
-    mergebot::hash_combine(H, this->Kind);
     mergebot::hash_combine(H, this->QualifiedName);
     return H;
   }
