@@ -57,8 +57,8 @@ struct EnumMatcher {
 private:
   bool isMatched(const EnumNode *BaseNode, const EnumNode *RevisionNode) {
     double NameSim = 0, BaseSim = 0, BodySim = 0;
-    NameSim = util::string_cosine(BaseNode->QualifiedName,
-                                  RevisionNode->QualifiedName);
+    NameSim = util::string_levenshtein(BaseNode->QualifiedName,
+                                       RevisionNode->QualifiedName);
     if (NameSim < 0) {
       NameSim = 0;
     }

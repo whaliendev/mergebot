@@ -59,7 +59,7 @@ struct FuncDefMatcher {
         auto [Edge, Ok] = boost::edge(i, mate[i], FDGraph);
         if (Ok) {
           auto Weight = get(boost::edge_weight, FDGraph, Edge);
-          if (Weight < HIGH_SIMI) {
+          if (Weight < MIN_SIMI) {
             continue;
           }
 
@@ -120,8 +120,8 @@ private:
   double calcSimilarity(const FuncDefNode *BaseNode,
                         const FuncDefNode *RevisionNode) {
     double SimAvg = 0;
-    double NameSim = util::string_cosine(BaseNode->QualifiedName,
-                                         RevisionNode->QualifiedName);
+    double NameSim = util::string_levenshtein(BaseNode->QualifiedName,
+                                              RevisionNode->QualifiedName);
     // for terminal node, if body similarity is too low, unnecessary to match
     if (NameSim < MIN_SIMI) {
       return 0;

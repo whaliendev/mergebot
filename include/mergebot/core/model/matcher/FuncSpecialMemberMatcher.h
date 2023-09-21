@@ -59,7 +59,7 @@ struct FuncSpecialMemberMatcher {
         auto [Edge, Ok] = boost::edge(i, mate[i], FSGraph);
         if (Ok) {
           auto Weight = get(boost::edge_weight, FSGraph, Edge);
-          if (Weight < HIGH_SIMI) {
+          if (Weight < MIN_SIMI) {
             continue;
           }
 
@@ -119,8 +119,8 @@ private:
   double calcSimilarity(const FuncSpecialMemberNode *BaseNode,
                         const FuncSpecialMemberNode *RevisionNode) {
     double SimAvg = 0;
-    double NameSim = util::string_cosine(BaseNode->QualifiedName,
-                                         RevisionNode->QualifiedName);
+    double NameSim = util::string_levenshtein(BaseNode->QualifiedName,
+                                              RevisionNode->QualifiedName);
     // for terminal node, if body similarity is too low, unnecessary to match
     if (NameSim < MIN_SIMI) {
       return 0;

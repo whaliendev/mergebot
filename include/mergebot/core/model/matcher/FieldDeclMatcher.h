@@ -58,7 +58,7 @@ struct FieldDeclMatcher {
         auto [Edge, Ok] = boost::edge(i, mate[i], FDGraph);
         if (Ok) {
           auto Weight = get(boost::edge_weight, FDGraph, Edge);
-          if (Weight < HIGH_SIMI) {
+          if (Weight < MIN_SIMI) {
             continue;
           }
 

@@ -59,7 +59,7 @@ struct TypeSpecifierMatcher {
         auto [Edge, Ok] = boost::edge(i, mate[i], TDGraph);
         if (Ok) {
           auto Weight = get(boost::edge_weight, TDGraph, Edge);
-          if (Weight < HIGH_SIMI) {
+          if (Weight < MIN_SIMI) {
             continue;
           }
 
@@ -147,7 +147,13 @@ private:
       }
     }
 
-    return IndicatorNum ? SimSum / IndicatorNum : 0;
+    double NameSim = util::string_levenshtein(BaseNode->OriginalSignature,
+                                              RevisionNode->OriginalSignature);
+    if (NameSim < 0) {
+      NameSim = 0;
+    }
+
+    return IndicatorNum ? (SimSum / IndicatorNum + NameSim) / 2 : 0;
   }
 };
 } // namespace mergebot::sa
