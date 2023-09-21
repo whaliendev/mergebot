@@ -46,12 +46,10 @@ public:
 
     // visibility change is a refactoring, we intentionally don't count it
     mergebot::hash_combine(H, QualifiedName);
-    //    mergebot::hash_combine(H, getKind());
-    //    mergebot::hash_combine(H, this->QualifiedName);
-    //    std::string TmpStr = AfterParameterList;
-    //    TmpStr.erase(std::remove_if(TmpStr.begin(), TmpStr.end(), ::isspace),
-    //                 TmpStr.end());
-    //    mergebot::hash_combine(H, TmpStr);
+    std::string TmpStr = AfterParameterList;
+    TmpStr.erase(std::remove_if(TmpStr.begin(), TmpStr.end(), ::isspace),
+                 TmpStr.end());
+    mergebot::hash_combine(H, TmpStr);
     return H;
   }
 

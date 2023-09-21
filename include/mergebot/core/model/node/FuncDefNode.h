@@ -46,11 +46,11 @@ public:
     mergebot::hash_combine(H, QualifiedName);
     //    mergebot::hash_combine(H, getKind());
     //    mergebot::hash_combine(H, this->QualifiedName);
-    //    mergebot::hash_combine(H, VectorHash<std::string>{}(ParameterTypes));
-    //    std::string TmpStr = AfterParameterList;
-    //    TmpStr.erase(std::remove_if(TmpStr.begin(), TmpStr.end(), ::isspace),
-    //                 TmpStr.end());
-    //    mergebot::hash_combine(H, TmpStr);
+    mergebot::hash_combine(H, VectorHash<std::string>{}(ParameterTypes));
+    std::string TmpStr = AfterParameterList;
+    TmpStr.erase(std::remove_if(TmpStr.begin(), TmpStr.end(), ::isspace),
+                 TmpStr.end());
+    mergebot::hash_combine(H, TmpStr);
     return H;
   }
 
