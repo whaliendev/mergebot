@@ -526,7 +526,10 @@ std::string git_merge_textual(const std::string &ours, const std::string &base,
   opts.ancestor_label = base_label.c_str();
   opts.our_label = our_label.c_str();
   opts.their_label = their_label.c_str();
-  opts.flags = GIT_MERGE_FILE_STYLE_DIFF3 | GIT_MERGE_FILE_IGNORE_WHITESPACE;
+  opts.flags = GIT_MERGE_FILE_STYLE_DIFF3 | GIT_MERGE_FILE_IGNORE_WHITESPACE |
+               GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE |
+               GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL |
+               GIT_MERGE_FILE_DIFF_PATIENCE;
 
   git_merge_file_result result;
   int error =
