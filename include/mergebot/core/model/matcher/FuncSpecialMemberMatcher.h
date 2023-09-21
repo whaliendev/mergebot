@@ -59,7 +59,7 @@ struct FuncSpecialMemberMatcher {
         auto [Edge, Ok] = boost::edge(i, mate[i], FSGraph);
         if (Ok) {
           auto Weight = get(boost::edge_weight, FSGraph, Edge);
-          if (Weight < MIN_SIMI) {
+          if (Weight < HIGH_SIMI) {
             continue;
           }
 
@@ -180,8 +180,8 @@ private:
     // CONTAINS
     if (auto BaseParentPtr = BaseNode->Parent.lock()) {
       if (auto RevParentPtr = RevisionNode->Parent.lock()) {
-        double SimName = util::string_cosine(BaseParentPtr->QualifiedName,
-                                             RevParentPtr->QualifiedName);
+        double SimName = util::string_levenshtein(BaseParentPtr->QualifiedName,
+                                                  RevParentPtr->QualifiedName);
         if (SimName < 0) {
           SimName = 0;
         }

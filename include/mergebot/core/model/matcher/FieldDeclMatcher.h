@@ -58,7 +58,7 @@ struct FieldDeclMatcher {
         auto [Edge, Ok] = boost::edge(i, mate[i], FDGraph);
         if (Ok) {
           auto Weight = get(boost::edge_weight, FDGraph, Edge);
-          if (Weight < MIN_SIMI) {
+          if (Weight < HIGH_SIMI) {
             continue;
           }
 
@@ -122,9 +122,9 @@ private:
 
     if (auto BaseParentPtr = BaseNode->Parent.lock()) {
       if (auto RevParentPtr = RevisionNode->Parent.lock()) {
-        double SimName = util::string_cosine(BaseParentPtr->QualifiedName,
-                                             RevParentPtr->QualifiedName) *
-                         0.2;
+        double SimName = util::string_levenshtein(BaseParentPtr->QualifiedName,
+                                                  RevParentPtr->QualifiedName) *
+                         0.3;
         if (SimName < 0) {
           SimName = 0;
         }
@@ -135,8 +135,8 @@ private:
     if (!BaseNode->Declarator.empty() && !RevisionNode->Declarator.empty()) {
       double SimDeclarator =
           util::string_cosine(BaseNode->Declarator, RevisionNode->Declarator) *
-          0.6;
-      if (SimDeclarator < MIN_SIMI * 0.6) {
+          0.2;
+      if (SimDeclarator < MIN_SIMI * 0.2) {
         return 0;
       }
       SimAvg += SimDeclarator;
@@ -145,7 +145,7 @@ private:
     auto BaseRefs = BaseNode->References;
     auto RevisionRefs = RevisionNode->References;
     if (available(BaseRefs, RevisionRefs)) {
-      double SimRef = util::dice(BaseRefs, RevisionRefs) * 0.1;
+      double SimRef = util::dice(BaseRefs, RevisionRefs) * 0.2;
       if (SimRef < 0) {
         SimRef = 0;
       }
@@ -155,7 +155,7 @@ private:
     auto BaseNeighbors = BaseNode->getNearestNeighborNames();
     auto RevisionNeighbors = RevisionNode->getNearestNeighborNames();
     if (available(BaseNeighbors, RevisionNeighbors)) {
-      double SimNeighbors = util::dice(BaseNeighbors, RevisionNeighbors) * 0.1;
+      double SimNeighbors = util::dice(BaseNeighbors, RevisionNeighbors) * 0.3;
       if (SimNeighbors < 0) {
         SimNeighbors = 0;
       }

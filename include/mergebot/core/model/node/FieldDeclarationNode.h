@@ -25,10 +25,15 @@ public:
 
   size_t hashSignature() const override {
     size_t H = 1;
+    //    if (!USR.empty()) {
+    //      mergebot::hash_combine(H, this->USR);
+    //      return H;
+    //    }
+
     //    mergebot::hash_combine(H, this->ParentSignatureHash);
     //    mergebot::hash_combine(H, this->Body);
     mergebot::hash_combine(H, getKind());
-    mergebot::hash_combine(H, this->OriginalSignature);
+    mergebot::hash_combine(H, this->QualifiedName);
     return H;
   }
 

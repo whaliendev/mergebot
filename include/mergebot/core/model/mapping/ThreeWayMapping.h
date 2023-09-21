@@ -10,9 +10,9 @@
 #include "mergebot/core/model/SemanticNode.h"
 namespace mergebot::sa {
 struct ThreeWayMapping {
-  ThreeWayMapping(std::shared_ptr<SemanticNode> OurNode,
-                  std::shared_ptr<SemanticNode> BaseNode,
-                  std::shared_ptr<SemanticNode> TheirNode)
+  ThreeWayMapping(std::optional<std::shared_ptr<SemanticNode>> OurNode,
+                  std::optional<std::shared_ptr<SemanticNode>> BaseNode,
+                  std::optional<std::shared_ptr<SemanticNode>> TheirNode)
       : OurNode(OurNode), BaseNode(BaseNode), TheirNode(TheirNode) {}
 
   std::optional<std::shared_ptr<SemanticNode>> OurNode;
@@ -20,11 +20,24 @@ struct ThreeWayMapping {
   std::optional<std::shared_ptr<SemanticNode>> TheirNode;
 
   std::string toString() const {
-    return fmt::format(
-        "ThreeWayMapping(OurNode={}, BaseNode={}, TheirNode={})",
-        OurNode.has_value() ? OurNode.value()->QualifiedName : " (absent)",
-        BaseNode.has_value() ? BaseNode.value()->QualifiedName : " (absent)",
-        TheirNode.has_value() ? TheirNode.value()->QualifiedName : " (absent)");
+    std::stringstream ss;
+    const std::string OurQualifiedName =
+        OurNode.has_value() ? OurNode.value()->QualifiedName : "(absent)";
+    const std::string BaseQualifiedName =
+        BaseNode.has_value() ? BaseNode.value()->QualifiedName : "(absent)";
+    const std::string TheirQualifiedName =
+        TheirNode.has_value() ? TheirNode.value()->QualifiedName : "(absent)";
+    bool NameMatching = true;
+    if (OurQualifiedName != BaseQualifiedName ||
+        BaseQualifiedName != TheirQualifiedName) {
+      NameMatching = false;
+    }
+    if (!NameMatching) {
+      ss << "^^^^^^ ";
+    }
+    ss << fmt::format("ThreeWayMapping(OurNode={}, BaseNode={}, TheirNode={})",
+                      OurQualifiedName, BaseQualifiedName, TheirQualifiedName);
+    return ss.str();
   }
 
   friend std::ostream &operator<<(std::ostream &OS, const ThreeWayMapping &M) {

@@ -59,7 +59,7 @@ struct TypeSpecifierMatcher {
         auto [Edge, Ok] = boost::edge(i, mate[i], TDGraph);
         if (Ok) {
           auto Weight = get(boost::edge_weight, TDGraph, Edge);
-          if (Weight < MIN_SIMI) {
+          if (Weight < HIGH_SIMI) {
             continue;
           }
 
@@ -137,8 +137,8 @@ private:
     if (auto BaseParentPtr = BaseNode->Parent.lock()) {
       if (auto RevParentPtr = RevisionNode->Parent.lock()) {
         IndicatorNum++;
-        double SimName = util::string_cosine(BaseParentPtr->QualifiedName,
-                                             RevParentPtr->QualifiedName);
+        double SimName = util::string_levenshtein(BaseParentPtr->QualifiedName,
+                                                  RevParentPtr->QualifiedName);
         if (SimName < 0) {
           SimName = 0;
           IndicatorNum--;

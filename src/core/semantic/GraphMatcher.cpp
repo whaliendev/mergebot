@@ -11,7 +11,7 @@
 #include "mergebot/core/model/matcher/TranslationUnitMatcher.h"
 #include "mergebot/core/model/matcher/TypeSpecifierMatcher.h"
 
-#define MB_DEBUG
+// #define MB_DEBUG
 
 namespace mergebot::sa {
 void GraphMatcher::topDownMatch() {
@@ -134,6 +134,7 @@ void GraphMatcher::bottomUpMatch() {
 
 TwoWayMatching GraphMatcher::match() {
   topDownMatch();
+  spdlog::info("top-down match done for side {}", magic_enum::enum_name(S));
 #ifdef MB_DEBUG
   spdlog::debug("one one matching size: {}", Matching.OneOneMatching.size());
   for (auto &[BaseNode, RevisionNode] : Matching.OneOneMatching) {
@@ -143,6 +144,7 @@ TwoWayMatching GraphMatcher::match() {
   }
 #endif
   bottomUpMatch();
+  spdlog::info("bottom-up match done for side {}", magic_enum::enum_name(S));
 #ifdef MB_DEBUG
   auto format_unmatched_map =
       [](const std::unordered_map<

@@ -38,14 +38,14 @@ public:
 
   size_t hashSignature() const override {
     size_t H = 1;
-    if (!USR.empty()) {
-      mergebot::hash_combine(H, USR);
-      return H;
-    }
+    //    if (!USR.empty()) {
+    //      mergebot::hash_combine(H, USR);
+    //      return H;
+    //    }
 
     // visibility change is a refactoring, we intentionally don't count it
     mergebot::hash_combine(H, getKind());
-    mergebot::hash_combine(H, OriginalSignature);
+    mergebot::hash_combine(H, QualifiedName);
     //    mergebot::hash_combine(H, getKind());
     //    mergebot::hash_combine(H, this->QualifiedName);
     //    std::string TmpStr = AfterParameterList;

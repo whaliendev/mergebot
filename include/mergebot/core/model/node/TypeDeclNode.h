@@ -39,9 +39,14 @@ public:
 
   size_t hashSignature() const override {
     size_t H = 1;
+    //    if (!USR.empty()) {
+    //      mergebot::hash_combine(H, USR);
+    //      return H;
+    //    }
+
     mergebot::hash_combine(H, getKind());
     //    mergebot::hash_combine(H, Kind);
-    mergebot::hash_combine(H, OriginalSignature);
+    mergebot::hash_combine(H, QualifiedName);
     //    mergebot::hash_combine(H, QualifiedName);
     //    mergebot::hash_combine(H, IsFinal);
     //    mergebot::hash_combine(H, BaseClause);

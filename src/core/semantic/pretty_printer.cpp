@@ -113,7 +113,7 @@ std::string prettyPrintNode(const std::shared_ptr<SemanticNode> &Node) {
       for (const auto &Child : Node->Children) {
         ss << prettyPrintNode(Child);
       }
-      ss << "}";
+      ss << "\n}";
 
       if (auto NamespacePtr = llvm::dyn_cast<NamespaceNode>(Node.get())) {
         ss << " " + NamespacePtr->NSComment;

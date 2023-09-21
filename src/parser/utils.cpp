@@ -151,7 +151,8 @@ std::pair<std::vector<std::string>, size_t> getFrontDecls(
       ++cnt;
     } else if (node.type() == ts::cpp::symbols::sym_comment.name) {
       size_t commentCnt = 0;
-      auto [orphan, comment] = getComment(node, commentCnt);
+      bool realOrphan = true;
+      auto [orphan, comment] = getComment(node, commentCnt, realOrphan);
       FrontDecls.emplace_back(std::move(comment));
       lastRow = node.endPoint().row;
       cnt += commentCnt;
@@ -176,7 +177,7 @@ bool isTypeDecl(const Node &node) {
 }
 
 std::pair<bool, std::string> getComment(const Node &commentNode,
-                                        size_t &commentCnt) {
+                                        size_t &commentCnt, bool &realOrphan) {
   assert(commentNode.type() == ts::cpp::symbols::sym_comment.name &&
          "invariant: node should be a comment");
   bool orphan = false;
@@ -188,6 +189,7 @@ std::pair<bool, std::string> getComment(const Node &commentNode,
       // 因为我们对non-orphan
       // comment的判定为在上方注释该node的comment，否则会有comment消失的bug
       orphan = true;
+      realOrphan = false;
     }
   }
 

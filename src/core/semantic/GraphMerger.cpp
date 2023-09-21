@@ -3,6 +3,7 @@
 //
 
 #include "mergebot/core/semantic/GraphMerger.h"
+#include "mergebot/core/model/Side.h"
 #include "mergebot/core/model/node/FieldDeclarationNode.h"
 #include "mergebot/core/model/node/FuncDefNode.h"
 #include "mergebot/core/model/node/FuncOperatorCastNode.h"
@@ -16,12 +17,14 @@
 #include "mergebot/utils/gitservice.h"
 #include <oneapi/tbb/parallel_invoke.h>
 
+#define MB_MERGER_DEBUG
+
 namespace mergebot {
 namespace sa {
 
 void GraphMerger::threeWayMatch() {
-  GraphMatcher OurMatcher(BaseGraph, OurGraph);
-  GraphMatcher TheirMatcher(BaseGraph, TheirGraph);
+  GraphMatcher OurMatcher(BaseGraph, OurGraph, Side::OURS);
+  GraphMatcher TheirMatcher(BaseGraph, TheirGraph, Side::THEIRS);
   tbb::parallel_invoke([&]() { OurMatching = OurMatcher.match(); },
                        [&]() { TheirMatching = TheirMatcher.match(); });
 
@@ -34,13 +37,33 @@ void GraphMerger::threeWayMatch() {
   }
 
   for (auto &NodePtr : NeedToMergeNodes) {
+#ifndef MB_MERGER_DEBUG
     if (llvm::isa<TranslationUnitNode>(NodePtr.get()) && NodePtr->NeedToMerge) {
-      ThreeWayMapping mapping(OurMatching.OneOneMatching.left.at(NodePtr),
-                              NodePtr,
-                              TheirMatching.OneOneMatching.left.at(NodePtr));
+#endif
+      if (llvm::isa<TranslationUnitNode>(NodePtr.get())) {
+        spdlog::info("translation unit node");
+      }
+      std::optional<std::shared_ptr<SemanticNode>> OurOpt = std::nullopt;
+      if (OurMatching.OneOneMatching.left.find(NodePtr) !=
+          OurMatching.OneOneMatching.left.end()) {
+        OurOpt = OurMatching.OneOneMatching.left.at(NodePtr);
+      }
+      std::optional<std::shared_ptr<SemanticNode>> TheirOpt = std::nullopt;
+      if (TheirMatching.OneOneMatching.left.find(NodePtr) !=
+          TheirMatching.OneOneMatching.left.end()) {
+        TheirOpt = TheirMatching.OneOneMatching.left.at(NodePtr);
+      }
+      ThreeWayMapping mapping(OurOpt, NodePtr, TheirOpt);
       Mappings.emplace_back(std::move(mapping));
+#ifndef MB_MERGER_DEBUG
     }
+#endif
   }
+
+#ifdef MB_MERGER_DEBUG
+  std::for_each(Mappings.begin(), Mappings.end(),
+                [](const auto &Mapping) { spdlog::debug(Mapping); });
+#endif
   spdlog::info("three way match done. Base graph vertices num: {}, OurMatching "
                "size: {}, TheirMatching size: {}",
                boost::num_vertices(BaseGraph),
@@ -50,28 +73,32 @@ void GraphMerger::threeWayMatch() {
 
 void GraphMerger::threeWayMerge() {
   for (const auto &Mapping : Mappings) {
-    assert(Mapping.BaseNode.has_value() &&
-           llvm::isa<TranslationUnitNode>(Mapping.BaseNode.value().get()));
-    std::shared_ptr<SemanticNode> BaseNodePtr = Mapping.BaseNode.value();
-    mergeSemanticNode(BaseNodePtr);
-    if (BaseNodePtr) {
-      PrettyPrintTU(BaseNodePtr, MergedDir);
+    assert(Mapping.BaseNode.has_value());
+#ifdef MB_MERGER_DEBUG
+    if (llvm::isa<TranslationUnitNode>(Mapping.BaseNode.value().get())) {
+#endif
+      std::shared_ptr<SemanticNode> BaseNodePtr = Mapping.BaseNode.value();
+      mergeSemanticNode(BaseNodePtr);
+      if (BaseNodePtr) {
+        PrettyPrintTU(BaseNodePtr, MergedDir);
+      }
+#ifdef MB_MERGER_DEBUG
     }
+#endif
   }
-  // meaning less, as the graph info is fixed
-  //  ExportGraphToDot(BaseGraph,
-  //                   fs::path(Meta.MSCacheDir) / "graphs" / "merged.dot",
-  //                   false);
-  //  spdlog::info("Merged Graph info:\nvertices: {}\nedges: {}",
-  //               boost::num_vertices(BaseGraph), boost::num_edges(BaseGraph));
-  spdlog::info("merge completed. ");
 }
 
 void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
-  std::shared_ptr<SemanticNode> OurNode =
-      OurMatching.OneOneMatching.left.at(BaseNode);
-  std::shared_ptr<SemanticNode> TheirNode =
-      TheirMatching.OneOneMatching.left.at(BaseNode);
+  std::shared_ptr<SemanticNode> OurNode = nullptr;
+  if (OurMatching.OneOneMatching.left.find(BaseNode) !=
+      OurMatching.OneOneMatching.left.end()) {
+    OurNode = OurMatching.OneOneMatching.left.at(BaseNode);
+  }
+  std::shared_ptr<SemanticNode> TheirNode = nullptr;
+  if (TheirMatching.OneOneMatching.left.find(BaseNode) !=
+      TheirMatching.OneOneMatching.left.end()) {
+    TheirNode = TheirMatching.OneOneMatching.left.at(BaseNode);
+  }
   if (OurNode && TheirNode) {
     if (llvm::isa<TerminalNode>(BaseNode.get())) {
       auto BasePtr = llvm::cast<TerminalNode>(BaseNode.get());
@@ -79,13 +106,13 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
       auto TheirPtr = llvm::cast<TerminalNode>(TheirNode.get());
 
       if (BasePtr && OurPtr && TheirPtr) {
-        if (BasePtr->ParentSignatureHash != OurPtr->ParentSignatureHash ||
-            BasePtr->ParentSignatureHash != TheirPtr->ParentSignatureHash) {
-          BaseNode = nullptr;
-          spdlog::info("supertype extraction detected: {}",
-                       BasePtr->OriginalSignature);
-          return;
-        }
+        //        if (BasePtr->ParentSignatureHash !=
+        //        OurPtr->ParentSignatureHash ||
+        //            BasePtr->ParentSignatureHash !=
+        //            TheirPtr->ParentSignatureHash) {
+        //          spdlog::info("BaseChild deleted: {}",
+        //          BaseNode->OriginalSignature); BaseNode = nullptr; return;
+        //        }
 
         BasePtr->Body = mergeText(OurPtr->Body, BasePtr->Body, TheirPtr->Body);
       }
@@ -233,8 +260,8 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
     }
   } else {
     // base node exists, any one side doesn't exist, delete it
+    spdlog::info("BaseChild deleted: {}", BaseNode->OriginalSignature);
     BaseNode = nullptr;
-    spdlog::info("<<< miss match here");
   }
 }
 
@@ -269,9 +296,8 @@ void GraphMerger::threeWayMergeChildren(
         TheirMatching.OneOneMatching.left.find(BaseChild) !=
             TheirMatching.OneOneMatching.left.end()) {
       Fences.emplace_back(i);
-      mergeSemanticNode(BaseChild);
-      spdlog::info("BaseChild deleted: {}", BaseChild.get() == nullptr);
     }
+    mergeSemanticNode(BaseChild);
   }
 
   // 处理 OurChildren

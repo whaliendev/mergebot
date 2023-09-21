@@ -279,14 +279,17 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
         insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
       } else if (ChildType == symbols::sym_comment.name) {
         size_t CommentCnt = 0;
-        auto [Orphan, Comment] = ts::getComment(Child, CommentCnt);
+        // fix for inline "orphan" comment
+        bool RealOrphan = true;
+        auto [Orphan, Comment] = ts::getComment(Child, CommentCnt, RealOrphan);
         if (Orphan) {
+          int FollowingEOLs = !RealOrphan ? 0 : 1;
           // FollowingEOL to 1: fix for inline comment
           std::shared_ptr<SemanticNode> OrphanCommentPtr =
               std::make_shared<OrphanCommentNode>(
                   NodeCount++, IsConflicting, NodeKind::ORPHAN_COMMENT, Comment,
                   Comment, Comment, "", Child.startPoint(), "",
-                  std::string(Comment), SRoot->hashSignature(), 1);
+                  std::string(Comment), SRoot->hashSignature(), FollowingEOLs);
           insertToGraphAndParent(SRoot, SRootVDesc, OrphanCommentPtr);
           Idx +=
               CommentCnt - 1; // -1 as the loop end will auto increment Idx by 1
@@ -639,7 +642,7 @@ std::shared_ptr<FieldDeclarationNode> GraphBuilder::parseFieldDeclarationNode(
     const std::string DeclaratorText = DeclaratorNode.text();
     int Offset = 0;
     for (auto c : DeclaratorText) {
-      if (c == '*' || c == '&' || isspace(c)) {
+      if (c == '*' || c == '&' || c == '(' || isspace(c)) {
         Offset++;
       } else {
         break;

@@ -5,6 +5,7 @@
 #ifndef MB_GRAPHMATCHER_H
 #define MB_GRAPHMATCHER_H
 
+#include "mergebot/core/model/Side.h"
 #include "mergebot/core/model/mapping/TwoWayMatching.h"
 #include "mergebot/core/semantic/GraphBuilder.h"
 namespace mergebot::sa {
@@ -14,8 +15,8 @@ class GraphMatcher {
 public:
   TwoWayMatching Matching;
 
-  GraphMatcher(SemanticGraph &BaseGraph, SemanticGraph &RevisionGraph)
-      : BaseGraph(BaseGraph), RevisionGraph(RevisionGraph) {}
+  GraphMatcher(SemanticGraph &BaseGraph, SemanticGraph &RevisionGraph, Side S)
+      : BaseGraph(BaseGraph), RevisionGraph(RevisionGraph), S(S) {}
 
   TwoWayMatching match();
 
@@ -24,6 +25,8 @@ private:
   void bottomUpMatch();
   SemanticGraph &BaseGraph;     // parent graph
   SemanticGraph &RevisionGraph; // child graph
+
+  Side S;
 };
 } // namespace mergebot::sa
 

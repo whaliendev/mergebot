@@ -36,7 +36,7 @@ std::pair<std::vector<std::string>, size_t> getFrontDecls(
     const ts::Node &TURoot, size_t &cnt);
 
 std::pair<bool, std::string> getComment(const ts::Node &commentNode,
-                                        size_t &commentCnt);
+                                        size_t &commentCnt, bool &realOrphan);
 
 bool isTypeDecl(const ts::Node &node);
 
