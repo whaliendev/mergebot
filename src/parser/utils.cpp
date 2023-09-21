@@ -214,10 +214,22 @@ std::pair<bool, std::string> getComment(const Node &commentNode,
 }
 
 int getFollowingEOLs(const Node &node) {
-  std::optional<ts::Node> nextSiblingOpt = node.nextNamedSibling();
+  std::optional<ts::Node> nextSiblingOpt = node.nextSibling();
+
+  while (nextSiblingOpt.has_value()) {
+    // 如果下一个兄弟节点是;或{，则继续查找其下一个兄弟节点
+    if (nextSiblingOpt.value().type() == ";" ||
+        nextSiblingOpt.value().type() == "{") {
+      nextSiblingOpt = nextSiblingOpt.value().nextSibling();
+    } else {
+      break;  // 不是;或{，则跳出循环
+    }
+  }
+
   if (!nextSiblingOpt.has_value()) {
     return 0;
   }
+
   int offset = nextSiblingOpt.value().startPoint().row - node.endPoint().row;
   return offset < 0 ? 0 : offset;
 }

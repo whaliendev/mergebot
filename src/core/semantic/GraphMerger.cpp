@@ -151,7 +151,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
             BaseFuncPtr->BeforeFuncName = mergeText(
                 OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
                 TheirFuncPtr->BeforeFuncName);
-            BaseFuncPtr->ParameterList = mergeListTextually(
+            BaseFuncPtr->ParameterList = mergeStrVecByUnion(
                 OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
                 TheirFuncPtr->ParameterList);
             BaseFuncPtr->AfterParameterList = mergeText(
@@ -183,11 +183,11 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
             BaseFuncPtr->BeforeFuncName = mergeText(
                 OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
                 TheirFuncPtr->BeforeFuncName);
-            BaseFuncPtr->ParameterList = mergeListTextually(
+            BaseFuncPtr->ParameterList = mergeStrVecByUnion(
                 OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
                 TheirFuncPtr->ParameterList);
             BaseFuncPtr->InitList =
-                mergeListTextually(OurFuncPtr->InitList, BaseFuncPtr->InitList,
+                mergeStrVecByUnion(OurFuncPtr->InitList, BaseFuncPtr->InitList,
                                    TheirFuncPtr->InitList);
           } else if (llvm::isa<FuncOperatorCastNode>(BaseNode.get())) {
             // 3. func operator cast, the same as func def node
@@ -204,7 +204,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
             BaseFuncPtr->BeforeFuncName = mergeText(
                 OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
                 TheirFuncPtr->BeforeFuncName);
-            BaseFuncPtr->ParameterList = mergeListTextually(
+            BaseFuncPtr->ParameterList = mergeStrVecByUnion(
                 OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
                 TheirFuncPtr->ParameterList);
             BaseFuncPtr->AfterParameterList = mergeText(
