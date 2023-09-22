@@ -640,10 +640,19 @@ std::shared_ptr<FieldDeclarationNode> GraphBuilder::parseFieldDeclarationNode(
     const ts::Node &DeclaratorNode = DeclaratorNodeOpt.value();
     auto StartPoint = DeclaratorNode.startPoint();
     const std::string DeclaratorText = DeclaratorNode.text();
+
     int Offset = 0;
-    for (auto c : DeclaratorText) {
-      if (c == '*' || c == '&' || c == '(' || isspace(c)) {
+    while (Offset < DeclaratorText.size()) {
+      // 跳过单个字符
+      if (DeclaratorText[Offset] == '*' || DeclaratorText[Offset] == '&' ||
+          DeclaratorText[Offset] == '(' || isspace(DeclaratorText[Offset])) {
         Offset++;
+      }
+      // 跳过 "const" 和 "volatile"
+      else if (DeclaratorText.substr(Offset, 5) == "const") {
+        Offset += 5;
+      } else if (DeclaratorText.substr(Offset, 8) == "volatile") {
+        Offset += 8;
       } else {
         break; // 当遇到其他字符时，停止循环
       }
