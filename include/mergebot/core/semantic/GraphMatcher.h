@@ -5,7 +5,7 @@
 #ifndef MB_GRAPHMATCHER_H
 #define MB_GRAPHMATCHER_H
 
-#include "mergebot/core/model/Side.h"
+#include "mergebot/core/model/enum/Side.h"
 #include "mergebot/core/model/mapping/TwoWayMatching.h"
 #include "mergebot/core/semantic/GraphBuilder.h"
 namespace mergebot::sa {

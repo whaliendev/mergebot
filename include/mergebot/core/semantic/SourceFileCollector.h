@@ -5,8 +5,8 @@
 #ifndef MB_SOURCEFILECOLLECTOR_H
 #define MB_SOURCEFILECOLLECTOR_H
 #include "mergebot/core/handler/SAHandler.h"
-#include "mergebot/core/model/Side.h"
 #include "mergebot/core/model/SimplifiedDiffDelta.h"
+#include "mergebot/core/model/enum/Side.h"
 #include <clang/Tooling/CompilationDatabase.h>
 #include <string>
 #include <vector>

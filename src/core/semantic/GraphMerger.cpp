@@ -3,7 +3,7 @@
 //
 
 #include "mergebot/core/semantic/GraphMerger.h"
-#include "mergebot/core/model/Side.h"
+#include "mergebot/core/model/enum/Side.h"
 #include "mergebot/core/model/node/FieldDeclarationNode.h"
 #include "mergebot/core/model/node/FuncDefNode.h"
 #include "mergebot/core/model/node/FuncOperatorCastNode.h"
@@ -103,14 +103,6 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
       auto TheirPtr = llvm::cast<TerminalNode>(TheirNode.get());
 
       if (BasePtr && OurPtr && TheirPtr) {
-        //        if (BasePtr->ParentSignatureHash !=
-        //        OurPtr->ParentSignatureHash ||
-        //            BasePtr->ParentSignatureHash !=
-        //            TheirPtr->ParentSignatureHash) {
-        //          spdlog::info("BaseChild deleted: {}",
-        //          BaseNode->OriginalSignature); BaseNode = nullptr; return;
-        //        }
-
         BasePtr->Body = mergeText(OurPtr->Body, BasePtr->Body, TheirPtr->Body);
       }
 
@@ -262,7 +254,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
     }
   } else {
     // base node exists, any one side doesn't exist, delete it
-    spdlog::info("BaseChild deleted: {}", BaseNode->OriginalSignature);
+    spdlog::debug("BaseChild deleted: {}", BaseNode->OriginalSignature);
     BaseNode = nullptr;
   }
 }

@@ -6,8 +6,8 @@
 #define MB_SOURCECOLLECTORV2_H
 
 #include "mergebot/core/handler/SAHandler.h"
-#include "mergebot/core/model/Side.h"
 #include "mergebot/core/model/SimplifiedDiffDelta.h"
+#include "mergebot/core/model/enum/Side.h"
 #include <clang/Frontend/CompilerInstance.h>
 #include <clang/Frontend/FrontendAction.h>
 #include <clang/Frontend/FrontendActions.h>

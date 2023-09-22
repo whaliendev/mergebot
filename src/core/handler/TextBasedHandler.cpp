@@ -3,11 +3,10 @@
 //
 
 #include "mergebot/core/handler/TextBasedHandler.h"
-#include "mergebot/core/magic_enum_customization.h"
 #include "mergebot/core/model/ConflictBlock.h"
 #include "mergebot/core/model/ConflictFile.h"
-#include "mergebot/core/model/ConflictMark.h"
-#include "mergebot/core/model/Side.h"
+#include "mergebot/core/model/enum/ConflictMark.h"
+#include "mergebot/core/model/enum/Side.h"
 #include "mergebot/core/sa_utility.h"
 #include "mergebot/filesystem.h"
 // #include "mergebot/parser/languages/cpp.h"

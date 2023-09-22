@@ -6,11 +6,10 @@
 #define MB_GRAPH_BUILDER_H
 
 #include "mergebot/core/handler/SAHandler.h"
-#include "mergebot/core/magic_enum_customization.h"
 #include "mergebot/core/model/ConflictFile.h"
 #include "mergebot/core/model/SemanticEdge.h"
 #include "mergebot/core/model/SemanticNode.h"
-#include "mergebot/core/model/Side.h"
+#include "mergebot/core/model/enum/Side.h"
 #include "mergebot/core/model/node/TypeDeclNode.h"
 #include "mergebot/filesystem.h"
 #include "mergebot/lsp/client.h"

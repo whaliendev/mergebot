@@ -3,8 +3,8 @@
 //
 
 #include "mergebot/core/semantic/SourceCollectorV2.h"
-#include "mergebot/core/magic_enum_customization.h"
 #include "mergebot/core/model/SimplifiedDiffDelta.h"
+#include "mergebot/core/model/enum/Side.h"
 #include "mergebot/core/sa_utility.h"
 #include "mergebot/filesystem.h"
 #include "mergebot/utils/gitservice.h"

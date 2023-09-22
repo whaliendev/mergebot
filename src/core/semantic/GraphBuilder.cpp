@@ -4,7 +4,7 @@
 
 #include "mergebot/core/semantic/GraphBuilder.h"
 
-#include "mergebot/core/magic_enum_customization.h" // for magic_enum::enum_name
+#include "mergebot/core/model/enum/Side.h" // for enum_name instantiation
 #include "mergebot/core/model/node/AccessSpecifierNode.h"
 #include "mergebot/core/model/node/EnumNode.h"
 #include "mergebot/core/model/node/FieldDeclarationNode.h"
@@ -645,9 +645,16 @@ std::shared_ptr<FieldDeclarationNode> GraphBuilder::parseFieldDeclarationNode(
       if (c == '*' || c == '&' || c == '(' || isspace(c)) {
         Offset++;
       } else {
-        break;
+        break; // 当遇到其他字符时，停止循环
+      }
+
+      // 跳过连续的空格
+      while (Offset < DeclaratorText.size() &&
+             isspace(DeclaratorText[Offset])) {
+        Offset++;
       }
     }
+
     Declarator = DeclaratorText.substr(Offset);
     RowPos = StartPoint.row;
     ColPos = StartPoint.column + Offset;

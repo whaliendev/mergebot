@@ -5,8 +5,7 @@
 
 #include <magic_enum.hpp>
 
-#include "mergebot/core/magic_enum_customization.h"
-#include "mergebot/core/model/ConflictMark.h"
+#include "mergebot/core/model/enum/ConflictMark.h"
 #include "mergebot/core/sa_utility.h"
 
 TEST(SADetailsTest, ExtractCodeFromConflictRangeTest) {
