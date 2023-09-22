@@ -10,6 +10,7 @@
 #include "mergebot/core/model/matcher/LinkageSpecListMatcher.h"
 #include "mergebot/core/model/matcher/TranslationUnitMatcher.h"
 #include "mergebot/core/model/matcher/TypeSpecifierMatcher.h"
+#include "mergebot/core/sa_utility.h"
 
 // #define MB_DEBUG
 
@@ -133,8 +134,10 @@ void GraphMatcher::bottomUpMatch() {
 }
 
 TwoWayMatching GraphMatcher::match() {
-  topDownMatch();
-  spdlog::info("top-down match done for side {}", magic_enum::enum_name(S));
+  auto LamTopDownFunc = [this]() { this->topDownMatch(); };
+  auto TopDownElapsed = utils::MeasureRunningTime(LamTopDownFunc);
+  spdlog::info("it takes {}ms to do top-down match for side {}", TopDownElapsed,
+               magic_enum::enum_name(S));
 #ifdef MB_DEBUG
   spdlog::debug("one one matching size: {}", Matching.OneOneMatching.size());
   for (auto &[BaseNode, RevisionNode] : Matching.OneOneMatching) {
@@ -143,8 +146,10 @@ TwoWayMatching GraphMatcher::match() {
                   BaseNode->OriginalSignature, RevisionNode->OriginalSignature);
   }
 #endif
-  bottomUpMatch();
-  spdlog::info("bottom-up match done for side {}", magic_enum::enum_name(S));
+  auto LamBottomUpFunc = [this]() { this->bottomUpMatch(); };
+  auto BottomUpElapsed = utils::MeasureRunningTime(LamBottomUpFunc);
+  spdlog::info("it takes {}ms to do bottom-up match for side {}",
+               BottomUpElapsed, magic_enum::enum_name(S));
 #ifdef MB_DEBUG
   auto format_unmatched_map =
       [](const std::unordered_map<
