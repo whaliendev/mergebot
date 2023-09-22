@@ -9,7 +9,9 @@
 #include <memory>
 namespace mergebot::sa {
 std::string PrettyPrintTU(const std::shared_ptr<SemanticNode> &TUNode,
-                          const std::string &DestDir);
+                          const std::string &DestDir, bool NeedFormat = true);
+
+bool FormatSource(const std::string &DestFile);
 } // namespace mergebot::sa
 
 #endif // MB_PRETTYPRINTER_H

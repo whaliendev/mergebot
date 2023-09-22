@@ -14,6 +14,7 @@
 #include "mergebot/core/model/node/TranslationUnitNode.h"
 #include "mergebot/core/model/node/TypeDeclNode.h"
 #include "mergebot/utils/fileio.h"
+#include <clang/Format/Format.h>
 #include <magic_enum.hpp>
 namespace mergebot::sa {
 namespace details {
@@ -203,7 +204,7 @@ std::string prettyPrintNode(const std::shared_ptr<SemanticNode> &Node) {
 } // namespace details
 
 std::string PrettyPrintTU(const std::shared_ptr<SemanticNode> &TUNode,
-                          const std::string &DestDir) {
+                          const std::string &DestDir, bool NeedFormat) {
   assert(llvm::isa<TranslationUnitNode>(TUNode.get()));
   TranslationUnitNode *TURawPtr = llvm::cast<TranslationUnitNode>(TUNode.get());
   std::string DestFile = (fs::path(DestDir) / TURawPtr->DisplayName).string();
@@ -233,7 +234,45 @@ std::string PrettyPrintTU(const std::shared_ptr<SemanticNode> &TUNode,
     assert(TURawPtr->HeaderGuard.size() >= 3);
     ss << TURawPtr->HeaderGuard[2];
   }
+
   util::file_overwrite_content(DestFile, ss.str());
+
+  if (NeedFormat) {
+    FormatSource(DestFile);
+  }
+
   return DestFile;
+}
+
+bool FormatSource(const std::string &FilePath) {
+  if (!fs::exists(FilePath) || !fs::is_regular_file(FilePath)) {
+    spdlog::error("source file {} doesn't exist or not a regular file",
+                  FilePath);
+    return false;
+  }
+  using namespace clang;
+  format::FormatStyle Style =
+      format::getGoogleStyle(format::FormatStyle::LanguageKind::LK_Cpp);
+  //  Style.SortIncludes = format::FormatStyle::SortIncludesOptions::SI_Never;
+  // format source in DestFile
+  std::string FileContent = util::file_get_content(FilePath);
+  bool IncompleteFormat = false;
+  tooling::Replacements Replaces = format::reformat(
+      Style, FileContent, {{0, static_cast<unsigned int>(FileContent.size())}},
+      FilePath, &IncompleteFormat);
+
+  if (IncompleteFormat) {
+    spdlog::warn("Incomplete format for file {}", FilePath);
+    return false;
+  }
+
+  if (auto FormattedOrErr =
+          tooling::applyAllReplacements(FileContent, Replaces)) {
+    util::file_overwrite_content(FilePath, *FormattedOrErr);
+    return true;
+  }
+
+  spdlog::warn("fail to format file {}", FilePath);
+  return false;
 }
 } // namespace mergebot::sa
