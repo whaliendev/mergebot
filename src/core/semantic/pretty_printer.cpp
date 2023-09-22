@@ -9,7 +9,6 @@
 #include "mergebot/core/model/node/FuncSpecialMemberNode.h"
 #include "mergebot/core/model/node/NamespaceNode.h"
 #include "mergebot/core/model/node/TerminalNode.h"
-#include "mergebot/core/model/node/TextualNode.h"
 #include "mergebot/core/model/node/TranslationUnitNode.h"
 #include "mergebot/core/model/node/TypeDeclNode.h"
 #include "mergebot/utils/fileio.h"
@@ -94,9 +93,6 @@ std::string prettyPrintNode(const std::shared_ptr<SemanticNode> &Node) {
       }
     }
     ss << TerminalNodePtr->Body;
-    if (TerminalNodePtr->Body.size() && llvm::isa<TextualNode>(Node.get())) {
-      const char back = TerminalNodePtr->Body.back();
-    }
     for (int i = 0; i < TerminalNodePtr->FollowingEOL; ++i) {
       ss << "\n";
     }
@@ -125,7 +121,7 @@ std::string prettyPrintNode(const std::shared_ptr<SemanticNode> &Node) {
       for (int i = 0; i < Node->FollowingEOL; ++i) {
         ss << "\n";
       }
-      ss << "\n\n";
+      ss << "\n";
     } else {
       for (int i = 0; i < CompositePtr->BeforeFirstChildEOL; ++i) {
         ss << "\n";

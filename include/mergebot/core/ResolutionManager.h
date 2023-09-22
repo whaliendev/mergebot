@@ -75,9 +75,7 @@ public:
   std::string_view project() const noexcept { return Project_; }
   /// call static_cast<std::string>(MS_) to get an identification of Merge
   /// Scenario \return string representation of MergeScenario
-  std::string mergeScenario() const noexcept {
-    return MS_.toString();
-  };
+  std::string mergeScenario() const noexcept { return MS_.toString(); };
 
   void doResolution();
 

@@ -155,7 +155,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
                 OurFuncPtr->AfterParameterList, BaseFuncPtr->AfterParameterList,
                 TheirFuncPtr->AfterParameterList);
           } else if (llvm::isa<FuncSpecialMemberNode>(BaseNode.get())) {
-            // 4. func special member,
+            // 4. func special members,
             auto BaseFuncPtr =
                 llvm::cast<FuncSpecialMemberNode>(BaseNode.get());
             auto OurFuncPtr = llvm::cast<FuncSpecialMemberNode>(OurNode.get());
