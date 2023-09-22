@@ -40,9 +40,6 @@ void GraphMerger::threeWayMatch() {
 #ifndef MB_MERGER_DEBUG
     if (llvm::isa<TranslationUnitNode>(NodePtr.get()) && NodePtr->NeedToMerge) {
 #endif
-      if (llvm::isa<TranslationUnitNode>(NodePtr.get())) {
-        spdlog::info("translation unit node");
-      }
       std::optional<std::shared_ptr<SemanticNode>> OurOpt = std::nullopt;
       if (OurMatching.OneOneMatching.left.find(NodePtr) !=
           OurMatching.OneOneMatching.left.end()) {
@@ -220,6 +217,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
     } else { // composite node
       assert(llvm::isa<CompositeNode>(BaseNode.get()));
       BaseNode->FollowingEOL = TheirNode->FollowingEOL;
+      BaseNode->AccessSpecifier = TheirNode->AccessSpecifier;
 
       // translation unit
       if (llvm::isa<TranslationUnitNode>(BaseNode.get())) [[unlikely]] {
@@ -254,9 +252,13 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
       auto TheirComposite = llvm::cast<CompositeNode>(TheirNode.get());
       BaseComposite->BeforeFirstChildEOL = TheirComposite->BeforeFirstChildEOL;
 
-      // merge children
-      threeWayMergeChildren(OurNode->Children, BaseNode->Children,
-                            TheirNode->Children);
+      /// merge children
+      // conservative approach
+      //      threeWayMergeChildren(OurNode->Children, BaseNode->Children,
+      //                            TheirNode->Children);
+
+      // radical approach
+      BaseNode->Children = directMergeChildren(OurNode, BaseNode, TheirNode);
     }
   } else {
     // base node exists, any one side doesn't exist, delete it
@@ -386,6 +388,162 @@ void GraphMerger::threeWayMergeChildren(
   //      ++i;
   //    }
   //  }
+}
+
+std::vector<std::shared_ptr<SemanticNode>> GraphMerger::directMergeChildren(
+    const std::shared_ptr<SemanticNode> &OurNode,
+    const std::shared_ptr<SemanticNode> &BaseNode,
+    const std::shared_ptr<SemanticNode> &TheirNode) {
+  assert(OurNode && BaseNode && TheirNode);
+  std::vector<std::shared_ptr<SemanticNode>> MergedChildren;
+  MergedChildren.reserve(OurNode->Children.size() + BaseNode->Children.size());
+
+  std::vector<std::shared_ptr<SemanticNode>> &TheirChildren =
+      TheirNode->Children;
+
+  // merge base and their side, in their order
+  for (auto &Child : TheirChildren) {
+    if (TheirMatching.OneOneMatching.right.find(Child) !=
+        TheirMatching.OneOneMatching.right.end()) {
+      std::shared_ptr<SemanticNode> BaseChild =
+          TheirMatching.OneOneMatching.right.at(Child);
+      mergeSemanticNode(BaseChild);
+      if (BaseChild) {
+        BaseChild->FollowingEOL = Child->FollowingEOL;
+      }
+      MergedChildren.push_back(BaseChild);
+    } else {
+      MergedChildren.push_back(Child);
+    }
+  }
+
+  // remove deleted nodes in MergedChildren
+  MergedChildren.erase(std::remove_if(MergedChildren.begin(),
+                                      MergedChildren.end(),
+                                      [&](const auto &Item) { return !Item; }),
+                       MergedChildren.end());
+
+  // the focus is on remove duplicates, as their side added have been merged
+  std::vector<std::shared_ptr<SemanticNode>> OursAdded =
+      removeDuplicates(filterAddedNodes(BaseNode, OurMatching),
+                       filterAddedNodes(BaseNode, TheirMatching));
+
+  // merge ours added nodes
+  for (const auto &OurAdd : OursAdded) {
+    std::optional<NeighborTuple> NeighborsOpt = getNeighbors(OurAdd);
+    if (!NeighborsOpt.has_value()) {
+      MergedChildren.push_back(OurAdd);
+      continue;
+    }
+
+    NeighborTuple Neighbors = NeighborsOpt.value();
+    auto PrevSibling = std::move(std::get<0>(Neighbors));
+    auto CurNode = std::move(std::get<1>(Neighbors));
+    auto NextSibling = std::move(std::get<2>(Neighbors));
+    if (PrevSibling) {
+      auto It =
+          std::find_if(MergedChildren.begin(), MergedChildren.end(),
+                       [&](const auto &Item) { return *Item == *PrevSibling; });
+      if (It != MergedChildren.end()) {
+        MergedChildren.insert(It + 1, CurNode);
+        continue;
+      }
+    }
+
+    if (NextSibling) {
+      auto It =
+          std::find_if(MergedChildren.begin(), MergedChildren.end(),
+                       [&](const auto &Item) { return *Item == *NextSibling; });
+      if (It != MergedChildren.end()) {
+        MergedChildren.insert(It, CurNode);
+        continue;
+      }
+    }
+
+    MergedChildren.push_back(CurNode);
+  }
+
+  return MergedChildren;
+}
+
+std::vector<std::shared_ptr<SemanticNode>>
+GraphMerger::filterAddedNodes(const std::shared_ptr<SemanticNode> &BaseNode,
+                              const TwoWayMatching &Matching) const {
+  std::vector<std::shared_ptr<SemanticNode>> AddedNodes;
+  std::vector<std::shared_ptr<SemanticNode>> FilteredAdded;
+
+  for (const auto &Entry : Matching.PossiblyAdded) {
+    AddedNodes.insert(AddedNodes.end(), Entry.second.begin(),
+                      Entry.second.end());
+  }
+
+  auto MatchedParentNodeIter = Matching.OneOneMatching.left.find(BaseNode);
+  if (MatchedParentNodeIter != Matching.OneOneMatching.left.end()) {
+    auto MatchedParentNode = MatchedParentNodeIter->second;
+    for (const auto &NewlyAdded : AddedNodes) {
+      if (auto NodeParent = NewlyAdded->Parent.lock()) {
+        if (*NodeParent == *MatchedParentNode) {
+          FilteredAdded.push_back(NewlyAdded);
+        }
+      }
+    }
+  }
+
+  std::sort(FilteredAdded.begin(), FilteredAdded.end(),
+            [](const auto &a, const auto &b) { return a->ID < b->ID; });
+
+  return FilteredAdded;
+}
+
+std::vector<std::shared_ptr<SemanticNode>> GraphMerger::removeDuplicates(
+    std::vector<std::shared_ptr<SemanticNode>> &&OurAdded,
+    std::vector<std::shared_ptr<SemanticNode>> &&TheirAdded) const {
+  for (const auto &TheirAdd : TheirAdded) {
+    OurAdded.erase(
+        std::remove_if(
+            OurAdded.begin(), OurAdded.end(),
+            [&TheirAdd](const std::shared_ptr<SemanticNode> &OurAdd) {
+              return TheirAdd->hashSignature() == OurAdd->hashSignature();
+            }),
+        OurAdded.end());
+  }
+  return std::move(OurAdded);
+}
+
+std::optional<GraphMerger::NeighborTuple>
+GraphMerger::getNeighbors(const RCSemanticNode &Node) const {
+  if (auto NodeParent = Node->Parent.lock()) {
+    RCSemanticNode PrevSibling = nullptr, NextSibling = nullptr;
+
+    auto Pos =
+        std::find_if(NodeParent->Children.begin(), NodeParent->Children.end(),
+                     [&](const auto &Item) { return *Item == *Node; });
+    if (Pos == NodeParent->Children.end()) {
+      return std::nullopt;
+    }
+
+    auto ItBefore = Pos;
+    while (ItBefore != NodeParent->Children.begin()) {
+      --ItBefore;
+      if (!llvm::isa<OrphanCommentNode>(ItBefore->get())) {
+        PrevSibling = *ItBefore;
+        break;
+      }
+    }
+
+    auto ItAfter = Pos;
+    while (ItAfter != NodeParent->Children.end() - 1) {
+      ++ItAfter;
+      if (!llvm::isa<OrphanCommentNode>(ItAfter->get())) {
+        NextSibling = *ItAfter;
+        break;
+      }
+    }
+
+    return std::make_tuple(PrevSibling, Node, NextSibling);
+  } else {
+    return std::nullopt;
+  }
 }
 
 std::vector<std::string>

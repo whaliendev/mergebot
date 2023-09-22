@@ -33,12 +33,20 @@ public:
   std::string getMergedDir() const { return MergedDir; }
 
 private:
+  using RCSemanticNode = std::shared_ptr<SemanticNode>;
+  using NeighborTuple =
+      std::tuple<RCSemanticNode, RCSemanticNode, RCSemanticNode>;
   void mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode);
 
   void threeWayMergeChildren(
       const std::vector<std::shared_ptr<SemanticNode>> &OurChildren,
       std::vector<std::shared_ptr<SemanticNode>> &BaseChildren,
       const std::vector<std::shared_ptr<SemanticNode>> &TheirChildren);
+
+  std::vector<std::shared_ptr<SemanticNode>>
+  directMergeChildren(const std::shared_ptr<SemanticNode> &OurNode,
+                      const std::shared_ptr<SemanticNode> &BaseNode,
+                      const std::shared_ptr<SemanticNode> &TheirNode);
 
   std::vector<std::string>
   mergeStrVecByUnion(const std::vector<std::string> &V1,
@@ -51,6 +59,16 @@ private:
   mergeListTextually(const std::vector<std::string> &OurList,
                      const std::vector<std::string> &BaseList,
                      const std::vector<std::string> &TheirList) const;
+
+  std::vector<std::shared_ptr<SemanticNode>>
+  filterAddedNodes(const std::shared_ptr<SemanticNode> &BaseNode,
+                   const TwoWayMatching &Matching) const;
+
+  std::vector<std::shared_ptr<SemanticNode>> removeDuplicates(
+      std::vector<std::shared_ptr<SemanticNode>> &&OurAdded,
+      std::vector<std::shared_ptr<SemanticNode>> &&TheirAdded) const;
+
+  std::optional<NeighborTuple> getNeighbors(const RCSemanticNode &Node) const;
 
   const ProjectMeta &Meta;
   std::string MergedDir;
