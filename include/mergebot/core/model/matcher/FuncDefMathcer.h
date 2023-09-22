@@ -37,6 +37,12 @@ struct FuncDefMatcher {
 
     for (size_t i = 0; i < BaseNodes.size(); ++i) {
       for (size_t j = 0; j < RevisionNodes.size(); ++j) {
+        auto SigSim = util::string_cosine(BaseNodes[i]->OriginalSignature,
+                                          RevisionNodes[j]->OriginalSignature);
+        if (SigSim < MIN_SIMI) {
+          continue;
+        }
+
         auto [Edge, Success] = add_edge(i, BaseNodes.size() + j, FDGraph);
         assert(llvm::isa<FuncDefNode>(BaseNodes[i].get()) &&
                llvm::isa<FuncDefNode>(RevisionNodes[j].get()));

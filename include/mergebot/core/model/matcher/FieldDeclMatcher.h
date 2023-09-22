@@ -36,6 +36,16 @@ struct FieldDeclMatcher {
 
     for (size_t i = 0; i < BaseNodes.size(); ++i) {
       for (size_t j = 0; j < RevisionNodes.size(); ++j) {
+        auto BaseFieldDecl =
+            llvm::cast<FieldDeclarationNode>(BaseNodes[i].get());
+        auto RevFieldDecl =
+            llvm::cast<FieldDeclarationNode>(RevisionNodes[j].get());
+        double DeclaratorSim = util::string_cosine(BaseFieldDecl->Declarator,
+                                                   RevFieldDecl->Declarator);
+        if (DeclaratorSim < MIN_SIMI) {
+          continue;
+        }
+
         auto [Edge, Success] = add_edge(i, BaseNodes.size() + j, FDGraph);
         assert(llvm::isa<FieldDeclarationNode>(BaseNodes[i].get()) &&
                llvm::isa<FieldDeclarationNode>(RevisionNodes[j].get()));

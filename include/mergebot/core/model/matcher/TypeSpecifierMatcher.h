@@ -37,6 +37,12 @@ struct TypeSpecifierMatcher {
 
     for (size_t i = 0; i < BaseNodes.size(); ++i) {
       for (size_t j = 0; j < RevisionNodes.size(); ++j) {
+        auto NameSim = util::string_cosine(BaseNodes[i]->OriginalSignature,
+                                           RevisionNodes[j]->OriginalSignature);
+        if (NameSim < MIN_SIMI) {
+          continue;
+        }
+
         auto [Edge, Success] = add_edge(i, BaseNodes.size() + j, TDGraph);
         assert(llvm::isa<TypeDeclNode>(BaseNodes[i].get()) &&
                llvm::isa<TypeDeclNode>(RevisionNodes[j].get()));
