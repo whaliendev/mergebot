@@ -3,6 +3,8 @@
 //
 
 #include "mergebot/core/semantic/pretty_printer.h"
+#include "mergebot/core/model/enum/AccessSpecifierKind.h"
+#include "mergebot/core/model/enum/ConflictMark.h"
 #include "mergebot/core/model/node/EnumNode.h"
 #include "mergebot/core/model/node/FuncDefNode.h"
 #include "mergebot/core/model/node/FuncOperatorCastNode.h"
@@ -12,6 +14,7 @@
 #include "mergebot/core/model/node/TranslationUnitNode.h"
 #include "mergebot/core/model/node/TypeDeclNode.h"
 #include "mergebot/utils/fileio.h"
+#include <magic_enum.hpp>
 namespace mergebot::sa {
 namespace details {
 std::string printFuncDefNodeSignature(const FuncDefNode *func) {
@@ -67,11 +70,61 @@ std::string printFuncSpecialMemberSignature(const FuncSpecialMemberNode *func) {
   return ss.str();
 }
 
-std::string indentCodeLines(const std::string &str, int indent) { return str; }
+std::string indentCodeLines(const std::string &str, int indent,
+                            int collapseSpaceCnt) {
+  std::istringstream input_stream(str);
+  std::string line;
+  std::vector<std::string> indentedLines;
+  bool addLastNewLine = str.size() > 0 && str.back() == '\n';
+
+  while (std::getline(input_stream, line)) {
+    std::size_t firstCharPos = line.find_first_not_of(" \t");
+    if (firstCharPos == std::string::npos) {
+      firstCharPos = line.length();
+    }
+
+    if (line.find(magic_enum::enum_name(ConflictMark::OURS)) !=
+            std::string::npos ||
+        line.find(magic_enum::enum_name(ConflictMark::BASE)) !=
+            std::string::npos ||
+        line.find(magic_enum::enum_name(ConflictMark::THEIRS)) !=
+            std::string::npos ||
+        line.find(magic_enum::enum_name(ConflictMark::END)) !=
+            std::string::npos) {
+      indentedLines.push_back(line);
+      continue;
+    }
+
+    if (firstCharPos < static_cast<size_t>(indent)) {
+      int spaceCnt = indent - firstCharPos - collapseSpaceCnt;
+      if (spaceCnt < 0) {
+        spaceCnt = 0;
+      }
+      indentedLines.push_back(std::string(spaceCnt, ' ') + line);
+    } else {
+      indentedLines.push_back(line);
+    }
+  }
+
+  // Use stringstream for efficient concatenation
+  std::stringstream result_stream;
+  for (const auto &indentedLine : indentedLines) {
+    result_stream << indentedLine << '\n';
+  }
+
+  std::string indentedStr = result_stream.str();
+  if (indentedStr.size() && !addLastNewLine) {
+    indentedStr.pop_back();
+  }
+  return indentedStr;
+}
 
 std::string prettyPrintNode(const std::shared_ptr<SemanticNode> &Node) {
   std::stringstream ss;
   int indent = Node->StartPoint.value_or(ts::Point{0, 0}).column;
+  int collapseSpaceCnt = 0;
+  std::string nodeStr;
+
   if (llvm::isa<TerminalNode>(Node.get())) {
     auto TerminalNodePtr = llvm::cast<TerminalNode>(Node.get());
     ss << Node->Comment;
@@ -96,6 +149,10 @@ std::string prettyPrintNode(const std::shared_ptr<SemanticNode> &Node) {
     for (int i = 0; i < TerminalNodePtr->FollowingEOL; ++i) {
       ss << "\n";
     }
+    nodeStr = ss.str();
+    if (nodeStr.size() && nodeStr.back() != '\n') {
+      collapseSpaceCnt = nodeStr.size();
+    }
   } else {
     // composite node
     assert(llvm::isa<CompositeNode>(Node.get()));
@@ -106,7 +163,15 @@ std::string prettyPrintNode(const std::shared_ptr<SemanticNode> &Node) {
       for (int i = 0; i < CompositePtr->BeforeFirstChildEOL; ++i) {
         ss << "\n";
       }
+
+      AccessSpecifierKind PrevAccessSpecifier = AccessSpecifierKind::None;
       for (const auto &Child : Node->Children) {
+        if (Child->AccessSpecifier != PrevAccessSpecifier &&
+            Child->AccessSpecifier != AccessSpecifierKind::None &&
+            Child->AccessSpecifier != AccessSpecifierKind::Default) {
+          ss << magic_enum::enum_name(Child->AccessSpecifier) << "\n";
+          PrevAccessSpecifier = Child->AccessSpecifier;
+        }
         ss << prettyPrintNode(Child);
       }
       ss << "}";
@@ -121,17 +186,19 @@ std::string prettyPrintNode(const std::shared_ptr<SemanticNode> &Node) {
       for (int i = 0; i < Node->FollowingEOL; ++i) {
         ss << "\n";
       }
-      ss << "\n";
+      ss << "\n\n";
     } else {
       for (int i = 0; i < CompositePtr->BeforeFirstChildEOL; ++i) {
         ss << "\n";
       }
+
       for (const auto &Child : Node->Children) {
         ss << prettyPrintNode(Child);
       }
     }
+    nodeStr = ss.str();
   }
-  return indentCodeLines(ss.str(), indent);
+  return indentCodeLines(nodeStr, indent, collapseSpaceCnt);
 }
 } // namespace details
 
