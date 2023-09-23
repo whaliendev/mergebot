@@ -254,6 +254,7 @@ bool FormatSource(const std::string &FilePath) {
   format::FormatStyle Style =
       format::getGoogleStyle(format::FormatStyle::LanguageKind::LK_Cpp);
   //  Style.SortIncludes = format::FormatStyle::SortIncludesOptions::SI_Never;
+  Style.FixNamespaceComments = false; // handled by GraphBuilder
   // format source in DestFile
   std::string FileContent = util::file_get_content(FilePath);
   bool IncompleteFormat = false;
