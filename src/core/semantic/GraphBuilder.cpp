@@ -572,6 +572,12 @@ GraphBuilder::parseNamespaceNode(const ts::Node &Node, bool IsConflicting,
     assert(false && "it seems that Node is not a namespace node");
   }
 
+  bool Anonymous =
+      DisplayName.empty() ||
+      (!DisplayName.empty() &&
+       std::all_of(DisplayName.begin(), DisplayName.end(),
+                   [&](const auto &Item) { return isspace(Item); }));
+
   std::string USR;           // symbol details获取USR
   std::string QualifiedName; // symbol details 获取QualifiedName
   int row = Node.startPoint().row;
@@ -602,7 +608,7 @@ GraphBuilder::parseNamespaceNode(const ts::Node &Node, bool IsConflicting,
       NodeCount++, IsConflicting, NodeKind::NAMESPACE, DisplayName,
       QualifiedName, OriginalSignature, std::move(Comment), Node.startPoint(),
       std::move(USR), BeforeFirstChildEOL, TUPath, Inline.size() != 0,
-      std::move(NSComment));
+      std::move(NSComment), Anonymous);
 }
 
 std::shared_ptr<TextualNode>

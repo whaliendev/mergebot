@@ -15,12 +15,13 @@ public:
                 const std::string &OriginalSignature, std::string &&Comment,
                 const std::optional<ts::Point> &Point, std::string &&USR,
                 int BeforeFirstChildEOL, const std::string &TUPath,
-                bool IsInline, std::string &&NSComment,
+                bool IsInline, std::string &&NSComment, bool Anonymous = false,
                 bool IsSynthetic = false)
       : CompositeNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                       OriginalSignature, std::move(Comment), Point,
                       std::move(USR), BeforeFirstChildEOL, IsSynthetic),
-        IsInline(IsInline), NSComment(std::move(NSComment)), TUPath(TUPath) {}
+        IsInline(IsInline), NSComment(std::move(NSComment)),
+        Anonymous(Anonymous), TUPath(TUPath) {}
 
   static bool classof(const SemanticNode *N) {
     return N->getKind() == NodeKind::NAMESPACE;
@@ -30,12 +31,16 @@ public:
     size_t H = 1;
     mergebot::hash_combine(H, getKind());
     mergebot::hash_combine(H, TUPath);
-    mergebot::hash_combine(H, this->QualifiedName);
+    mergebot::hash_combine(H, QualifiedName);
+    if (Anonymous) {
+      mergebot::hash_combine(H, ID);
+    }
     return H;
   }
 
   bool IsInline;
   std::string NSComment;
+  bool Anonymous;
 
   std::string TUPath;
 };

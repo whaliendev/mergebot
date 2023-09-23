@@ -8,6 +8,7 @@
 #include "mergebot/core/model/matcher/FuncDefMathcer.h"
 #include "mergebot/core/model/matcher/FuncSpecialMemberMatcher.h"
 #include "mergebot/core/model/matcher/LinkageSpecListMatcher.h"
+#include "mergebot/core/model/matcher/NamespaceMatcher.h"
 #include "mergebot/core/model/matcher/TranslationUnitMatcher.h"
 #include "mergebot/core/model/matcher/TypeSpecifierMatcher.h"
 #include "mergebot/core/sa_utility.h"
@@ -71,7 +72,16 @@ void GraphMatcher::bottomUpMatch() {
                      RevisionUnmatchedLinkageSpecs);
   }
 
-  /// namespace doesn't need to do similarity match
+  std::vector<std::shared_ptr<SemanticNode>> &BaseUnmatchedNamespaces =
+      Matching.PossiblyDeleted[NodeKind::NAMESPACE];
+  std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedNamespaces =
+      Matching.PossiblyAdded[NodeKind::NAMESPACE];
+  if (!BaseUnmatchedNamespaces.empty() &&
+      !RevisionUnmatchedNamespaces.empty()) {
+    NamespaceMatcher NSMatcher;
+    NSMatcher.match(Matching, BaseUnmatchedNamespaces,
+                    RevisionUnmatchedNamespaces);
+  }
 
   /// type class, struct, union
   std::vector<std::shared_ptr<SemanticNode>> &BaseUnmatchedTypes =

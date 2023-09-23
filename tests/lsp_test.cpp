@@ -221,3 +221,23 @@ TEST_F(ClangdBasedTest, FuncDef) {
   ASSERT_TRUE(symbolOpt.has_value());
   spdlog::info("details: {}", symbolOpt.value().dump(2));
 }
+
+TEST_F(ClangdBasedTest, AnonomousNamespace) {
+  std::string workspaceRoot = "/home/whalien/Desktop/rocksdb_bak";
+  client->Initialize(workspaceRoot);
+  const std::string filePath =
+      "/home/whalien/Desktop/rocksdb_bak/db/db_impl.cc";
+  URIForFile file(filePath);
+  std::string fileContent = mergebot::util::file_get_content(filePath);
+
+  client->DidOpen(file, fileContent);
+
+  auto SymbolOpt = client->SymbolInfo(file, Position{127, 0});
+  assert(SymbolOpt.has_value());
+
+  spdlog::info("details: {}", SymbolOpt.value().dump(2));
+
+  SymbolOpt = client->SymbolInfo(file, Position{2711, 0});
+  assert(SymbolOpt.has_value());
+  spdlog::info("details: {}", SymbolOpt.value().dump(2));
+}
