@@ -75,13 +75,12 @@ struct FieldDeclMatcher {
           if (auto BaseParentPtr = BaseNode->Parent.lock()) {
             if (auto RevParentPtr = RevisionNode->Parent.lock()) {
               if (BaseParentPtr->hashSignature() !=
-                      RevParentPtr->hashSignature() ||
-                  RefactoredTypes.find(BaseParentPtr->hashSignature()) ==
-                      RefactoredTypes.end() ||
-                  RefactoredTypes.at(BaseParentPtr->hashSignature()) !=
-                      RevParentPtr->hashSignature()) {
+                      RevParentPtr->hashSignature() &&
+                  (RefactoredTypes.find(BaseParentPtr->hashSignature()) ==
+                       RefactoredTypes.end() ||
+                   RefactoredTypes.at(BaseParentPtr->hashSignature()) !=
+                       RevParentPtr->hashSignature())) {
                 continue;
-                // mark refactoring: field extraction
               }
             }
           }
