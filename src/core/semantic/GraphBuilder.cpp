@@ -619,7 +619,7 @@ GraphBuilder::parseTextualNode(const ts::Node &Node, bool IsConflicting,
   if (Node.type() == ts::cpp::symbols::sym_enumerator.name) {
     if (Node.nextSibling().has_value()) {
       ts::Node nextSibling = Node.nextSibling().value();
-      if (nextSibling.text().find(",") != std::string::npos) {
+      if (nextSibling.text().find(',') != std::string::npos) {
         TextContent += ",";
       }
     }
