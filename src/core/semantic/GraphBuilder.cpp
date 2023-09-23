@@ -815,16 +815,17 @@ std::shared_ptr<FuncDefNode>
 GraphBuilder::parseFuncDefNode(const ts::Node &Node, const ts::Node &RealNode,
                                bool IsConflicting, size_t ParentSignatureHash,
                                const std::string &FilePath) {
-  ts::Node FDefNode = Node;
-  if (Node.type() == ts::cpp::symbols::sym_template_declaration.name) {
-    for (size_t i = 0; i < Node.childrenCount(); ++i) {
-      if (Node.children[i].type() ==
-          ts::cpp::symbols::sym_function_definition.name) {
-        FDefNode = Node.children[i];
-        break;
-      }
-    }
-  }
+  //  ts::Node FDefNode = Node;
+  //  if (Node.type() == ts::cpp::symbols::sym_template_declaration.name) {
+  //    for (size_t i = 0; i < Node.childrenCount(); ++i) {
+  //      if (Node.children[i].type() ==
+  //          ts::cpp::symbols::sym_function_definition.name) {
+  //        FDefNode = Node.children[i]; // RealNode
+  //        break;
+  //      }
+  //    }
+  //  }
+  // Real Node is the true function definition node
   assert(RealNode.getChildByFieldName(ts::cpp::fields::field_declarator.name)
              .has_value() &&
          "function definition should have a declarator");
@@ -843,7 +844,7 @@ GraphBuilder::parseFuncDefNode(const ts::Node &Node, const ts::Node &RealNode,
   }
   QualifiedFuncName = QualifiedFuncName.substr(Offset);
   ts::FuncDefInfo DefInfo =
-      ts::extractFuncDefInfo(FDefNode.text(), QualifiedFuncName);
+      ts::extractFuncDefInfo(Node.text(), QualifiedFuncName);
 
   std::string QualifiedName;
   std::string USR;
