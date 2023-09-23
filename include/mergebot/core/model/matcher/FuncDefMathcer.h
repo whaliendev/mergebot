@@ -126,8 +126,8 @@ private:
   double calcSimilarity(const FuncDefNode *BaseNode,
                         const FuncDefNode *RevisionNode) {
     double SimAvg = 0;
-    double NameSim = util::string_levenshtein(BaseNode->QualifiedName,
-                                              RevisionNode->QualifiedName);
+    double NameSim = util::string_levenshtein(BaseNode->OriginalSignature,
+                                              RevisionNode->OriginalSignature);
     // for terminal node, if body similarity is too low, unnecessary to match
     if (NameSim < MIN_SIMI) {
       return 0;
