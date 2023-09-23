@@ -109,10 +109,9 @@ private:
   std::shared_ptr<TextualNode> parseTextualNode(const ts::Node &Node,
                                                 bool IsConflicting,
                                                 size_t ParentSignatureHash);
-  std::shared_ptr<FieldDeclarationNode>
-  parseFieldDeclarationNode(const ts::Node &Node, bool IsConflicting,
-                            size_t ParentSignatureHash,
-                            const std::string &FilePath);
+  std::shared_ptr<FieldDeclarationNode> parseFieldDeclarationNode(
+      const ts::Node &Node, bool IsConflicting, size_t ParentSignatureHash,
+      const std::string &FilePath, bool IsFieldDecl = true);
   std::shared_ptr<LinkageSpecNode>
   parseLinkageSpecNode(const ts::Node &Node, bool IsConflicting,
                        size_t ParentSignatureHash);

@@ -60,7 +60,6 @@ bool IsTextualNode(std::string_view child_type) {
          child_type == symbols::sym_type_definition.name ||
          child_type == symbols::sym_alias_declaration.name ||
          child_type == symbols::sym_enumerator.name ||
-         child_type == symbols::sym_declaration.name ||
          child_type == symbols::sym_static_assert_declaration.name ||
          child_type == symbols::sym_friend_declaration.name;
 }
@@ -294,9 +293,11 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
           Idx +=
               CommentCnt - 1; // -1 as the loop end will auto increment Idx by 1
         }
-      } else if (ChildType == symbols::sym_field_declaration.name) {
+      } else if (ChildType == symbols::sym_field_declaration.name ||
+                 ChildType == symbols::sym_declaration.name) {
         std::shared_ptr<SemanticNode> FieldDeclPtr = parseFieldDeclarationNode(
-            Child, IsConflicting, SRoot->hashSignature(), FilePath);
+            Child, IsConflicting, SRoot->hashSignature(), FilePath,
+            ChildType == symbols::sym_field_declaration.name);
         insertToGraphAndParent(SRoot, SRootVDesc, FieldDeclPtr);
       } else if (ChildType == symbols::sym_function_definition.name) {
         const std::optional<ts::Node> TypeOpt =
@@ -635,7 +636,7 @@ GraphBuilder::parseTextualNode(const ts::Node &Node, bool IsConflicting,
 
 std::shared_ptr<FieldDeclarationNode> GraphBuilder::parseFieldDeclarationNode(
     const ts::Node &Node, bool IsConflicting, size_t ParentSignatureHash,
-    const std::string &FilePath) {
+    const std::string &FilePath, bool IsFieldDecl) {
   const std::optional<ts::Node> DeclaratorNodeOpt =
       Node.getChildByFieldName(ts::cpp::fields::field_declarator.name);
 
@@ -659,12 +660,14 @@ std::shared_ptr<FieldDeclarationNode> GraphBuilder::parseFieldDeclarationNode(
         Offset += 5;
       } else if (DeclaratorText.substr(Offset, 8) == "volatile") {
         Offset += 8;
+      } else if (DeclaratorText.substr(Offset, 8) == "operator") {
+        Offset += 8;
       } else {
         break; // 当遇到其他字符时，停止循环
       }
 
       // 跳过连续的空格
-      while (Offset < DeclaratorText.size() &&
+      while (static_cast<unsigned>(Offset) < DeclaratorText.size() &&
              isspace(DeclaratorText[Offset])) {
         Offset++;
       }
