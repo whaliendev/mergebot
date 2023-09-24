@@ -119,7 +119,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
           llvm::isa<FuncSpecialMemberNode>(BaseNode.get()) ||
           llvm::isa<FuncOperatorCastNode>(BaseNode.get())) {
         bool SkipSigMerge = false;
-        if (BaseNode->OriginalSignature == OurNode->OriginalSignature &&
+        if (BaseNode->OriginalSignature == OurNode->OriginalSignature ||
             BaseNode->OriginalSignature == TheirNode->OriginalSignature) {
           SkipSigMerge = true;
           llvm::cast<TerminalNode>(BaseNode.get())->SigUnchanged = true;
