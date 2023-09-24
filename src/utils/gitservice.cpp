@@ -174,10 +174,12 @@ int dump_tree_entry(const char *root, const git_tree_entry *entry,
     if (git_tree_entry_filemode(entry) == GIT_FILEMODE_LINK) {
       int res = symlink(static_cast<const char *>(data), dest_path.c_str());
       if (res != 0) {
+        git_blob_free(blob);
         spdlog::error("symlink {} to {} failed", dest_path,
                       static_cast<const char *>(data));
         return 1;
       }
+      git_blob_free(blob);
     } else {
       int output_fd = open(dest_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC,
                            S_IRUSR | S_IWUSR);
@@ -361,9 +363,10 @@ bool dump_tree_object_to(std::string_view dest, std::string_view hash,
     spdlog::error("dest {} is not a directory", dest);
     return false;
   }
-  if (!fs::exists(dest)) {
-    fs::create_directories(dest_path);
-  }
+  fs::create_directories(dest_path);
+  //  if (!fs::exists(dest)) {
+  //    fs::create_directories(dest_path);
+  //  }
 
   std::unique_ptr<GitRepository> repo_ptr =
       GitRepository::create(repo_path.data());
