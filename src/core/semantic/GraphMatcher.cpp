@@ -56,6 +56,8 @@ void GraphMatcher::bottomUpMatch() {
   std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedTUs =
       Matching.PossiblyAdded[NodeKind::TRANSLATION_UNIT];
   if (BaseUnmatchedTUs.size() && RevisionUnmatchedTUs.size()) {
+    spdlog::info("bottom-up match Translation Unit for Side {}",
+                 magic_enum::enum_name(S));
     TranslationUnitMatcher TUMatcher;
     TUMatcher.match(Matching, BaseUnmatchedTUs, RevisionUnmatchedTUs);
   }
@@ -67,6 +69,8 @@ void GraphMatcher::bottomUpMatch() {
       Matching.PossiblyAdded[NodeKind::LINKAGE_SPEC_LIST];
   if (BaseUnmatchedLinkageSpecs.size() &&
       RevisionUnmatchedLinkageSpecs.size()) {
+    spdlog::info("bottom-up match Linkage Specification List for Side {}",
+                 magic_enum::enum_name(S));
     LinkageSpecListMatcher LSLMatcher;
     LSLMatcher.match(Matching, BaseUnmatchedLinkageSpecs,
                      RevisionUnmatchedLinkageSpecs);
@@ -78,6 +82,8 @@ void GraphMatcher::bottomUpMatch() {
       Matching.PossiblyAdded[NodeKind::NAMESPACE];
   if (!BaseUnmatchedNamespaces.empty() &&
       !RevisionUnmatchedNamespaces.empty()) {
+    spdlog::info("bottom-up match Namespace for Side {}",
+                 magic_enum::enum_name(S));
     NamespaceMatcher NSMatcher;
     NSMatcher.match(Matching, BaseUnmatchedNamespaces,
                     RevisionUnmatchedNamespaces);
@@ -90,6 +96,7 @@ void GraphMatcher::bottomUpMatch() {
       Matching.PossiblyAdded[NodeKind::TYPE];
   std::unordered_map<size_t, size_t> RefactoredTypes;
   if (BaseUnmatchedTypes.size() && RevisionUnmatchedTypes.size()) {
+    spdlog::info("bottom-up match Type for Side {}", magic_enum::enum_name(S));
     TypeSpecifierMatcher TypeMatcher;
     TypeMatcher.match(Matching, BaseUnmatchedTypes, RevisionUnmatchedTypes,
                       RefactoredTypes);
@@ -101,6 +108,7 @@ void GraphMatcher::bottomUpMatch() {
   std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedEnums =
       Matching.PossiblyAdded[NodeKind::ENUM];
   if (BaseUnmatchedEnums.size() && RevisionUnmatchedEnums.size()) {
+    spdlog::info("bottom-up match Enum for Side {}", magic_enum::enum_name(S));
     EnumMatcher EMatcher;
     EMatcher.match(Matching, BaseUnmatchedEnums, RevisionUnmatchedEnums);
   }
@@ -111,6 +119,8 @@ void GraphMatcher::bottomUpMatch() {
   std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedFields =
       Matching.PossiblyAdded[NodeKind::FIELD_DECLARATION];
   if (BaseUnmatchedFields.size() && RevisionUnmatchedFields.size()) {
+    spdlog::info("bottom-up match Field Declaration for Side {}",
+                 magic_enum::enum_name(S));
     FieldDeclMatcher FDMatcher;
     FDMatcher.match(Matching, BaseUnmatchedFields, RevisionUnmatchedFields,
                     RefactoredTypes);
@@ -122,6 +132,8 @@ void GraphMatcher::bottomUpMatch() {
   std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedFuncDefs =
       Matching.PossiblyAdded[NodeKind::FUNC_DEF];
   if (BaseUnmatchedFuncDefs.size() && RevisionUnmatchedFuncDefs.size()) {
+    spdlog::info("bottom-up match Function Definition for Side {}",
+                 magic_enum::enum_name(S));
     FuncDefMatcher FDMatcher;
     FDMatcher.match(Matching, BaseUnmatchedFuncDefs, RevisionUnmatchedFuncDefs,
                     RefactoredTypes);
@@ -135,6 +147,8 @@ void GraphMatcher::bottomUpMatch() {
   std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedFSMembers =
       Matching.PossiblyAdded[NodeKind::FUNC_SPECIAL_MEMBER];
   if (BaseUnmatchedFSMembers.size() && RevisionUnmatchedFSMembers.size()) {
+    spdlog::info("bottom-up match Function Special Member for Side {}",
+                 magic_enum::enum_name(S));
     FuncSpecialMemberMatcher FSMMatcher;
     FSMMatcher.match(Matching, BaseUnmatchedFSMembers,
                      RevisionUnmatchedFSMembers);

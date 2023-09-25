@@ -17,7 +17,7 @@
 #include "mergebot/utils/gitservice.h"
 #include <oneapi/tbb/parallel_invoke.h>
 
-#define MB_MERGER_DEBUG
+// #define MB_MERGER_DEBUG
 
 namespace mergebot {
 namespace sa {
