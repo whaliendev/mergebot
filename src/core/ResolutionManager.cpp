@@ -261,13 +261,13 @@ void ResolutionManager::prepareSource(
   fs::path OrigCompDBPath;
   // project-root
   if (fs::exists(fs::path(Self->ProjectPath_) / "compile_commands.json")) {
-    OrigCompDBPath = fs::path(Self->CDBPath_);
+    OrigCompDBPath = fs::path(Self->ProjectPath_) / "compile_commands.json";
   } else if (fs::exists(fs::path(Self->ProjectPath_) / CompDBRelative)) {
     // project-root/build
     OrigCompDBPath = fs::path(Self->ProjectPath_) / CompDBRelative;
   } else if (fs::exists(Self->CDBPath_)) {
     // specific location
-    OrigCompDBPath = fs::path(Self->ProjectPath_) / "compile_commands.json";
+    OrigCompDBPath = fs::path(Self->CDBPath_);
   }
 
   if (!OrigCompDBPath.empty()) {
