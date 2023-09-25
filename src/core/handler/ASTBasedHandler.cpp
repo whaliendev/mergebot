@@ -1,7 +1,7 @@
 //
 // Created by whalien on 13/03/23.
 //
-#define MB_EXPORT_GRAPH
+// #define MB_EXPORT_GRAPH
 
 #ifdef MB_EXPORT_GRAPH
 #include "mergebot/core/semantic/graph_export.h"
@@ -13,6 +13,8 @@
 #include "mergebot/core/semantic/SourceCollectorV2.h"
 #include "mergebot/core/semantic/pretty_printer.h"
 #include "mergebot/filesystem.h"
+#include "mergebot/utils/fileio.h"
+#include "mergebot/utils/gitservice.h"
 #include "mergebot/utils/stringop.h"
 #include <clang/Tooling/CompilationDatabase.h>
 #include <clang/Tooling/JSONCompilationDatabase.h>
@@ -143,6 +145,7 @@ void ASTBasedHandler::resolveConflictFiles(
                IntermediateGraphsDir.string());
 #endif
 
+  // 3. do top-down, bottom-up match
   Start = tbb::tick_count::now();
   GraphMerger Merger(Meta, OurBuilder.graph(), BaseBuilder.graph(),
                      TheirBuilder.graph());
@@ -151,21 +154,49 @@ void ASTBasedHandler::resolveConflictFiles(
   spdlog::info("it takes {} ms to match three revision graphs",
                (End - Start).seconds() * 1000);
 
+  // 4. recursively merges matched TranslationUnits
   Start = tbb::tick_count::now();
-  Merger.threeWayMerge();
+  std::vector<std::string> MergedFiles = Merger.threeWayMerge();
   End = tbb::tick_count::now();
   spdlog::info("it takes {} ms to merge three revision graphs, merged sources "
                "destination: {}",
                (End - Start).seconds() * 1000, Merger.getMergedDir());
 
-  //  SemanticGraph &OurGraph = OurBuilder.graph();
-  //  auto verticesPair = boost::vertices(OurGraph);
-  //  for (auto It = verticesPair.first; It != verticesPair.second; ++It) {
-  //    if (OurGraph[*It]->NeedToMerge) {
-  //      PrettyPrintTU(OurBuilder.graph()[*It],
-  //                    fs::path(Meta.MSCacheDir) / "merged");
-  //    }
-  //  }
+  // 5. get diff hunks and serialize it
+  const std::string PatchesDir =
+      fs::path(Meta.MSCacheDir) / "resolutions" / "patches";
+  fs::create_directories(PatchesDir);
+  std::for_each(ConflictFiles.begin(), ConflictFiles.end(), [&](auto &CF) {
+    std::string MSCacheDir = Meta.MSCacheDir;
+    auto Relative = fs::relative(CF.Filename, Meta.ProjectPath);
+    const std::string DestPatchFile = fs::path(PatchesDir) / Relative;
+    fs::create_directories(fs::path(DestPatchFile).parent_path());
+
+    std::string MergedFile =
+        (fs::path(MSCacheDir) / "merged" / Relative).string();
+    if (!fs::exists(CF.Filename) || !fs::exists(MergedFile)) {
+      spdlog::warn("cannot find conflict file or merged file, skip diff hunks "
+                   "generation for file [{}]",
+                   CF.Filename);
+      return;
+    }
+
+    auto DiffHunks = util::get_git_diff_hunks(CF.Filename, MergedFile);
+
+    nlohmann::json DiffHunksJson = DiffHunks;
+    bool Success =
+        util::file_overwrite_content_sync(DestPatchFile, DiffHunksJson.dump(2));
+
+    //    std::for_each(DiffHunks.begin(), DiffHunks.end(), [&](auto &Hunk) {
+    //      spdlog::debug("hunk: start: {}, offset: {}, content: {}",
+    //      Hunk.start,
+    //                    Hunk.offset, Hunk.content);
+    //    });
+
+    if (!Success) {
+      spdlog::warn("fail to write diff hunks to file [{}]", DestPatchFile);
+    }
+  });
 }
 
 /**
