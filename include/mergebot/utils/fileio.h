@@ -69,6 +69,21 @@ static bool file_put_binary(Arr const &arr, std::string const &path) {
 }
 
 bool copy_file(const std::string &source, const std::string &destination);
+
+/// \brief Compute the offsets of each line in a file
+/// \param filename the file to compute the offsets for
+/// \return a vector of offsets, where the first element is the offset of the
+/// 0th line
+std::vector<size_t> compute_offsets(std::string_view filename);
+
+/// \brief Read a chunk of a file
+/// \param filename the file to read from
+/// \param start the offset of the first line to read
+/// \param offset the number of lines to read
+/// \param offsets the offsets of each line in the file
+/// \return the chunk of the file
+std::string read_file_chunk(std::string_view filename, size_t start,
+                            size_t offset, const std::vector<size_t> &offsets);
 }  // namespace util
 }  // namespace mergebot
 

@@ -186,6 +186,47 @@ static bool ends_with(const std::string_view& str, const std::string& suffix) {
   return str.compare(str.length() - suffix.length(), suffix.length(), suffix) ==
          0;
 }
+
+/// \brief check if two strings are equal, ignoring spaces
+/// \param old_str the old string
+/// \param new_str the new string
+/// \return true if two strings are equal, ignoring spaces
+inline bool diff_only_in_spaces(std::string_view old_str,
+                                std::string_view new_str) {
+  auto left1 = old_str.begin();
+  auto left2 = new_str.begin();
+  auto right1 = old_str.end();
+  auto right2 = new_str.end();
+
+  while (left1 <= right1 && left2 <= right2) {
+    while (left1 <= right1 && std::isspace(static_cast<unsigned char>(*left1)))
+      ++left1;
+    while (left2 <= right2 && std::isspace(static_cast<unsigned char>(*left2)))
+      ++left2;
+    while (left1 <= right1 && std::isspace(static_cast<unsigned char>(*right1)))
+      --right1;
+    while (left2 <= right2 && std::isspace(static_cast<unsigned char>(*right2)))
+      --right2;
+
+    if ((left1 <= right1 && left2 > right2) ||
+        (left1 > right1 && left2 <= right2)) {
+      return false;  // One string has non-whitespace characters while the other
+                     // doesn't
+    }
+
+    if (*left1 != *left2) {
+      return false;  // Mismatch found
+    }
+
+    if (left1 <= right1 && left2 <= right2) {
+      ++left1;
+      ++left2;
+    }
+  }
+
+  return true;
+}
+
 }  // namespace util
 }  // namespace mergebot
 #endif  // MB_STRINGOP_H

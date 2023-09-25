@@ -16,7 +16,9 @@
 #include <unordered_set>
 
 #include "mergebot/core/model/SimplifiedDiffDelta.h"
+#include "mergebot/core/model/enum/ConflictMark.h"
 #include "mergebot/filesystem.h"
+#include "mergebot/utils/fileio.h"
 
 namespace mergebot {
 namespace util {
@@ -106,7 +108,6 @@ int fill_diff_set(const git_diff_delta *delta, float progress, void *payload) {
   return 0;
 }
 
-// FIXME(hwa): memory leak
 int dump_tree_entry(const char *root, const git_tree_entry *entry,
                     void *payload) {
   DumpTreePayload dump_payload = *static_cast<DumpTreePayload *>(payload);
@@ -208,6 +209,60 @@ int dump_tree_entry(const char *root, const git_tree_entry *entry,
 
   return 0;
 }
+
+struct GetDiffHunkCBPayload {
+  std::string old_file_path;
+  std::string new_file_path;
+  std::vector<size_t> old_offsets;
+  std::vector<size_t> new_offsets;
+  std::vector<MBDiffHunk> *diff_hunks;
+};
+
+int get_diff_hunk_cb(const git_diff_delta *delta, const git_diff_hunk *hunk,
+                     void *payload) {
+  GetDiffHunkCBPayload *cb_payload =
+      static_cast<GetDiffHunkCBPayload *>(payload);
+  std::string old_file_chunk =
+      util::read_file_chunk(cb_payload->old_file_path, hunk->old_start,
+                            hunk->old_lines, cb_payload->old_offsets);
+  std::string new_file_chunk =
+      util::read_file_chunk(cb_payload->new_file_path, hunk->new_start,
+                            hunk->new_lines, cb_payload->new_offsets);
+
+  using magic_enum::enum_name;
+  using sa::ConflictMark;
+  auto starts_with_conflict_mark = [](std::string_view str) {
+    return util::starts_with(str, enum_name(ConflictMark::OURS)) ||
+           util::starts_with(str, enum_name(ConflictMark::THEIRS)) ||
+           util::starts_with(str, enum_name(ConflictMark::BASE)) ||
+           util::starts_with(str, enum_name(ConflictMark::END));
+  };
+
+  auto only_one_line = [](std::string_view str) {
+    return std::count(str.begin(), str.end(), '\n') == 1;
+  };
+
+  if (only_one_line(old_file_chunk) && only_one_line(new_file_chunk) &&
+      starts_with_conflict_mark(old_file_chunk) &&
+      starts_with_conflict_mark(new_file_chunk)) {
+    return 0;
+  }
+
+  bool diff_in_spaces =
+      util::diff_only_in_spaces(old_file_chunk, new_file_chunk);
+  if (diff_in_spaces) {
+    return 0;
+  }
+
+  MBDiffHunk diff_hunk = {.start = static_cast<size_t>(hunk->old_start),
+                          .offset = static_cast<size_t>(hunk->old_lines),
+                          .old_content = std::move(old_file_chunk),
+                          .new_content = std::move(new_file_chunk)};
+
+  cb_payload->diff_hunks->emplace_back(std::move(diff_hunk));
+  return 0;
+}
+
 }  // namespace detail
 
 std::unique_ptr<GitCommit> GitRepository::lookupCommit(
@@ -535,8 +590,9 @@ std::string git_merge_textual(const std::string &ours, const std::string &base,
                GIT_MERGE_FILE_DIFF_PATIENCE;
 
   git_merge_file_result result;
+  // FIXME(hwa): squirrel bug, why ours and theirs are swapped?
   int error =
-      git_merge_file(&result, &our_input, &base_input, &their_input, &opts);
+      git_merge_file(&result, &base_input, &their_input, &our_input, &opts);
   if (error < 0) {
     const git_error *e = git_error_last();
     spdlog::error("error to merge textual content {}/{}: {}", error, e->klass,
@@ -547,6 +603,59 @@ std::string git_merge_textual(const std::string &ours, const std::string &base,
   std::string merged_text(result.ptr, result.ptr + result.len);
   git_merge_file_result_free(&result);
   return merged_text;
+}
+
+std::vector<MBDiffHunk> get_git_diff_hunks(const std::string &old_path,
+                                           const std::string &new_path) {
+  if (!fs::exists(old_path) || !fs::is_regular_file(old_path)) {
+    spdlog::error("old path {} doesn't exist or is not a regular file",
+                  old_path);
+    return {};
+  }
+
+  if (!fs::exists(new_path) || !fs::is_regular_file(new_path)) {
+    spdlog::error("new path {} doesn't exist or is not a regular file",
+                  new_path);
+    return {};
+  }
+
+  std::vector<MBDiffHunk> diff_hunks;
+
+  std::string old_file_content = util::file_get_content(old_path);
+  std::string new_file_content = util::file_get_content(new_path);
+
+  std::vector<size_t> old_offsets = util::compute_offsets(old_path);
+  std::vector<size_t> new_offsets = util::compute_offsets(new_path);
+  if (old_offsets.empty() || new_offsets.empty()) {
+    spdlog::error("file {} or {} is empty", old_path, new_path);
+    return {};
+  }
+
+  detail::GetDiffHunkCBPayload payload = {.old_file_path = old_path,
+                                          .new_file_path = new_path,
+                                          .old_offsets = std::move(old_offsets),
+                                          .new_offsets = std::move(new_offsets),
+                                          .diff_hunks = &diff_hunks};
+
+  git_diff_options diff_opts = GIT_DIFF_OPTIONS_INIT;
+  diff_opts.flags = GIT_DIFF_IGNORE_BLANK_LINES | GIT_DIFF_IGNORE_WHITESPACE |
+                    GIT_DIFF_IGNORE_WHITESPACE_CHANGE |
+                    GIT_DIFF_IGNORE_WHITESPACE_EOL;
+  diff_opts.context_lines = 0;
+  diff_opts.interhunk_lines = 3;
+
+  int err = git_diff_buffers(
+      old_file_content.data(), old_file_content.size(), nullptr,
+      new_file_content.data(), new_file_content.size(), nullptr, &diff_opts,
+      nullptr, nullptr, detail::get_diff_hunk_cb, nullptr, &payload);
+  if (err < 0) {
+    const git_error *e = git_error_last();
+    spdlog::error("error to get diff hunks {}/{}: {}", err, e->klass,
+                  e->message);
+    return {};
+  }
+
+  return diff_hunks;
 }
 }  // namespace util
 }  // namespace mergebot

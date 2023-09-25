@@ -232,6 +232,17 @@ std::string git_merge_textual(const std::string& ours, const std::string& base,
                               const std::string& base_label = "ours",
                               const std::string& their_label = "theirs",
                               const std::string& our_label = "HEAD");
+
+struct MBDiffHunk {
+  size_t start;
+  size_t offset;
+  std::string old_content;
+  std::string new_content;
+};
+
+std::vector<MBDiffHunk> get_git_diff_hunks(const std::string& old_path,
+                                           const std::string& new_path);
+
 }  // namespace util
 }  // namespace mergebot
 

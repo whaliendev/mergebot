@@ -148,5 +148,58 @@ std::optional<std::string> file_get_content_sync(const std::string &path) {
   close(fd);
   return result;
 }
+
+std::vector<size_t> compute_offsets(std::string_view filename) {
+  FILE *file = fopen(filename.data(), "r");
+  if (file == nullptr) {
+    spdlog::error("failed to open file [{}]", filename);
+    return {};
+  }
+
+  std::vector<size_t> offsets;
+  const size_t BUFFER_SIZE = 4096;  // 4KB buffer
+  char buffer[BUFFER_SIZE];
+  long offset = 0;
+
+  size_t bytesRead;
+  offsets.push_back(0);
+  while ((bytesRead = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
+    for (size_t i = 0; i < bytesRead; i++) {
+      if (buffer[i] == '\n') {
+        offsets.push_back(offset + i + 1);  // +1 for next line location
+      }
+    }
+    offset += bytesRead;
+  }
+
+  fclose(file);
+  return offsets;
+}
+
+std::string read_file_chunk(std::string_view filename, size_t start,
+                            size_t offset, const std::vector<size_t> &offsets) {
+  FILE *file = fopen(filename.data(), "r");
+  if (file == nullptr) {
+    spdlog::error("failed to open file [{}]", filename);
+    return "";
+  }
+
+  assert(start >= 1);
+  std::stringstream ss;
+  if (start <= offsets.size()) {
+    if (fseek(file, offsets[start - 1], SEEK_SET) != 0) {
+      spdlog::error("fseek failed for file [{}]", filename);
+      fclose(file);
+      return "";
+    }
+    char line[4096];
+    for (size_t i = 0; i < offset && start + i <= offsets.size(); ++i) {
+      fgets(line, sizeof line, file);
+      ss << line;
+    }
+  }
+  fclose(file);
+  return ss.str();
+}
 }  // namespace util
 }  // namespace mergebot
