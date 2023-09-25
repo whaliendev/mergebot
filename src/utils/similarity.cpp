@@ -15,8 +15,8 @@ int levenshtein_distance(const std::string& s1, const std::string& s2) {
   std::vector<std::vector<int>> dp(s1.size() + 1,
                                    std::vector<int>(s2.size() + 1));
 
-  for (int i = 0; i <= s1.size(); ++i) {
-    for (int j = 0; j <= s2.size(); ++j) {
+  for (size_t i = 0; i <= s1.size(); ++i) {
+    for (size_t j = 0; j <= s2.size(); ++j) {
       if (i == 0) {
         dp[i][j] = j;
       } else if (j == 0) {
