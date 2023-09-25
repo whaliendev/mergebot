@@ -28,7 +28,7 @@ public:
 
   void threeWayMatch();
 
-  void threeWayMerge();
+  std::vector<std::string> threeWayMerge();
 
   std::string getMergedDir() const { return MergedDir; }
 

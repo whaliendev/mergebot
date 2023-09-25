@@ -69,7 +69,9 @@ void GraphMerger::threeWayMatch() {
                TheirMatching.OneOneMatching.size());
 }
 
-void GraphMerger::threeWayMerge() {
+std::vector<std::string> GraphMerger::threeWayMerge() {
+  std::vector<std::string> MergedFiles;
+  MergedFiles.reserve(Mappings.size());
   for (const auto &Mapping : Mappings) {
     assert(Mapping.BaseNode.has_value());
 #ifdef MB_MERGER_DEBUG
@@ -78,12 +80,13 @@ void GraphMerger::threeWayMerge() {
       std::shared_ptr<SemanticNode> BaseNodePtr = Mapping.BaseNode.value();
       mergeSemanticNode(BaseNodePtr);
       if (BaseNodePtr) {
-        PrettyPrintTU(BaseNodePtr, MergedDir);
+        MergedFiles.emplace_back(PrettyPrintTU(BaseNodePtr, MergedDir));
       }
 #ifdef MB_MERGER_DEBUG
     }
 #endif
   }
+  return MergedFiles;
 }
 
 void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
@@ -141,7 +144,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
             BaseFuncPtr->BeforeFuncName = mergeText(
                 OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
                 TheirFuncPtr->BeforeFuncName);
-            BaseFuncPtr->ParameterList = mergeListTextually(
+            BaseFuncPtr->ParameterList = mergeStrVecByUnion(
                 OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
                 TheirFuncPtr->ParameterList);
             BaseFuncPtr->AfterParameterList = mergeText(
@@ -173,11 +176,11 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
             BaseFuncPtr->BeforeFuncName = mergeText(
                 OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
                 TheirFuncPtr->BeforeFuncName);
-            BaseFuncPtr->ParameterList = mergeListTextually(
+            BaseFuncPtr->ParameterList = mergeStrVecByUnion(
                 OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
                 TheirFuncPtr->ParameterList);
             BaseFuncPtr->InitList =
-                mergeListTextually(OurFuncPtr->InitList, BaseFuncPtr->InitList,
+                mergeStrVecByUnion(OurFuncPtr->InitList, BaseFuncPtr->InitList,
                                    TheirFuncPtr->InitList);
           } else if (llvm::isa<FuncOperatorCastNode>(BaseNode.get())) {
             // 3. func operator cast, the same as func def node
@@ -194,7 +197,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
             BaseFuncPtr->BeforeFuncName = mergeText(
                 OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
                 TheirFuncPtr->BeforeFuncName);
-            BaseFuncPtr->ParameterList = mergeListTextually(
+            BaseFuncPtr->ParameterList = mergeStrVecByUnion(
                 OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
                 TheirFuncPtr->ParameterList);
             BaseFuncPtr->AfterParameterList = mergeText(
@@ -224,7 +227,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
           BaseTU->TraditionGuard = TheirTU->TraditionGuard;
           BaseTU->HeaderGuard = TheirTU->HeaderGuard;
           // merge front decls
-          BaseTU->FrontDecls = mergeListTextually(
+          BaseTU->FrontDecls = mergeStrVecByUnion(
               OurTU->FrontDecls, BaseTU->FrontDecls, TheirTU->FrontDecls);
         }
       }
