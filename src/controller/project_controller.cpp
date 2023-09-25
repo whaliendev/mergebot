@@ -73,6 +73,7 @@ bool writeConflictFiles(const fs::path& msCacheDir,
 }
 
 void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
+               const std::string& compile_db_path,
                std::vector<std::string>& conflicts,
                [[maybe_unused]] crow::response& res) {
   const std::string cacheDirCheckSum = utils::calcProjChecksum(project, path);
@@ -143,9 +144,9 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
 
   // construct ResolutionManager, enable shared from this
   std::shared_ptr<sa::ResolutionManager> resolutionManager =
-      std::make_shared<sa::ResolutionManager>(std::move(project),
-                                              std::move(path), std::move(ms),
-                                              std::move(conflictFiles));
+      std::make_shared<sa::ResolutionManager>(
+          std::move(project), std::move(path), std::move(ms), compile_db_path,
+          std::move(conflictFiles));
   try {
     // call its async doResolution method to do resolution
     resolutionManager->doResolution();
@@ -336,6 +337,7 @@ bool checkAndAddMSMetadata(const std::string& project, const std::string& path,
 
 void handleMergeScenario(const std::string& project, const std::string& path,
                          sa::MergeScenario& ms,
+                         const std::string& compile_db_path,
                          std::vector<std::string>& conflicts,
                          crow::response& res) {
   const std::string cacheDirCheckSum = utils::calcProjChecksum(project, path);
@@ -358,7 +360,7 @@ void handleMergeScenario(const std::string& project, const std::string& path,
     }
   }
 
-  goResolve(project, path, ms, conflicts, res);
+  goResolve(project, path, ms, compile_db_path, conflicts, res);
 }
 
 crow::json::wvalue doPostMergeScenario(const crow::request& req,
@@ -387,11 +389,25 @@ crow::json::wvalue doPostMergeScenario(const crow::request& req,
 
   sa::MergeScenario ms(ours, theirs, base);
 
+  // 09/25/23: add `compile_db_path` field to ms api
+  std::string compile_db_path =
+      body.has("compile_db_path")
+          ? static_cast<std::string>(body["compile_db_path"])
+          : "";
+  if (!compile_db_path.empty() && !fs::exists(compile_db_path)) {
+    spdlog::error("compile db path [{}] passed in, but doesn't exist",
+                  compile_db_path);
+    throw AppBaseException(
+        "C1000", fmt::format("传入的 compile_commands.json 文件[{}]不存在",
+                             compile_db_path));
+  }
+
   // 07/20/23: add `files` field to ms api
   std::vector<std::string> conflicts;
   utils::checkFilesField(body, conflicts, ms, path);
 
-  internal::handleMergeScenario(project, path, ms, conflicts, res);
+  internal::handleMergeScenario(project, path, ms, compile_db_path, conflicts,
+                                res);
   // default construct a crow::json::wvalue to indicate return successfully
   return {};
 }

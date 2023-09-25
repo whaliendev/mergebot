@@ -25,9 +25,9 @@ class ResolutionManager
 public:
   friend class HandlerChain;
   ResolutionManager(std::string &&Project_, std::string &&ProjectPath_,
-                    sa::MergeScenario &&MS_,
+                    sa::MergeScenario &&MS_, const std::string &CDBPath,
                     std::unique_ptr<std::vector<std::string>> &&ConflictFiles_)
-      : Project_(std::move(Project_)), MS_(std::move(MS_)),
+      : Project_(std::move(Project_)), MS_(std::move(MS_)), CDBPath_(CDBPath),
         ConflictFiles_(std::move(ConflictFiles_)), CurrIdx_(0) {
     if (!ProjectPath_.empty() && ProjectPath_[ProjectPath_.size() - 1] !=
                                      fs::path::preferred_separator) {
@@ -98,6 +98,8 @@ private:
   std::string ProjectPath_; // original project path, like
                             // /home/whalien/Desktop/frameworks_av
   MergeScenario MS_;        // Merge Scenario we're handling
+
+  std::string CDBPath_;
 
   // conflict files list, use [`ConflictFiles_.get()`, `ConflictFiles_.get() +
   // FileNum_`) to iterate over the files

@@ -20,6 +20,7 @@ struct ProjectMeta {
   std::string ProjectPath;
   std::string ProjectCacheDir;
   MergeScenario MS;
+  std::string CDBPath;
   std::string MSCacheDir;
 
   std::string toString() const {

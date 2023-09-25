@@ -149,7 +149,6 @@ void ResolutionManager::_doResolutionAsync(
   }
 
   // copy c/cpp related conflict files
-  // FIXME(hwa): avoid file name collision
   const fs::path ConflictDest =
       fs::path(Self->mergeScenarioPath()) / "conflicts" / "";
   std::vector<std::string> CSources = Self->_extractCppSources();
@@ -222,6 +221,7 @@ void ResolutionManager::_doResolutionAsync(
       .ProjectPath = Self->ProjectPath_,
       .ProjectCacheDir = Self->projectCacheDir(),
       .MS = Self->MS_,
+      .CDBPath = Self->CDBPath_,
       .MSCacheDir = Self->mergeScenarioPath(),
   };
   std::vector<std::unique_ptr<SAHandler>> Handlers;
@@ -256,17 +256,33 @@ void ResolutionManager::prepareSource(
   // Generate CompDB.
   // At this stage, we simply move the 3 compile_commands to merge scenario dir
   // and do a textual replacement
-  const fs::path OrigCompDBPath = fs::path(Self->ProjectPath_) / CompDBRelative;
-  if (fs::exists(OrigCompDBPath)) {
-    const fs::path CurCompDBPath = fs::path(SourceDest) / CompDBRelative;
-    bool copied = util::copy_file(OrigCompDBPath, CurCompDBPath);
-    if (copied) {
-      bool fineTuned =
-          fineTuneCompDB(CurCompDBPath, SourceDest, Self->ProjectPath_);
-      if (fineTuned) {
-        spdlog::info("CompDB fine tuned, written to {}",
-                     CurCompDBPath.string());
-      }
+  bool copied = false;
+  const fs::path DestCDBPath = fs::path(SourceDest) / CompDBRelative;
+  fs::path OrigCompDBPath;
+  // project-root
+  if (fs::exists(fs::path(Self->ProjectPath_) / "compile_commands.json")) {
+    OrigCompDBPath = fs::path(Self->CDBPath_);
+  } else if (fs::exists(fs::path(Self->ProjectPath_) / CompDBRelative)) {
+    // project-root/build
+    OrigCompDBPath = fs::path(Self->ProjectPath_) / CompDBRelative;
+  } else if (fs::exists(Self->CDBPath_)) {
+    // specific location
+    OrigCompDBPath = fs::path(Self->ProjectPath_) / "compile_commands.json";
+  }
+
+  if (!OrigCompDBPath.empty()) {
+    spdlog::info("using compile_commands.json found at {}",
+                 OrigCompDBPath.string());
+    copied = util::copy_file(OrigCompDBPath, DestCDBPath);
+  } else {
+    spdlog::warn("no valid compile_commands.json found");
+  }
+
+  if (copied) {
+    bool fineTuned =
+        fineTuneCompDB(DestCDBPath, SourceDest, Self->ProjectPath_);
+    if (fineTuned) {
+      spdlog::info("CompDB fine tuned, written to {}", DestCDBPath.string());
     }
   }
 }
