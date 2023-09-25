@@ -3,6 +3,7 @@
 //
 
 #include "mergebot/core/semantic/GraphMerger.h"
+#include "mergebot/core/model/enum/ConflictMark.h"
 #include "mergebot/core/model/enum/Side.h"
 #include "mergebot/core/model/node/FieldDeclarationNode.h"
 #include "mergebot/core/model/node/FuncDefNode.h"
@@ -140,7 +141,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
             BaseFuncPtr->BeforeFuncName = mergeText(
                 OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
                 TheirFuncPtr->BeforeFuncName);
-            BaseFuncPtr->ParameterList = mergeStrVecByUnion(
+            BaseFuncPtr->ParameterList = mergeListTextually(
                 OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
                 TheirFuncPtr->ParameterList);
             BaseFuncPtr->AfterParameterList = mergeText(
@@ -172,11 +173,11 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
             BaseFuncPtr->BeforeFuncName = mergeText(
                 OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
                 TheirFuncPtr->BeforeFuncName);
-            BaseFuncPtr->ParameterList = mergeStrVecByUnion(
+            BaseFuncPtr->ParameterList = mergeListTextually(
                 OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
                 TheirFuncPtr->ParameterList);
             BaseFuncPtr->InitList =
-                mergeStrVecByUnion(OurFuncPtr->InitList, BaseFuncPtr->InitList,
+                mergeListTextually(OurFuncPtr->InitList, BaseFuncPtr->InitList,
                                    TheirFuncPtr->InitList);
           } else if (llvm::isa<FuncOperatorCastNode>(BaseNode.get())) {
             // 3. func operator cast, the same as func def node
@@ -193,7 +194,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
             BaseFuncPtr->BeforeFuncName = mergeText(
                 OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
                 TheirFuncPtr->BeforeFuncName);
-            BaseFuncPtr->ParameterList = mergeStrVecByUnion(
+            BaseFuncPtr->ParameterList = mergeListTextually(
                 OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
                 TheirFuncPtr->ParameterList);
             BaseFuncPtr->AfterParameterList = mergeText(
@@ -223,7 +224,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
           BaseTU->TraditionGuard = TheirTU->TraditionGuard;
           BaseTU->HeaderGuard = TheirTU->HeaderGuard;
           // merge front decls
-          BaseTU->FrontDecls = mergeStrVecByUnion(
+          BaseTU->FrontDecls = mergeListTextually(
               OurTU->FrontDecls, BaseTU->FrontDecls, TheirTU->FrontDecls);
         }
       }
@@ -254,7 +255,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
     }
   } else {
     // base node exists, any one side doesn't exist, delete it
-    spdlog::debug("BaseChild deleted: {}", BaseNode->OriginalSignature);
+    //    spdlog::debug("BaseChild deleted: {}", BaseNode->OriginalSignature);
     BaseNode = nullptr;
   }
 }
@@ -365,21 +366,20 @@ void GraphMerger::threeWayMergeChildren(
   BaseChildren.erase(std::remove_if(BaseChildren.begin(), BaseChildren.end(),
                                     [](const auto &Node) { return !Node; }),
                      BaseChildren.end());
-  // TODO(hwa): what if two nodes are from different side however are the same?
-  // remove duplicate elements appear in our and their graph,
-  // while not appear before in the base graph
-  //  std::unordered_set<std::string> Seen;
-  //  size_t i = 0;
-  //  while (i < BaseChildren.size()) {
-  //    auto &Node = BaseChildren[i];
-  //    if (Seen.find(Node->QualifiedName) != Seen.end()) {
-  //      std::swap(BaseChildren[i], BaseChildren[BaseChildren.size() - 1]);
-  //      BaseChildren.pop_back();
-  //    } else {
-  //      Seen.insert(Node->QualifiedName);
-  //      ++i;
-  //    }
-  //  }
+
+  //   remove duplicate elements appear in our and their graph,
+  //   while not appear before in the base graph
+  std::unordered_set<size_t> SeenHashes;
+  auto it = std::remove_if(BaseChildren.begin(), BaseChildren.end(),
+                           [&](const auto &Item) {
+                             size_t Hash = Item->hashSignature();
+                             if (SeenHashes.find(Hash) != SeenHashes.end()) {
+                               return true;
+                             }
+                             SeenHashes.insert(Hash);
+                             return false;
+                           });
+  BaseChildren.erase(it, BaseChildren.end());
 }
 
 std::vector<std::shared_ptr<SemanticNode>> GraphMerger::directMergeChildren(
@@ -594,6 +594,17 @@ std::vector<std::string> GraphMerger::mergeListTextually(
   std::vector<std::string_view> Splitted =
       util::string_split(MergedString, "\n");
   for (const auto sv : Splitted) {
+    if (sv.find(magic_enum::enum_name(ConflictMark::OURS)) !=
+            std::string_view::npos ||
+        sv.find(magic_enum::enum_name(ConflictMark::BASE)) !=
+            std::string_view::npos ||
+        sv.find(magic_enum::enum_name(ConflictMark::THEIRS)) !=
+            std::string_view::npos ||
+        sv.find(magic_enum::enum_name(ConflictMark::END)) !=
+            std::string_view::npos) {
+      out.emplace_back("\n" + std::string(sv));
+      continue;
+    }
     out.emplace_back(std::string(sv));
   }
   return out;
