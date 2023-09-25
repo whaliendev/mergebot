@@ -47,6 +47,23 @@ crow::json::wvalue getFileResolution(const std::string& project,
   }
   data["file"] = fileNormalized;
 
+  auto string_spilt = [&](const std::string& str, const std::string& delims,
+                          bool with_empty = false) {
+    std::vector<std::string> output;
+
+    for (auto first = str.data(), second = str.data(),
+              last = first + str.size();
+         second != last && first != last; first = second + 1) {
+      second = std::find_first_of(first, last, std::cbegin(delims),
+                                  std::cend(delims));
+
+      if (first != second || with_empty) {
+        output.emplace_back(first, second - first);
+      }
+    }
+    return output;
+  };
+
   std::vector<crow::json::wvalue> resolutionList;
   std::string fileName = sa::pathToName(fileNormalized);
   const fs::path resolutionFile = msCacheDir / "resolutions" / fileName;
@@ -64,24 +81,12 @@ crow::json::wvalue getFileResolution(const std::string& project,
       fclose(file_ptr);
     } else {
       json frrJSON = json::parse(file_ptr);
+
+      mergebot::utils::unlockFD(resolutionFile.c_str(), fd, lck);
+      fclose(file_ptr);
+
       FileResolutionResult frr = frrJSON;
 
-      auto string_spilt = [&](const std::string& str, const std::string& delims,
-                              bool with_empty = false) {
-        std::vector<std::string> output;
-
-        for (auto first = str.data(), second = str.data(),
-                  last = first + str.size();
-             second != last && first != last; first = second + 1) {
-          second = std::find_first_of(first, last, std::cbegin(delims),
-                                      std::cend(delims));
-
-          if (first != second || with_empty) {
-            output.emplace_back(first, second - first);
-          }
-        }
-        return output;
-      };
       std::for_each(frr.resolutions.begin(), frr.resolutions.end(),
                     [&](const auto& block) {
                       crow::json::wvalue resBlock;
@@ -92,12 +97,44 @@ crow::json::wvalue getFileResolution(const std::string& project,
                       resBlock["confidence"] = 0.7;
                       resolutionList.push_back(std::move(resBlock));
                     });
-      mergebot::utils::unlockFD(resolutionFile.c_str(), fd, lck);
-      fclose(file_ptr);
     }
   }
 
   data["resolutions"] = std::move(resolutionList);
+
+  std::vector<crow::json::wvalue> patchesList;
+  const std::string patch_dest =
+      fs::path(msCacheDir) / "resolutions" / "patches" / fileNormalized;
+  if (fs::exists(patch_dest)) {
+    auto [fd, lck] = mergebot::utils::lockRDFD(patch_dest.c_str());
+    if (fd == -1) {
+      spdlog::error("fail to open file [{}] to read resolution results",
+                    patch_dest.c_str());
+    }
+    FILE* file_ptr = fdopen(fd, "r");
+    if (!file_ptr) {
+      spdlog::error("fail to convert fd to FILE* object, reason: {}",
+                    strerror(errno));
+      mergebot::utils::unlockFD(patch_dest.c_str(), fd, lck);
+      fclose(file_ptr);
+    } else {
+      json patchJSON = json::parse(file_ptr);
+
+      mergebot::utils::unlockFD(patch_dest.c_str(), fd, lck);
+      fclose(file_ptr);
+
+      std::vector<util::MBDiffHunk> diffHunks = patchJSON;
+      std::for_each(diffHunks.begin(), diffHunks.end(), [&](auto& hunk) {
+        crow::json::wvalue patch;
+        patch["start"] = hunk.start;
+        patch["offset"] = hunk.offset;
+        patch["content"] = string_spilt(hunk.content, "\n", true);
+        patchesList.push_back(std::move(patch));
+      });
+    }
+  }
+
+  data["patches"] = std::move(patchesList);
 
   return data;
 }

@@ -237,8 +237,11 @@ struct MBDiffHunk {
   size_t start;
   size_t offset;
   std::string old_content;
-  std::string new_content;
+  std::string content;  // for json serialization and deserialization
 };
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(MBDiffHunk, start, offset,
+                                                content);
 
 std::vector<MBDiffHunk> get_git_diff_hunks(const std::string& old_path,
                                            const std::string& new_path);

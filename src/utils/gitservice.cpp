@@ -257,7 +257,7 @@ int get_diff_hunk_cb(const git_diff_delta *delta, const git_diff_hunk *hunk,
   MBDiffHunk diff_hunk = {.start = static_cast<size_t>(hunk->old_start),
                           .offset = static_cast<size_t>(hunk->old_lines),
                           .old_content = std::move(old_file_chunk),
-                          .new_content = std::move(new_file_chunk)};
+                          .content = std::move(new_file_chunk)};
 
   cb_payload->diff_hunks->emplace_back(std::move(diff_hunk));
   return 0;
