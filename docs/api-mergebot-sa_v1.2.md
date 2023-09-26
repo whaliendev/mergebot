@@ -158,12 +158,13 @@ post 请求会改变设置字段的值，未设置字段的值依然为默认值
 
 **请求参数：**
 
-| 字段                             | 类型                                                                 | 说明                                                                                    |                                                           |
-|--------------------------------|--------------------------------------------------------------------|---------------------------------------------------------------------------------------|-----------------------------------------------------------|
-| project                        | string, 可选项                                                        | 项目名称                                                                                  |                                                           |
-| <font color="red">*</font>path | string, 必选项                                                        | 表示项目在宿主机器上的绝对路径                                                                       |                                                           |
-| <font color="red">*</font>ms   | object, 必选项，格式为`{"ours": "v3.0~146^2~62", "theirs": "2.8.fb~148"}` | 表示合并场景，其中的 ours 和 theirs 分别表示两个 commit 结点的 revision name（可以为长哈希、唯一确定提交对象的短哈希、分支名、标签名） |                                                           |
-| files                          | list of string, 可选项。                                               | 如果不传，则表示有sa服务自行检查项目仓库下的冲突文件；若传值，则表示该合并场景下的所有冲突文件。可以为绝对路径，也可以为相对路径。                    | Debug构建的sa服务会检查列表中的第一个文件是绝对路径还是相对路径，以及是否存在于宿主机上。如果不合法会拒绝。 |
+| 字段                                                 | 类型                                                         | 说明                                                         |                                                              |
+| ---------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| project                                              | string, 可选项                                               | 项目名称                                                     |                                                              |
+| <font color="red">*</font>path                       | string, 必选项                                               | 表示项目在宿主机器上的绝对路径                               |                                                              |
+| <font color="red">*</font>ms                         | object, 必选项，格式为`{"ours": "v3.0~146^2~62", "theirs": "2.8.fb~148"}` | 表示合并场景，其中的 ours 和 theirs 分别表示两个 commit 结点的 revision name（可以为长哈希、唯一确定提交对象的短哈希、分支名、标签名） |                                                              |
+| <font color="red">v1.2新增字段</font>compile_db_path | string, 可选项                                               | 表示提高算法精确度的compile_commands.json的位置              | 如果传入会校验文件的存在性。<br />如果不传入算法会自动搜索项目根目录和项目根目录的build目录下。<br />如果未找到，算法会自动跳过基于图算法的分析。 |
+| files                                                | list of string, 可选项。                                     | 如果不传，则表示有sa服务自行检查项目仓库下的冲突文件；若传值，则表示该合并场景下的所有冲突文件。可以为绝对路径，也可以为相对路径。 | Debug构建的sa服务会检查列表中的第一个文件是绝对路径还是相对路径，以及是否存在于宿主机上。如果不合法会拒绝。 |
 
 以上选项在服务端均会校验其存在性与有效性。
 
@@ -236,6 +237,8 @@ post 请求会改变设置字段的值，未设置字段的值依然为默认值
 
 以上选项在服务端均会校验其存在性与有效性。
 
+<font color="red">v1.2新增：resolve api会在"data"字段中多返回一个patches数组，表示更准确的，针对文件的解决方案patch。其中start, offset, content分别表示需要把冲突文件中的从start (1-based)开始的offset行，替换为content的内容</font>
+
 **请求示例：**
 
 ```json
@@ -255,209 +258,180 @@ post 请求会改变设置字段的值，未设置字段的值依然为默认值
 
 ```json
 {
-  "code": "00000",
-  "msg": "",
-  "data": {
-    "pending": false,
-    "projectPath": "/home/whalien/Desktop/frameworks_av",
-    "error": null,
-    "file": "services/oboeservice/AAudioService.cpp",
-    "resolutions": [
-      {
-        "code": [
-          "aaudio_result_t AAudioService::closeStream(sp<AAudioServiceStreamBase> serviceStream) {"
+    "code": "00000",
+    "msg": "",
+    "data": {
+        "pending": false,
+        "projectPath": "/home/whalien/Desktop/rocksdb",
+        "file": "util/env.cc",
+        "resolutions": [
+            {
+                "code": [
+                    "EnvOptions::EnvOptions(const DBOptions& options) {",
+                    "",
+                    "EnvOptions EnvOptions::AdaptForLogWrite() const {",
+                    "  EnvOptions adapted = *this;",
+                    "  adapted.use_mmap_writes = false;",
+                    "  return adapted;",
+                    "}",
+                    "",
+                    "EnvOptions::EnvOptions(const Options& options) {"
+                ],
+                "label": "",
+                "index": 0,
+                "confidence": 0.7,
+                "desc": "新增功能，列表合并"
+            }
         ],
-        "label": "",
-        "index": 0,
-        "confidence": 0.7,
-        "desc": "新增代码或方法抽取，接受our side"
-      }
-    ]
-  }
+        "patches": [
+            {
+                "content": [],
+                "offset": 5,
+                "start": 240
+            },
+            {
+                "start": 251,
+                "offset": 2,
+                "content": [
+                    "EnvOptions::EnvOptions(const DBOptions& options) {"
+                ]
+            }
+        ]
+    }
 }
 ```
 
 **注意：响应中有个`pending`字段，为`true`
 时表示算法依然在处理，也就是需要加一个定时器来轮询结果。当pending为`false`
-时，表示算法已处理完，即使resolutions列表为空，算法也已处理结束。**
+时，表示算法已处理完，即使resolutions列表为空，算法也已处理结束。**（一般在ms endpoint调用完15s后resolve api会结束所有分析）
 
 一个更详细的成功示例：
 
 ```json
 {
-  "code": "00000",
-  "msg": "",
-  "data": {
-    "pending": false,
-    "projectPath": "/home/whalien/Desktop/rocksdb",
-    "error": null,
-    "file": "db/db_impl.cc",
-    "resolutions": [
-      {
-        "desc": "头文件修改, 列表合并",
-        "confidence": 0.7,
-        "index": 0,
-        "label": "",
-        "code": [
-          "#include \"rocksdb/cache.h\"",
-          "",
-          "#include \"port/likely.h\""
-        ]
-      },
-      {
-        "code": [
-          "  if (flush_on_destroy_ && mem_->GetFirstSequenceNumber() != 0) {",
-          "    FlushMemTable(FlushOptions());",
-          "  }",
-          ""
+    "code": "00000",
+    "msg": "",
+    "data": {
+        "pending": false,
+        "projectPath": "/home/whalien/Desktop/frameworks_av",
+        "file": "services/oboeservice/AAudioServiceStreamBase.h",
+        "resolutions": [
+            {
+                "code": [
+                    "    // We log the CLOSE from the close() method. We needed this separate method to log the OPEN",
+                    "    // because we had to wait until we generated the handle.",
+                    "    void logOpen(aaudio_handle_t streamHandle);",
+                    "",
+                    "    aaudio_result_t close();"
+                ],
+                "label": "",
+                "index": 0,
+                "confidence": 0.7,
+                "desc": "集合包含，接受our side"
+            }
         ],
-        "label": "",
-        "index": 3,
-        "confidence": 0.7,
-        "desc": "新增代码或方法抽取，接受their side"
-      },
-      {
-        "desc": "新增代码或方法抽取，接受their side",
-        "confidence": 0.7,
-        "index": 4,
-        "label": "",
-        "code": [
-          "  mutex_.Unlock();",
-          "",
-          "  // Release SuperVersion reference kept in ThreadLocalPtr.",
-          "  // This must be done outside of mutex_ since unref handler can lock mutex.",
-          "  // It also needs to be done after FlushMemTable, which can trigger local_sv_",
-          "  // access.",
-          "  delete local_sv_;",
-          "",
-          "  mutex_.Lock();",
-          "  if (options_.allow_thread_local) {",
-          "    // Clean up obsolete files due to SuperVersion release.",
-          "    // (1) Need to delete to obsolete files before closing because RepairDB()",
-          "    // scans all existing files in the file system and builds manifest file.",
-          "    // Keeping obsolete files confuses the repair process.",
-          "    // (2) Need to check if we Open()/Recover() the DB successfully before",
-          "    // deleting because if VersionSet recover fails (may be due to corrupted",
-          "    // manifest file), it is not able to identify live files correctly. As a",
-          "    // result, all \"live\" files can get deleted by accident. However, corrupted",
-          "    // manifest is recoverable by RepairDB().",
-          "    if (opened_successfully_) {",
-          "      DeletionState deletion_state;",
-          "      FindObsoleteFiles(deletion_state, true);",
-          "      // manifest number starting from 2",
-          "      deletion_state.manifest_file_number = 1;",
-          "      PurgeObsoleteFiles(deletion_state);",
-          "    }",
-          "  }",
-          "",
-          "  if (super_version_ != nullptr) {",
-          "    bool is_last_reference __attribute__((unused));",
-          "    is_last_reference = super_version_->Unref();",
-          "    assert(is_last_reference);",
-          "    super_version_->Cleanup();",
-          "    delete super_version_;",
-          "  }"
+        "patches": [
+            {
+                "start": 50,
+                "offset": 7,
+                "content": [
+                    " * It uses a subclass of AAudioServiceEndpoint to communicate with the",
+                    " * underlying device or port.",
+                    " */",
+                    "class AAudioServiceStreamBase : public virtual android::RefBase,",
+                    "                                public AAudioStreamParameters,",
+                    "                                public Runnable {"
+                ]
+            },
+            {
+                "content": [
+                    "  // We log the CLOSE from the close() method. We needed this separate method to",
+                    "  // log the OPEN because we had to wait until we generated the handle.",
+                    "  void logOpen(aaudio_handle_t streamHandle);",
+                    "",
+                    "  aaudio_result_t close();"
+                ],
+                "offset": 11,
+                "start": 76
+            },
+            {
+                "start": 118,
+                "offset": 1,
+                "content": []
+            },
+            {
+                "start": 123,
+                "offset": 17,
+                "content": [
+                    "                                      audio_port_handle_t *clientHandle",
+                    "                                          __unused) {",
+                    "    ALOGD(",
+                    "        \"AAudioServiceStreamBase::startClient(%p, ...) \"",
+                    "        \"AAUDIO_ERROR_UNAVAILABLE\",",
+                    "        &client);",
+                    "    return AAUDIO_ERROR_UNAVAILABLE;",
+                    "  }",
+                    "",
+                    "  virtual aaudio_result_t stopClient(",
+                    "      audio_port_handle_t clientHandle __unused) {",
+                    "    ALOGD(\"AAudioServiceStreamBase::stopClient(%d) AAUDIO_ERROR_UNAVAILABLE\",",
+                    "          clientHandle);"
+                ]
+            },
+            {
+                "content": [
+                    "  void setSuspended(bool suspended) { mSuspended = suspended; }",
+                    "",
+                    "  bool isSuspended() const { return mSuspended; }",
+                    "",
+                    "  /**",
+                    "   * Atomically increment the number of active references to the stream by",
+                    "   * AAudioService."
+                ],
+                "offset": 10,
+                "start": 220
+            },
+            {
+                "content": [
+                    "   * Atomically decrement the number of active references to the stream by",
+                    "   * AAudioService. This should only be called after",
+                    "   * incrementServiceReferenceCount_l()."
+                ],
+                "offset": 2,
+                "start": 238
+            },
+            {
+                "content": [
+                    "  // This is used by one thread to tell another thread to exit. So it must be",
+                    "  // atomic."
+                ],
+                "offset": 1,
+                "start": 312
+            },
+            {
+                "content": [
+                    "                                     // TODO rename mClientHandle to mPortHandle",
+                    "                                     // to be more consistent with AudioFlinger."
+                ],
+                "offset": 1,
+                "start": 317
+            },
+            {
+                "start": 358,
+                "offset": 10,
+                "content": [
+                    "  // This indicates that a stream that is being referenced by a binder call",
+                    "  // needs to closed.",
+                    "  std::atomic<bool> mCloseNeeded{false};",
+                    "",
+                    "  // This indicate that a running stream should not be processed because of an",
+                    "  // error, for example a full message queue. Note that this atomic is unrelated",
+                    "  // to mCloseNeeded.",
+                    "  std::atomic<bool> mSuspended{false};"
+                ]
+            }
         ]
-      },
-      {
-        "desc": "新增功能，列表合并",
-        "confidence": 0.7,
-        "index": 7,
-        "label": "",
-        "code": [
-          "// new SuperVersion() inside of the mutex. We do similar thing",
-          "void DBImpl::InstallSuperVersion(ColumnFamilyData* cfd,",
-          "                                 DeletionState& deletion_state) {",
-          "",
-          "// new SuperVersion() inside of the mutex.",
-          "void DBImpl::InstallSuperVersion(DeletionState& deletion_state) {"
-        ]
-      },
-      {
-        "code": [
-          "DBImpl::SuperVersion* DBImpl::InstallSuperVersion(",
-          "    SuperVersion* new_superversion) {",
-          "  mutex_.AssertHeld();",
-          "  new_superversion->Init(mem_, imm_.current(), versions_->current());",
-          "  SuperVersion* old_superversion = super_version_;",
-          "  super_version_ = new_superversion;",
-          "  super_version_->db = this;",
-          "  ++super_version_number_;",
-          "  super_version_->version_number = super_version_number_;",
-          "",
-          "  if (old_superversion != nullptr && old_superversion->Unref()) {",
-          "    old_superversion->Cleanup();",
-          "    return old_superversion; // will let caller delete outside of mutex",
-          "  }",
-          "  return nullptr;",
-          "}",
-          "",
-          "void DBImpl::ResetThreadLocalSuperVersions(DeletionState* deletion_state) {",
-          "  mutex_.AssertHeld();",
-          "  autovector<void*> sv_ptrs;",
-          "  local_sv_->Scrape(&sv_ptrs);",
-          "  for (auto ptr : sv_ptrs) {",
-          "    assert(ptr);",
-          "    auto sv = static_cast<SuperVersion*>(ptr);",
-          "    if (static_cast<SuperVersion*>(ptr)->Unref()) {",
-          "      sv->Cleanup();",
-          "      deletion_state->superversions_to_free.push_back(sv);",
-          "    }",
-          "  }",
-          "}",
-          ""
-        ],
-        "label": "",
-        "index": 8,
-        "confidence": 0.7,
-        "desc": "新增代码或方法抽取，接受their side"
-      },
-      {
-        "code": [
-          "  // Acquire SuperVersion",
-          "  SuperVersion* sv = nullptr;",
-          "  if (LIKELY(options_.allow_thread_local)) {",
-          "    // The SuperVersion is cached in thread local storage to avoid acquiring",
-          "    // mutex when SuperVersion does not change since the last use. When a new",
-          "    // SuperVersion is installed, the compaction or flush thread cleans up",
-          "    // cached SuperVersion in all existing thread local storage. To avoid",
-          "    // acquiring mutex for this operation, we use atomic Swap() on the thread",
-          "    // local pointer to guarantee exclusive access. If the thread local pointer",
-          "    // is being used while a new SuperVersion is installed, the cached",
-          "    // SuperVersion can become stale. It will eventually get refreshed either",
-          "    // on the next GetImpl() call or next SuperVersion installation.",
-          "    sv = static_cast<SuperVersion*>(local_sv_->Swap(nullptr));",
-          "    if (!sv || sv->version_number !=",
-          "               super_version_number_.load(std::memory_order_relaxed)) {",
-          "      RecordTick(options_.statistics.get(), NUMBER_SUPERVERSION_UPDATES);",
-          "      SuperVersion* sv_to_delete = nullptr;",
-          "",
-          "      if (sv && sv->Unref()) {",
-          "        mutex_.Lock();",
-          "        sv->Cleanup();",
-          "        sv_to_delete = sv;",
-          "      } else {",
-          "        mutex_.Lock();",
-          "      }",
-          "      sv = super_version_->Ref();",
-          "      mutex_.Unlock();",
-          "",
-          "      delete sv_to_delete;",
-          "    }",
-          "  } else {",
-          "    mutex_.Lock();",
-          "    sv = super_version_->Ref();",
-          "    mutex_.Unlock();",
-          "  }",
-          ""
-        ],
-        "label": "",
-        "index": 9,
-        "confidence": 0.7,
-        "desc": "新增代码或方法抽取，接受their side"
-      }
-    ]
-  }
+    }
 }
 ```
 
