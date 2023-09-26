@@ -32,12 +32,12 @@ public:
     int AfterResolveCount = countConflictBlocks();
     spdlog::info("there are still {} conflict blocks in this merge scenario",
                  AfterResolveCount);
-    double Ratio = ((ConflictBlockCount - AfterResolveCount) /
-                    static_cast<double>(ConflictBlockCount)) *
-                   100;
-    std::stringstream SS;
-    SS << std::fixed << std::setprecision(2) << Ratio << " %";
-    spdlog::info("resolve ratio at this merge scenario is: {}", SS.str());
+    //    double Ratio = ((ConflictBlockCount - AfterResolveCount) /
+    //                    static_cast<double>(ConflictBlockCount)) *
+    //                   100;
+    //    std::stringstream SS;
+    //    SS << std::fixed << std::setprecision(2) << Ratio << " %";
+    //    spdlog::info("resolve ratio at this merge scenario is: {}", SS.str());
     writeResolveRatio(ConflictBlockCount,
                       ConflictBlockCount - AfterResolveCount);
   }
