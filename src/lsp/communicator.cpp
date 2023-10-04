@@ -155,11 +155,50 @@ ssize_t PipeCommunicator::write(const std::string& message) {
   return totalBytesWritten;
 }
 
+/// \brief read from pipeOut[0] to buf with len bytes at most once a time and
+/// return the bytes read in total
+///
+/// \param buf buf to read into
+/// \param len max
+/// bytes to read \return bytes read in total
 ssize_t PipeCommunicator::read(void* buf, size_t len) {
   int flags = fcntl(pipeOut[0], F_GETFL, 0);
   fcntl(pipeOut[0], F_SETFL, flags | O_NONBLOCK);
 
-  return ::read(pipeOut[0], buf, len);
+  constexpr size_t BUF_SIZE = 4096;
+
+  ssize_t totalBytesRead = 0;
+  ssize_t bytesRead;
+
+  while (totalBytesRead < len) {
+    bytesRead =
+        ::read(pipeOut[0], static_cast<char*>(buf) + totalBytesRead,
+               std::min(static_cast<size_t>(BUF_SIZE), len - totalBytesRead));
+
+    if (bytesRead == -1) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        // No data available for non-blocking read, break the loop
+        break;
+      } else {
+        // Handle other read errors if needed
+        return -1;
+      }
+    } else if (bytesRead == 0) {
+      // End of file, break the loop
+      break;
+    }
+
+    totalBytesRead += bytesRead;
+  }
+
+  return totalBytesRead;
 }
+
+// ssize_t PipeCommunicator::read(void* buf, size_t len) {
+//   int flags = fcntl(pipeOut[0], F_GETFL, 0);
+//   fcntl(pipeOut[0], F_SETFL, flags | O_NONBLOCK);
+//
+//   return ::read(pipeOut[0], buf, len);
+// }
 }  // namespace lsp
 }  // namespace mergebot
