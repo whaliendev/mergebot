@@ -88,7 +88,7 @@ std::string JSONRpcEndpoint::readLine() {
     do {
       bytesRead = communicator->read(&buf[len], 1);
       if (bytesRead == -1) {
-        if (errno == EAGAIN) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
           //          spdlog::debug("pipe is empty, return immediately");
           return "";
         }
@@ -104,7 +104,7 @@ std::string JSONRpcEndpoint::readLine() {
       len++;
     } while (bytesRead);
   }
-  spdlog::warn("empty pipe: language server may fail to start");
+  //  spdlog::warn("empty pipe: language server may fail to start");
   std::this_thread::sleep_for(std::chrono::milliseconds(300));
   return std::string(buf);
 }
