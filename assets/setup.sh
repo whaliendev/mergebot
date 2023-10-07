@@ -50,6 +50,8 @@ MB_BIN_DIR=$(find_mergebot_binary)
 if [ ! -d "$MB_BIN_DIR/dylib" ]; then
   echo "-- creating $MB_BIN_DIR/dylib..."
   mkdir "$MB_BIN_DIR/dylib"
+else
+  echo "-- $MB_BIN_DIR/dylib already exists, skipping creation..."
 fi
 
 ldd_output=$(ldd "$MB_BIN_DIR/mergebot")
@@ -58,8 +60,12 @@ while IFS= read -r line; do
   if [[ "$line" == *".conan2"* ]]; then
     lib_path=$(echo "$line" | awk '{print $3}')
     lib_name=$(basename "$lib_path")
-    echo "-- copying: $lib_path to {MB_BIN_DIR}/dylib/$lib_name..."
-    cp "$lib_path" "$MB_BIN_DIR/dylib/$lib_name"
+    if [ ! -f "$MB_BIN_DIR/dylib/$lib_name" ]; then
+      echo "-- copying: $lib_path to {MB_BIN_DIR}/dylib/$lib_name..."
+      cp "$lib_path" "$MB_BIN_DIR/dylib/$lib_name"
+    else
+      echo "-- $lib_name already exists in $MB_BIN_DIR/dylib, skipping copy..."
+    fi
   fi
 done <<< "$ldd_output"
 
