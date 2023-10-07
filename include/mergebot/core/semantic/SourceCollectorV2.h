@@ -56,7 +56,7 @@ public:
                         &BaseCompilations,
                     std::shared_ptr<clang::tooling::CompilationDatabase> const
                         &TheirCompilations)
-      : Meta(Meta), LookupIncluded(true), OnlyBothModified(false),
+      : Meta(Meta), LookupIncluded(false), OnlyBothModified(false),
         SourceTuple{}, OurCompilations(OurCompilations),
         BaseCompilations(BaseCompilations),
         TheirCompilations(TheirCompilations) {}

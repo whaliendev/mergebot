@@ -84,13 +84,14 @@ void ASTBasedHandler::resolveConflictFiles(
   spdlog::info("it takes {} ms to collect collection of sources to analyze",
                (End - Start).seconds() * 1000);
   SourceCollectorV2::AnalysisSourceTuple ST = SC.analysisSourceTuple();
-  spdlog::debug("source list size: {}, {}, {}, first direct include size: {}, "
-                "{}, {}(our, base, their).",
-                ST.OurSourceList.size(), ST.BaseSourceList.size(),
-                ST.TheirSourceList.size(),
-                ST.OurDirectIncluded.begin()->second.size(),
-                ST.BaseDirectIncluded.begin()->second.size(),
-                ST.TheirDirectIncluded.begin()->second.size());
+  //  spdlog::debug("source list size: {}, {}, {}, first direct include size:
+  //  {}, "
+  //                "{}, {}(our, base, their).",
+  //                ST.OurSourceList.size(), ST.BaseSourceList.size(),
+  //                ST.TheirSourceList.size(),
+  //                ST.OurDirectIncluded.begin()->second.size(),
+  //                ST.BaseDirectIncluded.begin()->second.size(),
+  //                ST.TheirDirectIncluded.begin()->second.size());
 
   // 2. Get Graph representation of 3 commit nodes
   Start = tbb::tick_count::now();
