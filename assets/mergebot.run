@@ -5,8 +5,9 @@ set -euo pipefail
 # get the directory where mergebot.run script is located
 script_dir="$(dirname "$0")"
 
+# fix: at running phase, copying .conan2 libs is unappropriated
 # simplify call procedure
-"$script_dir/setup.sh" &> /dev/stdout
+#"$script_dir/setup.sh" &> /dev/stdout
 
 # call setup.sh in --dir-only mode to get MB_BIN_DIR
 MB_BIN_DIR=$("$script_dir/setup.sh" --dir-only 2>/dev/null)
