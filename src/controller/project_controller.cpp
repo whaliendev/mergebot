@@ -74,8 +74,9 @@ bool writeConflictFiles(const fs::path& msCacheDir,
   return true;
 }
 
-[[nodiscard("no conflicting blocks will cause SEGV")]] bool checkIsConflicting(
-    std::string const& relFirstFile, std::string const& path) {
+/*[[nodiscard("no conflicting blocks will cause SEGV")]]*/
+[[nodiscard]] bool checkIsConflicting(std::string const& relFirstFile,
+                                      std::string const& path) {
   using namespace llvm;
   std::string firstFile = fs::path(path) / relFirstFile;
   ErrorOr<std::unique_ptr<MemoryBuffer>> fileOrErr =
