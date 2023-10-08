@@ -6,6 +6,7 @@
 #include <crow/http_response.h>
 #include <crow/json.h>
 #include <llvm/Support/ErrorOr.h>
+#include <llvm/Support/MemoryBuffer.h>
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
@@ -15,6 +16,8 @@
 
 #include "mergebot/controller/exception_handler_aspect.h"
 #include "mergebot/core/ResolutionManager.h"
+#include "mergebot/core/magic_enum_customization.h"
+#include "mergebot/core/model/ConflictMark.h"
 #include "mergebot/core/model/Project.h"
 #include "mergebot/core/sa_utility.h"
 #include "mergebot/filesystem.h"
@@ -72,6 +75,31 @@ bool writeConflictFiles(const fs::path& msCacheDir,
   return true;
 }
 
+[[nodiscard("no conflicting blocks will cause SEGV")]] bool checkIsConflicting(
+    std::string const& relFirstFile, std::string const& path) {
+  using namespace llvm;
+  std::string firstFile = fs::path(path) / relFirstFile;
+  ErrorOr<std::unique_ptr<MemoryBuffer>> fileOrErr =
+      MemoryBuffer::getFile(firstFile);
+  if (auto err = fileOrErr.getError()) {
+    spdlog::warn(
+        "failed to open file [{}] for checking conflicting status, err msg: {}",
+        firstFile, err.message());
+    return false;
+  }
+  std::unique_ptr<MemoryBuffer> file = std::move(fileOrErr.get());
+  const char* start = file->getBufferStart();
+  const char* end = file->getBufferEnd();
+  const std::string_view marker = magic_enum::enum_name(sa::ConflictMark::OURS);
+  while (start + marker.size() <= end) {
+    if (std::memcmp(start, marker.data(), marker.size()) == 0) {
+      return true;
+    }
+    ++start;
+  }
+  return false;
+}
+
 void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
                const std::string& compile_db_path,
                std::vector<std::string>& conflicts,
@@ -87,6 +115,9 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
   std::vector<std::string> fileNames;
   if (conflicts.size() != 0) {
     fileNames = std::move(conflicts);
+    spdlog::info(
+        "files field exists and is [\n\t{}\n], we'll skip manually check",
+        fmt::join(fileNames.begin(), fileNames.end(), ",\n\t"));
   } else {
     std::string command =
         fmt::format("(cd {} && git diff --name-only --diff-filter=U)", path);

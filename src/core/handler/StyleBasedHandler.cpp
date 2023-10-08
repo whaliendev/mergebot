@@ -48,6 +48,7 @@ void StyleBasedHandler::resolveConflictFiles(
   }
 
   // check resolved, check not resolved
+  bool NeedShrink = false;
   for (ConflictFile &CF : ConflictFiles) {
     bool EverResolved = false, AllResolved = true;
     spdlog::debug("resolving {}...", CF.Filename);
@@ -125,8 +126,11 @@ void StyleBasedHandler::resolveConflictFiles(
 
     // tidy up conflict files and their conflict blocks
     if (EverResolved) {
-      tidyUpConflictFiles(ConflictFiles);
+      NeedShrink = true;
     }
+  }
+  if (NeedShrink) {
+    tidyUpConflictFiles(ConflictFiles);
   }
 }
 

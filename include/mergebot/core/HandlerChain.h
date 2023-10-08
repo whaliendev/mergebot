@@ -19,7 +19,7 @@ public:
   HandlerChain(std::vector<std::unique_ptr<SAHandler>> &&Handlers,
                std::vector<std::string> ConflictFilePaths)
       : Handlers_(std::move(Handlers)) {
-    // construct handler chain
+    // construct a handler chain
     chain();
     ConflictFiles_ = constructConflictFiles(ConflictFilePaths);
   }
@@ -28,7 +28,9 @@ public:
     ConflictBlockCount = countConflictBlocks();
     spdlog::info("there are {} conflict blocks in this merge scenario",
                  ConflictBlockCount);
-    Handlers_[0]->handle(ConflictFiles_);
+    if (ConflictBlockCount) {
+      Handlers_[0]->handle(ConflictFiles_);
+    }
     int AfterResolveCount = countConflictBlocks();
     spdlog::info("there are still {} conflict blocks in this merge scenario",
                  AfterResolveCount);

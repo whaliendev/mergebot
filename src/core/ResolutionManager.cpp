@@ -151,20 +151,22 @@ void ResolutionManager::_doResolutionAsync(
   // copy c/cpp related conflict files
   const fs::path ConflictDest =
       fs::path(Self->mergeScenarioPath()) / "conflicts" / "";
-  std::vector<std::string> CSources = Self->_extractCppSources();
-  std::transform(CSources.begin(), CSources.end(), CSources.begin(),
-                 [&](const std::string_view &sv) {
-                   return Self->ProjectPath_ + std::string(sv);
-                 });
-  std::string FileList = std::accumulate(
-      std::next(CSources.begin()), CSources.end(), std::string(CSources[0]),
-      [](std::string pre, std::string_view const cur) {
-        return std::move(pre) + " " + std::string(cur);
-      });
+  std::vector<std::string> AbsCSources;
+  AbsCSources.reserve(Self->ConflictFiles_->size());
+  for (auto it = Self->ConflictFiles_->begin();
+       it != Self->ConflictFiles_->end(); ++it) {
+    AbsCSources.push_back(fs::path(Self->ProjectPath_) / *it);
+  }
+  std::string FileList =
+      std::accumulate(std::next(AbsCSources.begin()), AbsCSources.end(),
+                      std::string(AbsCSources[0]),
+                      [](std::string pre, std::string_view const cur) {
+                        return std::move(pre) + " " + std::string(cur);
+                      });
 
   spdlog::info("copying conflict files to destination directory {}",
                ConflictDest.string());
-  bool Success = detail::copyConflicts(CSources, ConflictDest.string());
+  bool Success = detail::copyConflicts(AbsCSources, ConflictDest.string());
   if (!Success) {
     spdlog::error("fail to copy conflict files to conflicts directory {}",
                   ConflictDest.string());
@@ -230,7 +232,7 @@ void ResolutionManager::_doResolutionAsync(
   Handlers.push_back(std::make_unique<LLVMBasedHandler>(Meta));
   Handlers.push_back(std::make_unique<TextBasedHandler>(Meta));
 
-  HandlerChain Chain(std::move(Handlers), CSources);
+  HandlerChain Chain(std::move(Handlers), AbsCSources);
   Chain.handle();
 
   const fs::path RunningSign = fs::path(Self->mergeScenarioPath()) / "running";
@@ -287,47 +289,50 @@ void ResolutionManager::prepareSource(
   }
 }
 
-std::vector<std::string> ResolutionManager::_extractCppSources() {
-  // get conflict files
-  std::string Command =
-      fmt::format("(cd {} && git --no-pager diff --name-only --diff-filter=U)",
-                  ProjectPath_);
-  llvm::ErrorOr<std::string> ResultOrErr = utils::ExecCommand(Command);
-  if (!ResultOrErr) {
-    handleSAExecError(ResultOrErr.getError(), Command);
-  }
-  std::string Result = ResultOrErr.get();
-
-  // get c/cpp related source files
-  std::vector<std::string_view> FileNames = util::string_split(Result, "\n");
-  if (FileNames.empty()) {
-    spdlog::error("there is no conflict files in this project[{}]", Project_);
-  }
-
-  // clang-format off
-  std::unordered_set<std::string_view> CExtensions = {
-      ".h", ".hpp", ".c", ".cc", ".cp", ".C", ".cxx", ".cpp", ".c++"
-  };
-  // clang-format on
-  std::vector<std::string> CSources;
-  CSources.reserve(FileNames.size());
-  for (const auto &FileName : FileNames) {
-    using namespace std::literals;
-    auto pos = FileName.find_last_of("."sv);
-    if (pos == std::string_view::npos) {
-      continue;
-    }
-    std::string_view Ext = FileName.substr(pos);
-    if (CExtensions.count(Ext)) {
-      CSources.push_back(std::string(FileName));
-    }
-  }
-  if (CSources.empty()) {
-    spdlog::warn("there is no c/cpp related conflict files in this project[{}]",
-                 Project_);
-  }
-  return CSources;
-}
+// std::vector<std::string> ResolutionManager::_extractCppSources() {
+//   // get conflict files
+//   std::string Command =
+//       fmt::format("(cd {} && git --no-pager diff --name-only
+//       --diff-filter=U)",
+//                   ProjectPath_);
+//   llvm::ErrorOr<std::string> ResultOrErr = utils::ExecCommand(Command);
+//   if (!ResultOrErr) {
+//     handleSAExecError(ResultOrErr.getError(), Command);
+//   }
+//   std::string Result = ResultOrErr.get();
+//
+//   // get c/cpp related source files
+//   std::vector<std::string_view> FileNames = util::string_split(Result, "\n");
+//   if (FileNames.empty()) {
+//     spdlog::error("there is no conflict files in this project[{}]",
+//     Project_);
+//   }
+//
+//   // clang-format off
+//   std::unordered_set<std::string_view> CExtensions = {
+//       ".h", ".hpp", ".c", ".cc", ".cp", ".C", ".cxx", ".cpp", ".c++"
+//   };
+//   // clang-format on
+//   std::vector<std::string> CSources;
+//   CSources.reserve(FileNames.size());
+//   for (const auto &FileName : FileNames) {
+//     using namespace std::literals;
+//     auto pos = FileName.find_last_of("."sv);
+//     if (pos == std::string_view::npos) {
+//       continue;
+//     }
+//     std::string_view Ext = FileName.substr(pos);
+//     if (CExtensions.count(Ext)) {
+//       CSources.push_back(std::string(FileName));
+//     }
+//   }
+//   if (CSources.empty()) {
+//     spdlog::warn("there is no c/cpp related conflict files in this
+//     project[{}]",
+//                  Project_);
+//   }
+//   return CSources;
+// }
 
 bool ResolutionManager::fineTuneCompDB(const std::string &CompDBPath,
                                        const std::string &ProjPath,
