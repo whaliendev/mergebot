@@ -57,7 +57,7 @@ fi
 ldd_output=$(ldd "$MB_BIN_DIR/mergebot")
 
 while IFS= read -r line; do
-  if [[ "$line" == *".conan2"* ]]; then
+  if [[ "$line" == *".conan2"* || "$line" == *"libstdc++"* ]]; then
     lib_path=$(echo "$line" | awk '{print $3}')
     lib_name=$(basename "$lib_path")
     if [ ! -f "$MB_BIN_DIR/dylib/$lib_name" ]; then
