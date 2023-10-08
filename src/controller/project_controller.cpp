@@ -16,9 +16,8 @@
 
 #include "mergebot/controller/exception_handler_aspect.h"
 #include "mergebot/core/ResolutionManager.h"
-#include "mergebot/core/magic_enum_customization.h"
-#include "mergebot/core/model/ConflictMark.h"
 #include "mergebot/core/model/Project.h"
+#include "mergebot/core/model/enum/ConflictMark.h"
 #include "mergebot/core/sa_utility.h"
 #include "mergebot/filesystem.h"
 #include "mergebot/server/server_utility.h"
