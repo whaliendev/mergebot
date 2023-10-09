@@ -83,6 +83,9 @@ std::unique_ptr<PipeCommunicator> PipeCommunicator::create(
     close(pipeIn[0]);
     close(pipeOut[1]);
     close(childLogFd);
+
+    int flags = fcntl(pipeOut[0], F_GETFL, 0);
+    fcntl(pipeOut[0], F_SETFL, flags | O_NONBLOCK);
   }
 
   return std::unique_ptr<PipeCommunicator>(
@@ -196,10 +199,35 @@ ssize_t PipeCommunicator::write(const std::string& message) {
 // }
 
 ssize_t PipeCommunicator::read(void* buf, size_t len) {
-  int flags = fcntl(pipeOut[0], F_GETFL, 0);
-  fcntl(pipeOut[0], F_SETFL, flags | O_NONBLOCK);
+  ssize_t bytesRead = 0;
+  ssize_t totalBytesRead = 0;
+  int retryCnt = 0;
+  constexpr int MaxRetryCnt = 3;
+  while (totalBytesRead < static_cast<ssize_t>(len)) {
+    bytesRead = ::read(pipeOut[0], static_cast<char*>(buf) + totalBytesRead,
+                       len - totalBytesRead);
+    if (bytesRead == -1) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        if (totalBytesRead == 0) {
+          // No data available for non-blocking read, break the loop, wait
+          // high-level retry
+          return 0;
+        } else if (retryCnt < MaxRetryCnt) {
+          retryCnt++;
+          std::this_thread::sleep_for(std::chrono::milliseconds(300));
+          continue;
+        }
+        return -1;  // indicate error
+      } else {
+        return -1;
+      }
+    } else if (bytesRead == 0) {
+      return 0;
+    }
+    totalBytesRead += bytesRead;
+  }
 
-  return ::read(pipeOut[0], buf, len);
+  return totalBytesRead;
 }
 }  // namespace lsp
 }  // namespace mergebot

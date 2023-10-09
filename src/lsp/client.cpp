@@ -86,27 +86,39 @@ std::string JSONRpcEndpoint::readLine() {
   {
     std::unique_lock<std::shared_mutex> lock(rwMutex);
     do {
-      bytesRead = communicator->read(&buf[len], 1);
-      if (bytesRead == -1) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-          //          spdlog::debug("pipe is empty, return immediately");
+      bytesRead = communicator->read(buf + len, 1);
+      if (bytesRead == 0) {                             // pipe close or EAGAIN
+        if (errno != EWOULDBLOCK && errno != EAGAIN) {  // pipe close
+          spdlog::error("unexpected pipe closed, simply drop message header");
+        }
+        return "";
+      }
+
+      if (bytesRead == -1) {  // error or max retry reached
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+          spdlog::warn(
+              "reached max retries, failed to read from pipe, simply drop "
+              "message header");
           return "";
         }
 
-        spdlog::error("fail to read from server, error message: {}",
-                      strerror(errno));
-        // data read in is dirty, drop them all
+        spdlog::error(
+            "unexpected error occurred: error message: {}, simply drop message "
+            "header",
+            strerror(errno));
         return "";
       }
+
       if (buf[len] == '\n') {
         return std::string(buf);
       }
+
       len++;
-    } while (bytesRead);
+    } while (true);
   }
   //  spdlog::warn("empty pipe: language server may fail to start");
-  std::this_thread::sleep_for(std::chrono::milliseconds(300));
-  return std::string(buf);
+  //  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  //  return std::string(buf);
 }
 
 std::string JSONRpcEndpoint::readMessageContent(ssize_t len) {
@@ -114,18 +126,51 @@ std::string JSONRpcEndpoint::readMessageContent(ssize_t len) {
   std::string content;
   content.resize(len);
 
-  ssize_t bytesRead = communicator->read(content.data(), len);
-  if (bytesRead == -1) {
-    spdlog::error("unexpected error occurred: error message: {}",
-                  strerror(errno));
-    return "";
+  ssize_t bytesRead = -1;
+  ssize_t totalBytesRead = 0;
+  int retryCnt = 0, maxRetryCnt = 6;
+  while (totalBytesRead < static_cast<ssize_t>(len)) {
+    bytesRead =
+        communicator->read(&content[0 + totalBytesRead], len - totalBytesRead);
+
+    if (bytesRead == -1) {  // error or max retry reached
+      if (errno == EWOULDBLOCK || errno == EAGAIN) {
+        spdlog::warn(
+            "reached max retries, failed to read from pipe, simply drop "
+            "message content");
+        return "";
+      }
+
+      return "";  // data read in is dirty, drop it
+    }
+
+    if (bytesRead == 0 &&
+        (errno == EAGAIN || errno == EWOULDBLOCK)) {  // pipe close or EAGAIN
+      if (retryCnt < maxRetryCnt) {
+        retryCnt++;
+        spdlog::debug("non-blocking read returns 0, wait for a while");
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        continue;
+      }
+      spdlog::warn(
+          "readMessageContent reached max retries, failed to read "
+          "from pipe, simply drop message content");
+      return "";
+    }
+
+    if (bytesRead == 0) {
+      spdlog::error("unexpected pipe close, simply drop message content");
+      return "";
+    }
+
+    totalBytesRead += bytesRead;
   }
 
-  if (bytesRead < len) {
+  if (totalBytesRead < len) {
     spdlog::error(
-        "illegal language server response: bytesRead={} is less than message "
-        "len={}, content: {}",
-        bytesRead, len, content);
+        "failed to read the required number of bytes. bytesRead={}, "
+        "expected={}",
+        bytesRead, len);
     return "";
   }
 
