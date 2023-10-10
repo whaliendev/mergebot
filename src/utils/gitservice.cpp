@@ -592,7 +592,7 @@ std::string git_merge_textual(const std::string &ours, const std::string &base,
   git_merge_file_result result;
   // FIXME(hwa): squirrel bug, why ours and theirs are swapped?
   int error =
-      git_merge_file(&result, &base_input, &their_input, &our_input, &opts);
+      git_merge_file(&result, &base_input, &our_input, &their_input, &opts);
   if (error < 0) {
     const git_error *e = git_error_last();
     spdlog::error("error to merge textual content {}/{}: {}", error, e->klass,
