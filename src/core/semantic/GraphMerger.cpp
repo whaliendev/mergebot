@@ -80,7 +80,9 @@ std::vector<std::string> GraphMerger::threeWayMerge() {
       std::shared_ptr<SemanticNode> BaseNodePtr = Mapping.BaseNode.value();
       mergeSemanticNode(BaseNodePtr);
       if (BaseNodePtr) {
-        MergedFiles.emplace_back(PrettyPrintTU(BaseNodePtr, MergedDir));
+        MergedFiles.emplace_back(PrettyPrintTU(
+            BaseNodePtr, MergedDir,
+            (fs::path(Meta.ProjectPath) / ".clang-format").string()));
       }
 #ifdef MB_MERGER_DEBUG
     }

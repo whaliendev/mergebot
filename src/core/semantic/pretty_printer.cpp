@@ -204,7 +204,7 @@ std::string prettyPrintNode(const std::shared_ptr<SemanticNode> &Node) {
 } // namespace details
 
 std::string PrettyPrintTU(const std::shared_ptr<SemanticNode> &TUNode,
-                          const std::string &DestDir, bool NeedFormat) {
+                          const std::string &DestDir) {
   assert(llvm::isa<TranslationUnitNode>(TUNode.get()));
   TranslationUnitNode *TURawPtr = llvm::cast<TranslationUnitNode>(TUNode.get());
   std::string DestFile = (fs::path(DestDir) / TURawPtr->DisplayName).string();
@@ -237,24 +237,79 @@ std::string PrettyPrintTU(const std::shared_ptr<SemanticNode> &TUNode,
 
   util::file_overwrite_content(DestFile, ss.str());
 
-  if (NeedFormat) {
-    FormatSource(DestFile);
+  return DestFile;
+}
+
+std::string PrettyPrintTU(const std::shared_ptr<SemanticNode> &TUNode,
+                          const std::string &DestDir,
+                          const std::string &ClangFormatPath) {
+  assert(llvm::isa<TranslationUnitNode>(TUNode.get()));
+  TranslationUnitNode *TURawPtr = llvm::cast<TranslationUnitNode>(TUNode.get());
+  std::string DestFile = (fs::path(DestDir) / TURawPtr->DisplayName).string();
+  fs::create_directories(fs::path(DestFile).parent_path());
+
+  std::stringstream ss;
+
+  ss << TURawPtr->Comment << "\n";
+
+  if (TURawPtr->IsHeader) {
+    if (TURawPtr->TraditionGuard) {
+      assert(TURawPtr->HeaderGuard.size() >= 3);
+      ss << TURawPtr->HeaderGuard[0] << "\n"
+         << TURawPtr->HeaderGuard[1] << "\n";
+    } else {
+      ss << TURawPtr->HeaderGuard[0]; // pragma once contains an EOL
+    }
   }
+
+  for (const auto &FrontDecl : TURawPtr->FrontDecls) {
+    ss << FrontDecl << "\n";
+  }
+
+  ss << details::prettyPrintNode(TUNode);
+
+  if (TURawPtr->IsHeader && TURawPtr->TraditionGuard) {
+    assert(TURawPtr->HeaderGuard.size() >= 3);
+    ss << TURawPtr->HeaderGuard[2];
+  }
+
+  util::file_overwrite_content(DestFile, ss.str());
+
+  FormatSource(DestFile, ClangFormatPath);
 
   return DestFile;
 }
 
-bool FormatSource(const std::string &FilePath) {
+bool FormatSource(const std::string &FilePath,
+                  const std::string &ClangFormatPath) {
   if (!fs::exists(FilePath) || !fs::is_regular_file(FilePath)) {
     spdlog::error("source file {} doesn't exist or not a regular file",
                   FilePath);
     return false;
   }
   using namespace clang;
+  //  format::FormatStyle Style =
+  //      format::getGoogleStyle(format::FormatStyle::LanguageKind::LK_Cpp);
+  //  //  Style.SortIncludes =
+  //  format::FormatStyle::SortIncludesOptions::SI_Never;
+  //  Style.FixNamespaceComments = false; // handled by GraphBuilder
+  //  Style.ColumnLimit = 100;
+
   format::FormatStyle Style =
-      format::getGoogleStyle(format::FormatStyle::LanguageKind::LK_Cpp);
-  //  Style.SortIncludes = format::FormatStyle::SortIncludesOptions::SI_Never;
+      format::getGoogleStyle(format::FormatStyle::LK_Cpp);
   Style.FixNamespaceComments = false; // handled by GraphBuilder
+
+  llvm::Expected<format::FormatStyle> ExpectedStyle =
+      format::getStyle(fmt::format("file:{}", ClangFormatPath), FilePath,
+                       "google", "", nullptr, true);
+
+  if (auto Err = ExpectedStyle.takeError()) {
+    spdlog::warn("fail to get style for file {}, error: {}", FilePath,
+                 llvm::toString(std::move(Err)));
+  } else {
+    Style = *ExpectedStyle;
+  }
+
   // format source in DestFile
   std::string FileContent = util::file_get_content(FilePath);
   bool IncompleteFormat = false;
