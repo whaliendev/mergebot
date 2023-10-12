@@ -304,7 +304,7 @@ bool FormatSource(const std::string &FilePath,
                        "google", "", nullptr, true);
 
   if (auto Err = ExpectedStyle.takeError()) {
-    spdlog::warn("fail to get style for file {}, error: {}", FilePath,
+    spdlog::warn("fail to get predefined style for file {}, error: {}", FilePath,
                  llvm::toString(std::move(Err)));
   } else {
     Style = *ExpectedStyle;
