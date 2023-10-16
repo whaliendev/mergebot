@@ -39,14 +39,12 @@ static int DESTROYED = 0;
 void ConfigBPRoutes(crow::Blueprint& bp);
 void InitLogger();
 void InitMergebot();
-void InitThreadPool();
 
 int main() {
   InitLogger();
 
   InitMergebot();
 
-  //  InitThreadPool();
   // Init Server
   // substitute default logger of crow
   mergebot::CrowSubLogger subLogger;
@@ -74,53 +72,6 @@ int main() {
   app.loglevel(crow::LogLevel::INFO).port(18080).run();
 
   return 0;
-}
-
-void InitThreadPool() {
-  uint coreNum = std::thread::hardware_concurrency();
-  if (!coreNum) coreNum = 6;
-  int createRes =
-      ThreadPool::threadpool_create(coreNum * WORKLOAD, TASK_QUEUE_SIZE);
-  if (createRes != 0) {
-    spdlog::error("failed to create global thread pool");
-    exit(1);
-  }
-
-  auto poolSigDestroyer = [](int status) {
-    if (!DESTROYED) {
-      SPDLOG_INFO("destroying thread pool...");
-      int err = ThreadPool::threadpool_destroy();
-      if (err)
-        SPDLOG_ERROR(
-            "fail to destroy thread pool, some resources may has not been "
-            "released, err code: {}",
-            err);
-      DESTROYED = 1;
-    }
-    exit(status);
-  };
-  auto poolNorDestroyer = []() {
-    if (!DESTROYED) {
-      SPDLOG_INFO("destroying thread pool...");
-      int err = ThreadPool::threadpool_destroy();
-      if (err)
-        SPDLOG_ERROR(
-            "fail to destroy thread pool, some resources may has not been "
-            "released, err code: {}",
-            err);
-      DESTROYED = 1;
-    }
-  };
-  // ^C
-  signal(SIGINT, poolSigDestroyer);
-  // abort
-  signal(SIGABRT, poolSigDestroyer);
-  // sent by kill command
-  signal(SIGTERM, poolSigDestroyer);
-  // ^Z
-  signal(SIGTSTP, poolSigDestroyer);
-  // return from main, or exit by exit function
-  std::atexit(poolNorDestroyer);
 }
 
 void InitLogger() {
