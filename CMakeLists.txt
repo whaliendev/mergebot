@@ -140,6 +140,9 @@ include(cmake/checklinter.cmake)
 # fetch_content, shell script
 include(cmake/googletest.cmake)
 
+### hacked third_party libs
+add_subdirectory("third_party/Crow")
+
 ### split compiled libraries and executables to sub folders,
 ### don't add those targets here
 # add_subdirectory starts here

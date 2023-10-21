@@ -128,10 +128,6 @@ class MergebotConan(ConanFile):
         "libgit2/*:with_ntlmclient": True,
         "libgit2/*:with_regex": "builtin",
 
-        "crowcpp-crow/*:amalgamation": False,
-        "crowcpp-crow/*:with_ssl": False,
-        "crowcpp-crow/*:with_compression": True,
-
         "llvm/*:with_project_clang": True,
         "llvm/*:with_runtime_libcxx": False,
         "llvm/*:with_runtime_libcxxabi": False,
