@@ -1,4 +1,3 @@
-find_package(Crow REQUIRED)
 find_package(re2 REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(fmt REQUIRED)
@@ -67,7 +66,6 @@ target_link_libraries(${PROJECT_NAME}-dep
         re2::re2
         TBB::tbb
         Boost::graph
-        asio::asio
 )
 
 target_include_directories(${PROJECT_NAME}-dep

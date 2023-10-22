@@ -39,7 +39,6 @@ class MergebotConan(ConanFile):
         "tree-sitter-cpp/0.20.0",
         "libgit2/1.7.0",
         # "zlib/[>=1.2.10]",
-        "cstar-crow/4f3f5de",
         "asio/1.28.0",
         "llvm/16.0.6",
         "zstd/1.5.5"
@@ -128,10 +127,6 @@ class MergebotConan(ConanFile):
         "libgit2/*:with_sha1": "collisiondetection",
         "libgit2/*:with_ntlmclient": True,
         "libgit2/*:with_regex": "builtin",
-
-        "crowcpp-crow/*:amalgamation": False,
-        "crowcpp-crow/*:with_ssl": False,
-        "crowcpp-crow/*:with_compression": True,
 
         "llvm/*:with_project_clang": True,
         "llvm/*:with_runtime_libcxx": False,
