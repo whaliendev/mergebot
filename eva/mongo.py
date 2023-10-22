@@ -1,8 +1,8 @@
 from pymongo import MongoClient
 
-from eva.config import MONGO_CONFIG
+from config import mongo_config
 
 
-def get_database():
-    client = MongoClient(MONGO_CONFIG["MONGO_CONN_STR"])
-    return client[MONGO_CONFIG["EVA_DB"]]
+def get_database() -> MongoClient:
+    client = MongoClient(mongo_config.MONGO_CONN_STR)
+    return client[mongo_config.EVA_DB]
