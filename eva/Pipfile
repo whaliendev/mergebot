@@ -6,6 +6,8 @@ name = "pypi"
 [packages]
 pymongo = "*"
 pytest = "*"
+pygit2 = "*"
+aiofile = "*"
 
 [dev-packages]
 
