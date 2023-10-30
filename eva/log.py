@@ -30,19 +30,19 @@ class ColorfulFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-# 命令行中的日志级别为INFO，文件中的日志级别为DEBUG
+# create logger
 logger = logging.getLogger(__package__)
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter(
     '[%(asctime)s] [%(process)d] [%(levelname)s] (%(filename)s:%(lineno)d): %(message)s')
 
-# 输出到命令行，命令行需要彩色输出
+# output to console
 ch = logging.StreamHandler()
 ch.setLevel(logging.INFO)
 ch.setFormatter(ColorfulFormatter())
 logger.addHandler(ch)
 
-# 输出到文件
+# output to file
 fh = logging.FileHandler('eva.log')
 fh.setLevel(logging.DEBUG)
 fh.setFormatter(formatter)
