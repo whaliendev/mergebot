@@ -298,20 +298,22 @@ bool FormatSource(const std::string &FilePath,
   format::FormatStyle Style =
       format::getGoogleStyle(format::FormatStyle::LK_Cpp);
   Style.FixNamespaceComments = false; // handled by GraphBuilder
+  Style.ReflowComments = false;
 
   llvm::Expected<format::FormatStyle> ExpectedStyle =
       format::getStyle(fmt::format("file:{}", ClangFormatPath), FilePath,
                        "google", "", nullptr, true);
 
   if (auto Err = ExpectedStyle.takeError()) {
-    spdlog::warn("fail to get predefined style for file {}, error: {}", FilePath,
-                 llvm::toString(std::move(Err)));
+    spdlog::warn("fail to get predefined style for file {}, error: {}",
+                 FilePath, llvm::toString(std::move(Err)));
   } else {
     Style = *ExpectedStyle;
   }
 
   // format source in DestFile
   std::string FileContent = util::file_get_content(FilePath);
+  //  spdlog::debug("formatting file {}", FileContent);
   bool IncompleteFormat = false;
   tooling::Replacements Replaces = format::reformat(
       Style, FileContent, {{0, static_cast<unsigned int>(FileContent.size())}},
