@@ -163,41 +163,43 @@ void ASTBasedHandler::resolveConflictFiles(
                "destination: {}",
                (End - Start).seconds() * 1000, Merger.getMergedDir());
 
-  // 5. get diff hunks and serialize it
-  const std::string PatchesDir =
-      fs::path(Meta.MSCacheDir) / "resolutions" / "patches";
-  fs::create_directories(PatchesDir);
-  std::for_each(ConflictFiles.begin(), ConflictFiles.end(), [&](auto &CF) {
-    std::string MSCacheDir = Meta.MSCacheDir;
-    auto Relative = fs::relative(CF.Filename, Meta.ProjectPath);
-    const std::string DestPatchFile = fs::path(PatchesDir) / Relative;
-    fs::create_directories(fs::path(DestPatchFile).parent_path());
+  //  // 5. get diff hunks and serialize it
+  //  const std::string PatchesDir =
+  //      fs::path(Meta.MSCacheDir) / "resolutions" / "patches";
+  //  fs::create_directories(PatchesDir);
+  //  std::for_each(ConflictFiles.begin(), ConflictFiles.end(), [&](auto &CF) {
+  //    std::string MSCacheDir = Meta.MSCacheDir;
+  //    auto Relative = fs::relative(CF.Filename, Meta.ProjectPath);
+  //    const std::string DestPatchFile = fs::path(PatchesDir) / Relative;
+  //    fs::create_directories(fs::path(DestPatchFile).parent_path());
+  //
+  //    std::string MergedFile =
+  //        (fs::path(MSCacheDir) / "merged" / Relative).string();
+  //    if (!fs::exists(CF.Filename) || !fs::exists(MergedFile)) {
+  //      spdlog::warn("cannot find conflict file or merged file, skip diff
+  //      hunks "
+  //                   "generation for file [{}]",
+  //                   CF.Filename);
+  //      return;
+  //    }
+  //
+  //    auto DiffHunks = util::get_git_diff_hunks(CF.Filename, MergedFile);
+  //
+  //    nlohmann::json DiffHunksJson = DiffHunks;
+  //    bool Success =
+  //        util::file_overwrite_content_sync(DestPatchFile,
+  //        DiffHunksJson.dump(2));
 
-    std::string MergedFile =
-        (fs::path(MSCacheDir) / "merged" / Relative).string();
-    if (!fs::exists(CF.Filename) || !fs::exists(MergedFile)) {
-      spdlog::warn("cannot find conflict file or merged file, skip diff hunks "
-                   "generation for file [{}]",
-                   CF.Filename);
-      return;
-    }
+  //    std::for_each(DiffHunks.begin(), DiffHunks.end(), [&](auto &Hunk) {
+  //      spdlog::debug("hunk: start: {}, offset: {}, content: {}",
+  //      Hunk.start,
+  //                    Hunk.offset, Hunk.content);
+  //    });
 
-    auto DiffHunks = util::get_git_diff_hunks(CF.Filename, MergedFile);
-
-    nlohmann::json DiffHunksJson = DiffHunks;
-    bool Success =
-        util::file_overwrite_content_sync(DestPatchFile, DiffHunksJson.dump(2));
-
-    //    std::for_each(DiffHunks.begin(), DiffHunks.end(), [&](auto &Hunk) {
-    //      spdlog::debug("hunk: start: {}, offset: {}, content: {}",
-    //      Hunk.start,
-    //                    Hunk.offset, Hunk.content);
-    //    });
-
-    if (!Success) {
-      spdlog::warn("fail to write diff hunks to file [{}]", DestPatchFile);
-    }
-  });
+  //    if (!Success) {
+  //      spdlog::warn("fail to write diff hunks to file [{}]", DestPatchFile);
+  //    }
+  //  });
 }
 
 /**

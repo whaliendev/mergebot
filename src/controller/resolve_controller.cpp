@@ -102,39 +102,63 @@ crow::json::wvalue getFileResolution(const std::string& project,
 
   data["resolutions"] = std::move(resolutionList);
 
-  std::vector<crow::json::wvalue> patchesList;
-  const std::string patch_dest =
-      fs::path(msCacheDir) / "resolutions" / "patches" / fileNormalized;
-  if (fs::exists(patch_dest)) {
-    auto [fd, lck] = mergebot::utils::lockRDFD(patch_dest.c_str());
+  //  std::vector<crow::json::wvalue> patchesList;
+  //  const std::string patch_dest =
+  //      fs::path(msCacheDir) / "resolutions" / "patches" / fileNormalized;
+  //  if (fs::exists(patch_dest)) {
+  //    auto [fd, lck] = mergebot::utils::lockRDFD(patch_dest.c_str());
+  //    if (fd == -1) {
+  //      spdlog::error("fail to open file [{}] to read resolution results",
+  //                    patch_dest.c_str());
+  //    }
+  //    FILE* file_ptr = fdopen(fd, "r");
+  //    if (!file_ptr) {
+  //      spdlog::error("fail to convert fd to FILE* object, reason: {}",
+  //                    strerror(errno));
+  //      mergebot::utils::unlockFD(patch_dest.c_str(), fd, lck);
+  //      fclose(file_ptr);
+  //    } else {
+  //      json patchJSON = json::parse(file_ptr);
+  //
+  //      mergebot::utils::unlockFD(patch_dest.c_str(), fd, lck);
+  //      fclose(file_ptr);
+  //
+  //      std::vector<util::MBDiffHunk> diffHunks = patchJSON;
+  //      std::for_each(diffHunks.begin(), diffHunks.end(), [&](auto& hunk) {
+  //        crow::json::wvalue patch;
+  //        patch["start"] = hunk.start;
+  //        patch["offset"] = hunk.offset;
+  //        patch["content"] = string_spilt(hunk.content, "\n", true);
+  //        patchesList.push_back(std::move(patch));
+  //      });
+  //    }
+  //  }
+  //
+  //  data["patches"] = std::move(patchesList);
+
+  const std::string merged_dest =
+      fs::path(msCacheDir) / "merged" / fileNormalized;
+  if (fs::exists(merged_dest)) {
+    auto [fd, lck] = mergebot::utils::lockRDFD(merged_dest.c_str());
     if (fd == -1) {
       spdlog::error("fail to open file [{}] to read resolution results",
-                    patch_dest.c_str());
+                    merged_dest.c_str());
     }
     FILE* file_ptr = fdopen(fd, "r");
     if (!file_ptr) {
       spdlog::error("fail to convert fd to FILE* object, reason: {}",
                     strerror(errno));
-      mergebot::utils::unlockFD(patch_dest.c_str(), fd, lck);
+      mergebot::utils::unlockFD(merged_dest.c_str(), fd, lck);
       fclose(file_ptr);
     } else {
-      json patchJSON = json::parse(file_ptr);
-
-      mergebot::utils::unlockFD(patch_dest.c_str(), fd, lck);
-      fclose(file_ptr);
-
-      std::vector<util::MBDiffHunk> diffHunks = patchJSON;
-      std::for_each(diffHunks.begin(), diffHunks.end(), [&](auto& hunk) {
-        crow::json::wvalue patch;
-        patch["start"] = hunk.start;
-        patch["offset"] = hunk.offset;
-        patch["content"] = string_spilt(hunk.content, "\n", true);
-        patchesList.push_back(std::move(patch));
-      });
+      std::string mergedContent;
+      char buf[1024];
+      while (fgets(buf, 1024, file_ptr)) {
+        mergedContent += buf;
+      }
+      data["merged"] = string_spilt(mergedContent, "\n", true);
     }
   }
-
-  data["patches"] = std::move(patchesList);
 
   return data;
 }

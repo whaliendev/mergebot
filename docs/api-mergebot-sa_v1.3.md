@@ -158,13 +158,13 @@ post 请求会改变设置字段的值，未设置字段的值依然为默认值
 
 **请求参数：**
 
-| 字段                                                 | 类型                                                         | 说明                                                         |                                                              |
-| ---------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| project                                              | string, 可选项                                               | 项目名称                                                     |                                                              |
-| <font color="red">*</font>path                       | string, 必选项                                               | 表示项目在宿主机器上的绝对路径                               |                                                              |
-| <font color="red">*</font>ms                         | object, 必选项，格式为`{"ours": "v3.0~146^2~62", "theirs": "2.8.fb~148"}` | 表示合并场景，其中的 ours 和 theirs 分别表示两个 commit 结点的 revision name（可以为长哈希、唯一确定提交对象的短哈希、分支名、标签名） |                                                              |
-| <font color="red">v1.2新增字段</font>compile_db_path | string, 可选项                                               | 表示提高算法精确度的compile_commands.json的位置              | 如果传入会校验文件的存在性。<br />如果不传入算法会自动搜索项目根目录和项目根目录的build目录下。<br />如果未找到，算法会自动跳过基于图算法的分析。 |
-| files                                                | list of string, 可选项。                                     | 如果不传，则表示有sa服务自行检查项目仓库下的冲突文件；若传值，则表示该合并场景下的所有冲突文件。可以为绝对路径，也可以为相对路径。 | Debug构建的sa服务会检查列表中的第一个文件是绝对路径还是相对路径，以及是否存在于宿主机上。如果不合法会拒绝。 |
+| 字段                                               | 类型                                                                 | 说明                                                                                    |                                                                                   |
+|--------------------------------------------------|--------------------------------------------------------------------|---------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| project                                          | string, 可选项                                                        | 项目名称                                                                                  |                                                                                   |
+| <font color="red">*</font>path                   | string, 必选项                                                        | 表示项目在宿主机器上的绝对路径                                                                       |                                                                                   |
+| <font color="red">*</font>ms                     | object, 必选项，格式为`{"ours": "v3.0~146^2~62", "theirs": "2.8.fb~148"}` | 表示合并场景，其中的 ours 和 theirs 分别表示两个 commit 结点的 revision name（可以为长哈希、唯一确定提交对象的短哈希、分支名、标签名） |                                                                                   |
+| <font color="red">v1.2新增字段</font>compile_db_path | string, 可选项                                                        | 表示提高算法精确度的compile_commands.json的位置                                                    | 如果传入会校验文件的存在性。<br />如果不传入算法会自动搜索项目根目录和项目根目录的build目录下。<br />如果未找到，算法会自动跳过基于图算法的分析。 |
+| files                                            | list of string, 可选项。                                               | 如果不传，则表示有sa服务自行检查项目仓库下的冲突文件；若传值，则表示该合并场景下的所有冲突文件。可以为绝对路径，也可以为相对路径。                    | Debug构建的sa服务会检查列表中的第一个文件是绝对路径还是相对路径，以及是否存在于宿主机上。如果不合法会拒绝。                         |
 
 以上选项在服务端均会校验其存在性与有效性。
 
@@ -237,7 +237,13 @@ post 请求会改变设置字段的值，未设置字段的值依然为默认值
 
 以上选项在服务端均会校验其存在性与有效性。
 
-<font color="red">v1.2新增：resolve api会在"data"字段中多返回一个patches数组，表示更准确的，针对文件的解决方案patch。其中start, offset, content分别表示需要把冲突文件中的从start (1-based)开始的offset行，替换为content的内容</font>
+<font color="red">~~v1.2新增：resolve api会在"data"
+字段中多返回一个patches数组，表示更准确的，针对文件的解决方案patch。其中start,
+offset, content分别表示需要把冲突文件中的从start (1-based)
+开始的offset行，替换为content的内容~~</font>
+
+<font color="red">v1.3变更：resolve api会在"data"
+字段中返回一个merged数组，表示更准确的，针对文件的合并后的解决方案，交由前端进行diff并显示给用户。</font>
 
 **请求示例：**
 
@@ -258,180 +264,181 @@ post 请求会改变设置字段的值，未设置字段的值依然为默认值
 
 ```json
 {
-    "code": "00000",
-    "msg": "",
-    "data": {
-        "pending": false,
-        "projectPath": "/home/whalien/Desktop/rocksdb",
-        "file": "util/env.cc",
-        "resolutions": [
-            {
-                "code": [
-                    "EnvOptions::EnvOptions(const DBOptions& options) {",
-                    "",
-                    "EnvOptions EnvOptions::AdaptForLogWrite() const {",
-                    "  EnvOptions adapted = *this;",
-                    "  adapted.use_mmap_writes = false;",
-                    "  return adapted;",
-                    "}",
-                    "",
-                    "EnvOptions::EnvOptions(const Options& options) {"
-                ],
-                "label": "",
-                "index": 0,
-                "confidence": 0.7,
-                "desc": "新增功能，列表合并"
-            }
+  "code": "00000",
+  "msg": "",
+  "data": {
+    "pending": false,
+    "projectPath": "/home/whalien/Desktop/rocksdb",
+    "file": "util/env.cc",
+    "resolutions": [
+      {
+        "code": [
+          "EnvOptions::EnvOptions(const DBOptions& options) {",
+          "",
+          "EnvOptions EnvOptions::AdaptForLogWrite() const {",
+          "  EnvOptions adapted = *this;",
+          "  adapted.use_mmap_writes = false;",
+          "  return adapted;",
+          "}",
+          "",
+          "EnvOptions::EnvOptions(const Options& options) {"
         ],
-        "patches": [
-            {
-                "content": [],
-                "offset": 5,
-                "start": 240
-            },
-            {
-                "start": 251,
-                "offset": 2,
-                "content": [
-                    "EnvOptions::EnvOptions(const DBOptions& options) {"
-                ]
-            }
+        "label": "",
+        "index": 0,
+        "confidence": 0.7,
+        "desc": "新增功能，列表合并"
+      }
+    ],
+    "patches": [
+      {
+        "content": [],
+        "offset": 5,
+        "start": 240
+      },
+      {
+        "start": 251,
+        "offset": 2,
+        "content": [
+          "EnvOptions::EnvOptions(const DBOptions& options) {"
         ]
-    }
+      }
+    ]
+  }
 }
 ```
 
 **注意：响应中有个`pending`字段，为`true`
 时表示算法依然在处理，也就是需要加一个定时器来轮询结果。当pending为`false`
-时，表示算法已处理完，即使resolutions列表为空，算法也已处理结束。**（一般在ms endpoint调用完15s后resolve api会结束所有分析）
+时，表示算法已处理完，即使resolutions列表为空，算法也已处理结束。**（一般在ms
+endpoint调用完15s后resolve api会结束所有分析）
 
 一个更详细的成功示例：
 
 ```json
 {
-    "code": "00000",
-    "msg": "",
-    "data": {
-        "pending": false,
-        "projectPath": "/home/whalien/Desktop/frameworks_av",
-        "file": "services/oboeservice/AAudioServiceStreamBase.h",
-        "resolutions": [
-            {
-                "code": [
-                    "    // We log the CLOSE from the close() method. We needed this separate method to log the OPEN",
-                    "    // because we had to wait until we generated the handle.",
-                    "    void logOpen(aaudio_handle_t streamHandle);",
-                    "",
-                    "    aaudio_result_t close();"
-                ],
-                "label": "",
-                "index": 0,
-                "confidence": 0.7,
-                "desc": "集合包含，接受our side"
-            }
+  "code": "00000",
+  "msg": "",
+  "data": {
+    "pending": false,
+    "projectPath": "/home/whalien/Desktop/frameworks_av",
+    "file": "services/oboeservice/AAudioServiceStreamBase.h",
+    "resolutions": [
+      {
+        "code": [
+          "    // We log the CLOSE from the close() method. We needed this separate method to log the OPEN",
+          "    // because we had to wait until we generated the handle.",
+          "    void logOpen(aaudio_handle_t streamHandle);",
+          "",
+          "    aaudio_result_t close();"
         ],
-        "patches": [
-            {
-                "start": 50,
-                "offset": 7,
-                "content": [
-                    " * It uses a subclass of AAudioServiceEndpoint to communicate with the",
-                    " * underlying device or port.",
-                    " */",
-                    "class AAudioServiceStreamBase : public virtual android::RefBase,",
-                    "                                public AAudioStreamParameters,",
-                    "                                public Runnable {"
-                ]
-            },
-            {
-                "content": [
-                    "  // We log the CLOSE from the close() method. We needed this separate method to",
-                    "  // log the OPEN because we had to wait until we generated the handle.",
-                    "  void logOpen(aaudio_handle_t streamHandle);",
-                    "",
-                    "  aaudio_result_t close();"
-                ],
-                "offset": 11,
-                "start": 76
-            },
-            {
-                "start": 118,
-                "offset": 1,
-                "content": []
-            },
-            {
-                "start": 123,
-                "offset": 17,
-                "content": [
-                    "                                      audio_port_handle_t *clientHandle",
-                    "                                          __unused) {",
-                    "    ALOGD(",
-                    "        \"AAudioServiceStreamBase::startClient(%p, ...) \"",
-                    "        \"AAUDIO_ERROR_UNAVAILABLE\",",
-                    "        &client);",
-                    "    return AAUDIO_ERROR_UNAVAILABLE;",
-                    "  }",
-                    "",
-                    "  virtual aaudio_result_t stopClient(",
-                    "      audio_port_handle_t clientHandle __unused) {",
-                    "    ALOGD(\"AAudioServiceStreamBase::stopClient(%d) AAUDIO_ERROR_UNAVAILABLE\",",
-                    "          clientHandle);"
-                ]
-            },
-            {
-                "content": [
-                    "  void setSuspended(bool suspended) { mSuspended = suspended; }",
-                    "",
-                    "  bool isSuspended() const { return mSuspended; }",
-                    "",
-                    "  /**",
-                    "   * Atomically increment the number of active references to the stream by",
-                    "   * AAudioService."
-                ],
-                "offset": 10,
-                "start": 220
-            },
-            {
-                "content": [
-                    "   * Atomically decrement the number of active references to the stream by",
-                    "   * AAudioService. This should only be called after",
-                    "   * incrementServiceReferenceCount_l()."
-                ],
-                "offset": 2,
-                "start": 238
-            },
-            {
-                "content": [
-                    "  // This is used by one thread to tell another thread to exit. So it must be",
-                    "  // atomic."
-                ],
-                "offset": 1,
-                "start": 312
-            },
-            {
-                "content": [
-                    "                                     // TODO rename mClientHandle to mPortHandle",
-                    "                                     // to be more consistent with AudioFlinger."
-                ],
-                "offset": 1,
-                "start": 317
-            },
-            {
-                "start": 358,
-                "offset": 10,
-                "content": [
-                    "  // This indicates that a stream that is being referenced by a binder call",
-                    "  // needs to closed.",
-                    "  std::atomic<bool> mCloseNeeded{false};",
-                    "",
-                    "  // This indicate that a running stream should not be processed because of an",
-                    "  // error, for example a full message queue. Note that this atomic is unrelated",
-                    "  // to mCloseNeeded.",
-                    "  std::atomic<bool> mSuspended{false};"
-                ]
-            }
+        "label": "",
+        "index": 0,
+        "confidence": 0.7,
+        "desc": "集合包含，接受our side"
+      }
+    ],
+    "patches": [
+      {
+        "start": 50,
+        "offset": 7,
+        "content": [
+          " * It uses a subclass of AAudioServiceEndpoint to communicate with the",
+          " * underlying device or port.",
+          " */",
+          "class AAudioServiceStreamBase : public virtual android::RefBase,",
+          "                                public AAudioStreamParameters,",
+          "                                public Runnable {"
         ]
-    }
+      },
+      {
+        "content": [
+          "  // We log the CLOSE from the close() method. We needed this separate method to",
+          "  // log the OPEN because we had to wait until we generated the handle.",
+          "  void logOpen(aaudio_handle_t streamHandle);",
+          "",
+          "  aaudio_result_t close();"
+        ],
+        "offset": 11,
+        "start": 76
+      },
+      {
+        "start": 118,
+        "offset": 1,
+        "content": []
+      },
+      {
+        "start": 123,
+        "offset": 17,
+        "content": [
+          "                                      audio_port_handle_t *clientHandle",
+          "                                          __unused) {",
+          "    ALOGD(",
+          "        \"AAudioServiceStreamBase::startClient(%p, ...) \"",
+          "        \"AAUDIO_ERROR_UNAVAILABLE\",",
+          "        &client);",
+          "    return AAUDIO_ERROR_UNAVAILABLE;",
+          "  }",
+          "",
+          "  virtual aaudio_result_t stopClient(",
+          "      audio_port_handle_t clientHandle __unused) {",
+          "    ALOGD(\"AAudioServiceStreamBase::stopClient(%d) AAUDIO_ERROR_UNAVAILABLE\",",
+          "          clientHandle);"
+        ]
+      },
+      {
+        "content": [
+          "  void setSuspended(bool suspended) { mSuspended = suspended; }",
+          "",
+          "  bool isSuspended() const { return mSuspended; }",
+          "",
+          "  /**",
+          "   * Atomically increment the number of active references to the stream by",
+          "   * AAudioService."
+        ],
+        "offset": 10,
+        "start": 220
+      },
+      {
+        "content": [
+          "   * Atomically decrement the number of active references to the stream by",
+          "   * AAudioService. This should only be called after",
+          "   * incrementServiceReferenceCount_l()."
+        ],
+        "offset": 2,
+        "start": 238
+      },
+      {
+        "content": [
+          "  // This is used by one thread to tell another thread to exit. So it must be",
+          "  // atomic."
+        ],
+        "offset": 1,
+        "start": 312
+      },
+      {
+        "content": [
+          "                                     // TODO rename mClientHandle to mPortHandle",
+          "                                     // to be more consistent with AudioFlinger."
+        ],
+        "offset": 1,
+        "start": 317
+      },
+      {
+        "start": 358,
+        "offset": 10,
+        "content": [
+          "  // This indicates that a stream that is being referenced by a binder call",
+          "  // needs to closed.",
+          "  std::atomic<bool> mCloseNeeded{false};",
+          "",
+          "  // This indicate that a running stream should not be processed because of an",
+          "  // error, for example a full message queue. Note that this atomic is unrelated",
+          "  // to mCloseNeeded.",
+          "  std::atomic<bool> mSuspended{false};"
+        ]
+      }
+    ]
+  }
 }
 ```
 
