@@ -56,7 +56,7 @@ void ASTBasedHandler::resolveConflictFiles(
     return;
   }
 
-  // 0. gets relative paths of conflict files
+  // 0. gets relative paths of conflict files, do preparations
   std::vector<std::string> ConflictPaths;
   ConflictPaths.reserve(ConflictFiles.size());
   std::transform(ConflictFiles.begin(), ConflictFiles.end(),
@@ -71,11 +71,18 @@ void ASTBasedHandler::resolveConflictFiles(
                      return RelativePath;
                    }
                  });
+  auto [OurSideId, BaseSideId, TheirSideId] = extractSideIdentifiers(
+      (fs::path(Meta.MSCacheDir) / "conflicts").string());
+  if (OurSideId.empty() || TheirSideId.empty()) {
+    OurSideId = "HEAD";
+    BaseSideId = Meta.MS.base;
+    TheirSideId = Meta.MS.theirs;
+  }
 
   /// do variant intelli merge
   // 1. Collect Sources set to analyze
-  // note that LookupIncluded is default enabled, OnlyBothModified is default
-  // disabled
+  // note that LookupIncluded is default enabled, OnlyBothModified is
+  // default disabled
   SourceCollectorV2 SC(Meta, OurCompilations, BaseCompilations,
                        TheirCompilations);
   auto Start = tbb::tick_count::now();
@@ -149,7 +156,7 @@ void ASTBasedHandler::resolveConflictFiles(
   // 3. do top-down, bottom-up match
   Start = tbb::tick_count::now();
   GraphMerger Merger(Meta, OurBuilder.graph(), BaseBuilder.graph(),
-                     TheirBuilder.graph());
+                     TheirBuilder.graph(), OurSideId, BaseSideId, TheirSideId);
   Merger.threeWayMatch();
   End = tbb::tick_count::now();
   spdlog::info("it takes {} ms to match three revision graphs",
@@ -202,6 +209,42 @@ void ASTBasedHandler::resolveConflictFiles(
   //  });
 }
 
+namespace details {
+void scanLines(const std::string &Filename, std::string &OurSideId,
+               std::string &BaseSideId, std::string &TheirSideId) {
+  std::ifstream File(Filename);
+  if (!File.is_open()) {
+    spdlog::warn("fail to open file [{}] for extracting side identifiers",
+                 Filename);
+    return;
+  }
+  std::string line;
+  while (std::getline(File, line)) {
+    if (util::starts_with(line, "<<<<<<<")) {
+      auto parts = util::string_split(line, " ");
+      if (parts.size() >= 2) {
+        OurSideId = parts[1];
+      }
+    }
+
+    if (util::starts_with(line, "|||||||")) {
+      auto parts = util::string_split(line, " ");
+      if (parts.size() >= 2) {
+        BaseSideId = parts[1];
+      }
+    }
+
+    if (util::starts_with(line, ">>>>>>>")) {
+      auto parts = util::string_split(line, " ");
+      if (parts.size() >= 2) {
+        TheirSideId = parts[1];
+        break;
+      }
+    }
+  }
+}
+} // namespace details
+
 /**
  * @brief use clang libTooling library to infer missing compile commands from
  * JSON CDB
@@ -246,6 +289,33 @@ void ASTBasedHandler::initCompDB() {
           TheirCompilationsPair.second = false;
         }
       });
+}
+
+std::tuple<std::string, std::string, std::string>
+ASTBasedHandler::extractSideIdentifiers(const std::string &ConflictDir) const {
+  std::string OurSideId;
+  std::string BaseSideId;
+  std::string TheirSideId;
+  std::error_code EC;
+  size_t CheckedFiles = 0;
+  for (const auto &Entry : fs::directory_iterator(ConflictDir, EC)) {
+    if (EC) {
+      spdlog::warn("fail to iterate directory [{}], error message: {}",
+                   ConflictDir, EC.message());
+      continue;
+    }
+    if (Entry.is_regular_file()) {
+      if (CheckedFiles >= 5)
+        break;
+      const std::string Filename = Entry.path().string();
+      details::scanLines(Filename, OurSideId, BaseSideId, TheirSideId);
+      if (!OurSideId.empty() && !TheirSideId.empty()) {
+        break;
+      }
+      CheckedFiles++;
+    }
+  }
+  return {OurSideId, BaseSideId, TheirSideId};
 }
 
 } // namespace sa

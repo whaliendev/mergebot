@@ -35,6 +35,9 @@ public:
 private:
   void resolveConflictFiles(std::vector<ConflictFile> &ConflictFiles) override;
 
+  std::tuple<std::string, std::string, std::string>
+  extractSideIdentifiers(const std::string &ConflictDir) const;
+
   //  std::unordered_set<std::string> collectAnalysisFileSet(
   //      const std::vector<ConflictFile> &ConflictFiles,
   //      std::string_view ProjectPath,

@@ -18,9 +18,11 @@ class GraphMerger {
 public:
   GraphMerger(const ProjectMeta &Meta, SemanticGraph &OurGraph,
               SemanticGraph &BaseGraph, SemanticGraph &TheirGraph,
-              const std::string Dest = "merged")
+              const std::string &OurSideId, const std::string &BaseSideId,
+              const std::string &TheirSideId, const std::string Dest = "merged")
       : Meta(Meta), MergedDir((fs::path(Meta.MSCacheDir) / Dest).string()),
-        OurGraph(OurGraph), BaseGraph(BaseGraph), TheirGraph(TheirGraph) {
+        OurGraph(OurGraph), BaseGraph(BaseGraph), TheirGraph(TheirGraph),
+        OurSideId(OurSideId), BaseSideId(BaseSideId), TheirSideId(TheirSideId) {
     git_libgit2_init();
   }
 
@@ -75,6 +77,11 @@ private:
   SemanticGraph &OurGraph;
   SemanticGraph &BaseGraph;
   SemanticGraph &TheirGraph;
+
+  std::string OurSideId;
+  std::string BaseSideId;
+  std::string TheirSideId;
+
   TwoWayMatching OurMatching;
   TwoWayMatching TheirMatching;
   std::vector<ThreeWayMapping> Mappings;
