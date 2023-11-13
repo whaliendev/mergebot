@@ -275,7 +275,7 @@ std::string GraphMerger::mergeText(const std::string &OurText,
     return OurText;
   }
   std::string MergedText = util::git_merge_textual(
-      OurText, BaseText, TheirText, Meta.MS.base, Meta.MS.theirs);
+      OurText, BaseText, TheirText, BaseSideId, TheirSideId, OurSideId);
   return MergedText;
 }
 
