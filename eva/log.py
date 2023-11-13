@@ -28,22 +28,3 @@ class ColorfulFormatter(logging.Formatter):
         log_fmt = self.format_template.format(level_color, self.reset)
         formatter = logging.Formatter(log_fmt, datefmt='[%Y-%m-%d %H:%M:%S]')
         return formatter.format(record)
-
-
-# create logger
-logger = logging.getLogger(__package__)
-logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter(
-    '[%(asctime)s] [%(process)d] [%(levelname)s] (%(filename)s:%(lineno)d): %(message)s')
-
-# output to console
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-ch.setFormatter(ColorfulFormatter())
-logger.addHandler(ch)
-
-# output to file
-fh = logging.FileHandler('eva.log')
-fh.setLevel(logging.DEBUG)
-fh.setFormatter(formatter)
-logger.addHandler(fh)

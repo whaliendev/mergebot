@@ -8,8 +8,14 @@ pymongo = "*"
 pytest = "*"
 pygit2 = "*"
 aiofile = "*"
+click = "*"
+vistir = "==0.6.1"
+pipenv-setup = {ref = "master", git = "https://github.com/Madoshakalaka/pipenv-setup"}
+cffi = "*"
 
 [dev-packages]
+pipenv-setup = "*"
+pre-commit = "*"
 
 [requires]
 python_version = "3.9"
