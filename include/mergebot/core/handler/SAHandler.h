@@ -7,6 +7,7 @@
 
 #include "mergebot/core/model/ConflictFile.h"
 #include "mergebot/core/model/MergeScenario.h"
+#include "mergebot/filesystem.h"
 
 #include <string>
 #include <vector>
@@ -55,6 +56,7 @@ public:
                      "However, there are still some conflicts. ",
                      Meta.Project);
         reportResolutionResult(ConflictFiles);
+        removeRunningSign();
       } else {
         spdlog::info("Incredible! All conflicts are resolved");
       }
@@ -96,6 +98,12 @@ protected:
 private:
   virtual void
   resolveConflictFiles(std::vector<ConflictFile> &ConflictFiles) = 0;
+
+  void removeRunningSign() const {
+    const std::string runningSign =
+        (fs::path(Meta.MSCacheDir) / "running").string();
+    fs::remove(runningSign);
+  }
 
   bool Skip_;
   std::string Name_;
