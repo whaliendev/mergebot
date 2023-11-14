@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
 from pygit2 import C
-from pygit2.errors import check_error
+
+# from pygit2.errors import check_error
 from utils.common import to_bytes
 from cffi import FFI
 
@@ -62,12 +63,18 @@ typedef struct {
 	size_t len;
 } git_merge_file_result;
 
+typedef struct {
+	char *message;
+	int klass;
+} git_error;
+
 int git_merge_file(
 	git_merge_file_result *out,
 	const git_merge_file_input *ancestor,
 	const git_merge_file_input *ours,
 	const git_merge_file_input *theirs,
 	const git_merge_file_options *opts);
+const git_error * git_error_last();
 """
 )
 
@@ -243,6 +250,44 @@ class GitMergeFileResult:
 
     def __str__(self):
         return self.content
+
+
+def check_error(err, io=False):
+    if err >= 0:
+        return
+
+    # These are special error codes, they should never reach here
+    test = (
+        err != -7 and err != -30
+    )  # error code -7 is GIT_EUSER, -30 is GIT_PASSTHROUGH
+    assert test, f"Unexpected error code {err}"
+
+    # Error message
+    giterr = libgit2.git_error_last()
+    if giterr != ffi.NULL:
+        message = ffi.string(giterr.message).decode("utf8")
+    else:
+        message = f"err {err} (no message provided)"
+
+    value_errors = set([-4, -12, -5])
+    # Translate to Python errors
+    if err in value_errors:
+        raise ValueError(message)
+
+    if err == -3:  # -3 is GIT_ENOTFOUND
+        if io:
+            raise IOError(message)
+
+        raise KeyError(message)
+
+    if err == -12:  # -12 is GIT_EINVALIDSPEC
+        raise ValueError(message)
+
+    if err == -31:  # -31 is GIT_ITEROVER
+        raise StopIteration()
+
+    # Generic Git error
+    raise Exception(message)
 
 
 def git_merge_file(
