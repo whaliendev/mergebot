@@ -11,7 +11,7 @@ aiofile = "*"
 click = "*"
 vistir = "==0.6.1"
 pipenv-setup = {ref = "master", git = "https://github.com/Madoshakalaka/pipenv-setup"}
-cffi = "*"
+chardet = "*"
 
 [dev-packages]
 pipenv-setup = "*"

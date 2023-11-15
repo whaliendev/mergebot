@@ -1,86 +1,7 @@
 import os
-from pathlib import Path
 from pygit2 import C
-
-# from pygit2.errors import check_error
-from utils.common import to_bytes
-from cffi import FFI
-
-ffi = FFI()
-
-ffi.cdef(
-    """
-typedef enum {
-	GIT_MERGE_FILE_FAVOR_NORMAL = 0,
-	GIT_MERGE_FILE_FAVOR_OURS = 1,
-	GIT_MERGE_FILE_FAVOR_THEIRS = 2,
-	GIT_MERGE_FILE_FAVOR_UNION = 3,
-} git_merge_file_favor_t;
-
-typedef enum {
-	GIT_MERGE_FILE_DEFAULT = 0,
-	GIT_MERGE_FILE_STYLE_MERGE = 1,
-	GIT_MERGE_FILE_STYLE_DIFF3 = 2,
-	GIT_MERGE_FILE_SIMPLIFY_ALNUM = 4,
-	GIT_MERGE_FILE_IGNORE_WHITESPACE = 8,
-	GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE = 16,
-	GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL = 32,
-	GIT_MERGE_FILE_DIFF_PATIENCE = 64,
-	GIT_MERGE_FILE_DIFF_MINIMAL = 128,
-} git_merge_file_flag_t;
-
-typedef struct {
-	unsigned int version;
-	const char *ancestor_label;
-	const char *our_label;
-	const char *their_label;
-	git_merge_file_favor_t favor;
-	git_merge_file_flag_t flags;
-	unsigned short marker_size;
-} git_merge_file_options;
-
-typedef struct {
-	unsigned int version;
-
-	/** Pointer to the contents of the file. */
-	const char *ptr;
-
-	/** Size of the contents pointed to in `ptr`. */
-	size_t size;
-
-	/** File name of the conflicted file, or `NULL` to not merge the path. */
-	const char *path;
-
-	/** File mode of the conflicted file, or `0` to not merge the mode. */
-	unsigned int mode;
-} git_merge_file_input;
-
-typedef struct {
-	unsigned int automergeable;
-	const char *path;
-	unsigned int mode;
-	const char *ptr;
-	size_t len;
-} git_merge_file_result;
-
-typedef struct {
-	char *message;
-	int klass;
-} git_error;
-
-int git_merge_file(
-	git_merge_file_result *out,
-	const git_merge_file_input *ancestor,
-	const git_merge_file_input *ours,
-	const git_merge_file_input *theirs,
-	const git_merge_file_options *opts);
-const git_error * git_error_last();
-"""
-)
-
-module_path = os.path.abspath(__file__)
-git2_path = Path(module_path).parent.parent / "deps" / "libgit2.so.1.7.1"
-libgit2 = ffi.dlopen(git2_path.as_posix())
+import subprocess
+import tempfile
 
 ###################
 # git_merge_file_favor_t
@@ -145,30 +66,6 @@ class GitMergeFileOptions:
         self.favor = favor
         self.flags = flags
 
-    @classmethod
-    def from_c(cls, c_options):
-        return cls(
-            ancestor_label=ffi.string(c_options.ancestor_label).decode(),
-            our_label=ffi.string(c_options.our_label).decode(),
-            their_label=ffi.string(c_options.their_label).decode(),
-            favor=c_options.favor,
-            flags=c_options.flags,
-        )
-
-    def to_c(self):
-        c_options = ffi.new("git_merge_file_options *")
-        c_options.version = self.version
-        ancestor_label = ffi.new("char[]", to_bytes(self.ancestor_label))
-        c_options.ancestor_label = ancestor_label
-        our_label = ffi.new("char[]", to_bytes(self.our_label))
-        c_options.our_label = our_label
-        their_label = ffi.new("char[]", to_bytes(self.their_label))
-        c_options.their_label = their_label
-        c_options.favor = self.favor
-        c_options.flags = self.flags
-        c_options.marker_size = self.marker_size
-        return c_options
-
 
 class GitMergeFileInput:
     version: int
@@ -198,25 +95,6 @@ class GitMergeFileInput:
     def binary(cls, content: str, path: str):
         return cls(content, path, 0o100644)
 
-    @classmethod
-    def from_c(cls, c_input):
-        return cls(
-            content=ffi.string(c_input.ptr).decode(),
-            path=ffi.string(c_input.path).decode(),
-            mode=c_input.mode,
-        )
-
-    def to_c(self):
-        c_input = ffi.new("git_merge_file_input*")
-        c_input.version = self.version
-        content = ffi.new("char[]", to_bytes(self.content))
-        c_input.ptr = content
-        c_input.size = len(self.content)
-        path = ffi.new("char[]", to_bytes(self.path))
-        c_input.path = path
-        c_input.mode = self.mode
-        return c_input
-
     def __repr__(self):
         return f"<GitMergeFileInput content={self.content} path={self.path} mode={self.mode}>"
 
@@ -236,58 +114,11 @@ class GitMergeFileResult:
         self.mode = mode
         self.content = content
 
-    @classmethod
-    def from_c(cls, c_result):
-        return cls(
-            automergeable=bool(c_result.automergeable),
-            path=ffi.string(c_result.path).decode(),
-            mode=c_result.mode,
-            content=ffi.string(c_result.ptr).decode(),
-        )
-
     def __repr__(self):
         return f"<GitMergeFileResult automergeable={self.automergeable} path={self.path} mode={self.mode} content={self.content}>"
 
     def __str__(self):
         return self.content
-
-
-def check_error(err, io=False):
-    if err >= 0:
-        return
-
-    # These are special error codes, they should never reach here
-    test = (
-        err != -7 and err != -30
-    )  # error code -7 is GIT_EUSER, -30 is GIT_PASSTHROUGH
-    assert test, f"Unexpected error code {err}"
-
-    # Error message
-    giterr = libgit2.git_error_last()
-    if giterr != ffi.NULL:
-        message = ffi.string(giterr.message).decode("utf8")
-    else:
-        message = f"err {err} (no message provided)"
-
-    value_errors = set([-4, -12, -5])
-    # Translate to Python errors
-    if err in value_errors:
-        raise ValueError(message)
-
-    if err == -3:  # -3 is GIT_ENOTFOUND
-        if io:
-            raise IOError(message)
-
-        raise KeyError(message)
-
-    if err == -12:  # -12 is GIT_EINVALIDSPEC
-        raise ValueError(message)
-
-    if err == -31:  # -31 is GIT_ITEROVER
-        raise StopIteration()
-
-    # Generic Git error
-    raise Exception(message)
 
 
 def git_merge_file(
@@ -296,11 +127,33 @@ def git_merge_file(
     theirs: GitMergeFileInput,
     opts: GitMergeFileOptions,
 ) -> GitMergeFileResult:
-    c_ancestor = ancestor.to_c()
-    c_ours = ours.to_c()
-    c_theirs = theirs.to_c()
-    c_opts = opts.to_c()
-    c_result = ffi.new("git_merge_file_result *")
-    error = libgit2.git_merge_file(c_result, c_ancestor, c_ours, c_theirs, c_opts)
-    check_error(error)
-    return GitMergeFileResult.from_c(c_result)
+    with tempfile.TemporaryDirectory() as tempdir:
+        ancestor_path = os.path.join(tempdir, "ancestor")
+        ours_path = os.path.join(tempdir, "ours")
+        theirs_path = os.path.join(tempdir, "theirs")
+        with open(ancestor_path, "w") as f:
+            f.write(ancestor.content)
+        with open(ours_path, "w") as f:
+            f.write(ours.content)
+        with open(theirs_path, "w") as f:
+            f.write(theirs.content)
+        cmd = [
+            "git",
+            "merge-file",
+            "-L",
+            ours.path,
+            "-L",
+            ancestor.path,
+            "-L",
+            theirs.path,
+            "-pq",
+            "--diff3",
+            ours_path,
+            ancestor_path,
+            theirs_path,
+        ]
+        result = subprocess.run(cmd, capture_output=True)
+        automergeable = result.returncode == 0
+        return GitMergeFileResult(
+            automergeable, ancestor.path, ancestor.mode, result.stdout.decode("utf-8")
+        )

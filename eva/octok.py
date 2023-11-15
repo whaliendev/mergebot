@@ -1,14 +1,15 @@
 #!/bin/env python
 
+import logging
 import os
 from queue import Queue
 from typing import List
 import click
 import sys
-
-from env import init_env
 from utils.gitservice import get_repo
 from command.miner import mine_repos_conflicts
+
+import log
 
 
 @click.group()
@@ -44,7 +45,7 @@ def mine(
     repo: List[str],
     sample: str,
 ):
-    _, logger = init_env()
+    logger = logging.getLogger()
     repos = []
     sample_is_repo = True
     try:

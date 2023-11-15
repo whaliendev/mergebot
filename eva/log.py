@@ -12,19 +12,40 @@ class ColorfulFormatter(logging.Formatter):
     white = "\033[37m"
     reset = "\033[0m"
 
-    format_template = "%(asctime)s {}[%(levelname)s]{} (%(filename)s:%(lineno)d): %(message)s"
+    format_template = (
+        "%(asctime)s {}[%(levelname)s]{} (%(filename)s:%(lineno)d): %(message)s"
+    )
 
     FORMATS = {
         logging.DEBUG: cyan,
         logging.INFO: green,
         logging.WARNING: yellow,
         logging.ERROR: red,
-        logging.CRITICAL: red
+        logging.CRITICAL: red,
     }
 
     def format(self, record):
         record.levelname = record.levelname.lower()
         level_color = self.FORMATS.get(record.levelno)
         log_fmt = self.format_template.format(level_color, self.reset)
-        formatter = logging.Formatter(log_fmt, datefmt='[%Y-%m-%d %H:%M:%S]')
+        formatter = logging.Formatter(log_fmt, datefmt="[%Y-%m-%d %H:%M:%S]")
         return formatter.format(record)
+
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter(
+    "[%(asctime)s] [%(process)d] [%(levelname)s] (%(filename)s:%(lineno)d): %(message)s"
+)
+
+# output to console
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+ch.setFormatter(ColorfulFormatter())
+logger.addHandler(ch)
+
+# output to file
+fh = logging.FileHandler("eva.log")
+fh.setLevel(logging.DEBUG)
+fh.setFormatter(formatter)
+logger.addHandler(fh)

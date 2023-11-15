@@ -8,8 +8,9 @@ import multiprocessing
 import pygit2
 from aiofile import AIOFile
 
-from typing import Optional, List
-from command.model import ConflictMergeScenario, ConflictSource
+from typing import Generator, Optional, List, Tuple
+from command.model import ConflictBlock, ConflictMergeScenario, ConflictSource
+from judger.judger import ClassifierJudger, ConflictBlockModel, MergebotJudger
 from utils.git import (
     GIT_MERGE_FILE_FAVOR_NORMAL,
     GIT_MERGE_FILE_STYLE_DIFF3,
@@ -19,7 +20,7 @@ from utils.git import (
     GIT_MERGE_CONFLICT_MARKER_SIZE,
 )
 
-logger = logging.getLogger(__package__)
+logger = logging.getLogger()
 
 OUR_CONFLICT_MARKER = "<" * GIT_MERGE_CONFLICT_MARKER_SIZE
 BASE_CONFLICT_MARKER = "|" * GIT_MERGE_CONFLICT_MARKER_SIZE
@@ -184,7 +185,7 @@ async def _dump_tree_entry(
 
 def next_conflict_merge_scenario(
     repo: pygit2.Repository, ms_limit: int
-) -> ConflictMergeScenario:
+) -> Generator[ConflictMergeScenario, None, None]:
     """Get the next merge scenario with conflicts in the given repository.
 
     :param repo: the repository to get the next merge scenario with conflicts
@@ -214,16 +215,28 @@ def next_conflict_merge_scenario(
             merge_base = repo.merge_base(parents[0].id, parents[1].id)
             base = merge_base.hex
             merged = commit.hex
-            conflicts = [conflict[0].path for conflict in merged_index.conflicts]
+
+            conflicts: List[Tuple[str, str, str]] = []
+            for ancestor, ours, theirs in merged_index.conflicts:
+                conflicts.append(
+                    (
+                        ancestor.path if ancestor else "",
+                        ours.path if ours else "",
+                        theirs.path if theirs else "",
+                    )
+                )
 
             if conflicts_cnt <= ms_limit:
-                yield ConflictMergeScenario("", ours, theirs, base, merged, conflicts)
+                yield ConflictMergeScenario(
+                    "", parents[0].hex, parents[1].hex, base, merged, conflicts
+                )
             else:
                 break
 
 
 def _get_code_snippet(lines: List[str], start: int, end: int) -> List[str]:
-    return lines[start + 1, end]
+    """get slice of (start, end) from lines, start and end are exclusive"""
+    return lines[start + 1 : end]
 
 
 def _align_line_scan(
@@ -277,85 +290,138 @@ def _read_file_content(repo: pygit2.Repository, commit_sha: str, file_path: str)
         logger.warning(f"file {file_path} does not exist in commit {commit_sha}")
         return ""
     blob = repo[entry.id]
+
     return blob.read_raw().decode()
 
 
 def get_conflict_source(
-    repo: pygit2.Repository, ms: ConflictMergeScenario, conflict: str
-) -> ConflictSource:
-    ours_content = _read_file_content(repo, ms.ours, conflict)
-    theirs_content = _read_file_content(repo, ms.theirs, conflict)
-    if ms.base:
-        base_content = _read_file_content(repo, ms.base, conflict)
-    else:
-        logger.warning(f"merge scenario {ms} does not have a base commit")
-    merged_content = _read_file_content(repo, ms.merged, conflict)
+    repo: pygit2.Repository, ms: ConflictMergeScenario, ancestor, ours, theirs
+) -> Optional[ConflictSource]:
+    ours_content = _read_file_content(repo, ms.ours, ours) if ours else ""
+    theirs_content = _read_file_content(repo, ms.theirs, theirs) if theirs else ""
+    base_content = (
+        _read_file_content(repo, ms.base, ancestor) if ancestor and ms.base else ""
+    )
+    merged_content = ""
+    for path in (ancestor, ours, theirs):
+        if not path:
+            continue
+        read_content = _read_file_content(repo, ms.merged, path)
+        if read_content:
+            merged_content = read_content
+            break
 
-    our_file = GitMergeFileInput(ours_content, conflict, 0o100644)
-    ancestor_file = GitMergeFileInput(base_content, conflict, 0o100644)
-    their_file = GitMergeFileInput(theirs_content, conflict, 0o100644)
+    our_file = GitMergeFileInput(ours_content, ours, 0o100644)
+    ancestor_file = GitMergeFileInput(base_content, ancestor, 0o100644)
+    their_file = GitMergeFileInput(theirs_content, theirs, 0o100644)
     merge_opts = GitMergeFileOptions(
-        ms.base,
+        ms.base if ms.base else "ANCESTOR",
         ms.ours,
         ms.theirs,
         GIT_MERGE_FILE_FAVOR_NORMAL,
         GIT_MERGE_FILE_STYLE_DIFF3,
     )
 
+    if (not ancestor and not ours) or (not ancestor and not theirs):
+        logger.warning(
+            f"strange conflict, two sides are empty, repo: {repo.path}, ms: {ms}, ancestor: {ancestor}, ours: {ours}, theirs: {theirs}"
+        )
+        return None
+
     merge_output = git_merge_file(ancestor_file, our_file, their_file, merge_opts)
 
     if merge_output.automergeable:
+        logger.error(
+            f"conflict is automergeable? repo: {repo.path}, ms: {ms}, ancestor: {ancestor}, ours: {ours}, theirs: {theirs}"
+        )
         return None
 
     conflict_content = merge_output.content
-    conflict_blocks = []
+    conflict_blocks = process_conflict_blocks(conflict_content, merged_content)
+
+    return ConflictSource(
+        "",
+        ms.ms_id,
+        (ancestor, ours, theirs),
+        ms.ours,
+        ms.theirs,
+        ms.base,
+        ms.merged,
+        conflict_blocks,
+    )
+
+
+def process_conflict_blocks(
+    conflict_content: str, merged_content: str
+) -> List[ConflictBlock]:
+    conflict_block_models: List[ConflictBlockModel] = []
     index_in_file = 0
     conflict_lines = conflict_content.splitlines()
     conflict_line_cnt = len(conflict_lines)
 
     for index, line in enumerate(conflict_lines):
         if line.startswith(OUR_CONFLICT_MARKER):
-            cb = {
-                "index": index_in_file,
-            }
+            cb = ConflictBlockModel(index_in_file, [], [], [], [], [], 0, 0)
             index_in_file += 1
             j = index
             k = index
 
-            cb["start_line"] = index
+            cb.start_line = index + 1  # line number starts from 1
 
             while j + 1 < conflict_line_cnt and not conflict_lines[j + 1].startswith(
                 BASE_CONFLICT_MARKER
             ):
                 j += 1
-            cb["ours"] = _get_code_snippet(conflict_lines, k, j + 1)
+            j += 1  # j now points to the line with base conflict marker
+            cb.ours = _get_code_snippet(conflict_lines, k, j)
             k = j
 
             while j + 1 < conflict_line_cnt and not conflict_lines[j + 1].startswith(
                 THEIR_CONFLICT_MARKER
             ):
                 j += 1
-            cb["bases"] = _get_code_snippet(conflict_lines, k, j + 1)
+            j += 1
+            cb.base = _get_code_snippet(conflict_lines, k, j)
             k = j
 
             while j + 1 < conflict_line_cnt and not conflict_lines[j + 1].startswith(
                 END_CONFLICT_MARKER
             ):
                 j += 1
-            cb["theirs"] = _get_code_snippet(conflict_lines, k, j)
+            j += 1
+            cb.theirs = _get_code_snippet(conflict_lines, k, j)
             k = j
-            cb["end_line"] = j + 1
-            conflict_blocks.append(cb)
+            cb.end_line = j + 1  # line number
+            conflict_block_models.append(cb)
 
     merged_lines = merged_content.splitlines()
     start_index = 0
-    for cb in conflict_blocks:
-        prefix = _get_code_snippet(conflict_lines, -1, cb["start_line"])
-        suffix = _get_code_snippet(conflict_lines, cb["end_line"], conflict_line_cnt)
+    for cb in conflict_block_models:
+        prefix = _get_code_snippet(conflict_lines, -1, cb.start_line - 1)
+        suffix = _get_code_snippet(conflict_lines, cb.end_line - 1, conflict_line_cnt)
         start_line = _align_line_scan(prefix, merged_lines, False, start_index)
         start_index = start_line
         end_line = _align_line_scan(suffix, merged_lines, True, start_index)
         start_index = end_line
-        cb["merged"] = _get_code_snippet(merged_lines, start_line, end_line)
+        cb.merged = _get_code_snippet(merged_lines, start_line, end_line)
         # judge strategy
-        print(cb)
+        jugers = [ClassifierJudger(cb), MergebotJudger(cb)]
+        for judger in jugers:
+            labels = judger.judge()
+            cb.labels.extend(labels)
+
+    conflict_blocks = [
+        ConflictBlock(
+            model.index,
+            "\n".join(model.ours),
+            "\n".join(model.theirs),
+            "\n".join(model.base),
+            "\n".join(model.merged),
+            model.labels,
+            model.start_line,
+            model.end_line,
+        )
+        for model in conflict_block_models
+    ]
+
+    return conflict_blocks
