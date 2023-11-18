@@ -1,6 +1,6 @@
 from enum import IntEnum
 from dataclasses import dataclass, field
-from typing import List, Tuple
+from typing import Dict, List, Tuple, TypedDict
 
 
 class MineStatus(IntEnum):
@@ -62,6 +62,12 @@ class RepoMeta:
         )
 
 
+class PathMapping(TypedDict):
+    ancestor: str
+    ours: str
+    theirs: str
+
+
 @dataclass
 class ConflictMergeScenario:
     repo_id: str  # repo_id in mongo
@@ -69,7 +75,7 @@ class ConflictMergeScenario:
     theirs: str  # their commit id
     base: str  # base commit id
     merged: str  # merged commit id
-    conflicts: List[Tuple[str, str, str]]  # file name of conflict files
+    files: List[PathMapping]  # file name of conflict files
 
     @property
     def ms_id(self):
@@ -83,9 +89,7 @@ class ConflictMergeScenario:
             "theirs": self.theirs,
             "base": self.base,
             "merged": self.merged,
-            "conflicts": [
-                [ancestor, ours, theirs] for ancestor, ours, theirs in self.conflicts
-            ],
+            "files": [file for file in self.files],
         }
 
     @classmethod
@@ -96,9 +100,7 @@ class ConflictMergeScenario:
             theirs=ms["theirs"],
             base=ms["base"],
             merged=ms["merged"],
-            conflicts=[
-                (ancestor, ours, theirs) for ancestor, ours, theirs in ms["conflicts"]
-            ],
+            files=[PathMapping(file) for file in ms["files"]],
         )
 
 
@@ -144,7 +146,7 @@ class ConflictBlock:
 class ConflictSource:
     repo_id: str
     ms_id: str
-    conflict: Tuple[str, str, str]  # file name
+    paths: PathMapping  # file name
     # file content of ours, theirs, base, merged
     ours: str
     theirs: str
@@ -157,7 +159,7 @@ class ConflictSource:
         return {
             "repo_id": self.repo_id,  # create index on (repo_id, ms_id, conflict)
             "ms_id": self.ms_id,
-            "conflict": [path for path in self.conflict],
+            "paths": self.paths,
             "ours": self.ours,
             "theirs": self.theirs,
             "base": self.base,
@@ -170,10 +172,12 @@ class ConflictSource:
         return cls(
             repo_id=cs["repo_id"],
             ms_id=cs["ms_id"],
-            conflict=(cs["conflict"][0], cs["conflict"][1], cs["conflict"][2]),
+            paths=cs["paths"],
             ours=cs["ours"],
             theirs=cs["theirs"],
             base=cs["base"],
             merged=cs["merged"],
-            conflicts=[ConflictBlock.from_mongo(cb) for cb in cs["conflicts"]],
+            conflicts=[
+                ConflictBlock.from_mongo(conflict) for conflict in cs["conflicts"]
+            ],
         )

@@ -155,5 +155,5 @@ def git_merge_file(
         result = subprocess.run(cmd, capture_output=True)
         automergeable = result.returncode == 0
         return GitMergeFileResult(
-            automergeable, ancestor.path, ancestor.mode, result.stdout.decode("utf-8")
+            automergeable, ancestor.path, ancestor.mode, result.stdout.decode()
         )

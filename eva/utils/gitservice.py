@@ -4,12 +4,18 @@ import os
 import logging
 from pathlib import Path
 import multiprocessing
+import chardet
 
 import pygit2
 from aiofile import AIOFile
 
 from typing import Generator, Optional, List, Tuple
-from command.model import ConflictBlock, ConflictMergeScenario, ConflictSource
+from command.model import (
+    ConflictBlock,
+    ConflictMergeScenario,
+    ConflictSource,
+    PathMapping,
+)
 from judger.judger import ClassifierJudger, ConflictBlockModel, MergebotJudger
 from utils.git import (
     GIT_MERGE_FILE_FAVOR_NORMAL,
@@ -163,7 +169,7 @@ async def _dump_tree_entry(
         blob = repo[entry.id]
         if entry.filemode == pygit2.GIT_FILEMODE_LINK:
             try:
-                os.symlink(blob.read_raw().decode("utf-8"), dest_path)
+                os.symlink(blob.read_raw().decode(), dest_path)
             except Exception as e:
                 logger.error(f"could not create symlink {dest_path}: {e}")
                 return False
@@ -213,22 +219,24 @@ def next_conflict_merge_scenario(
             ours = parents[0].hex
             theirs = parents[1].hex
             merge_base = repo.merge_base(parents[0].id, parents[1].id)
-            base = merge_base.hex
+            base = merge_base.hex if merge_base else ""
             merged = commit.hex
 
-            conflicts: List[Tuple[str, str, str]] = []
+            sources: List[PathMapping] = []
             for ancestor, ours, theirs in merged_index.conflicts:
-                conflicts.append(
-                    (
-                        ancestor.path if ancestor else "",
-                        ours.path if ours else "",
-                        theirs.path if theirs else "",
+                sources.append(
+                    PathMapping(
+                        {
+                            "ancestor": ancestor.path if ancestor else "",
+                            "ours": ours.path if ours else "",
+                            "theirs": theirs.path if theirs else "",
+                        }
                     )
                 )
 
             if conflicts_cnt <= ms_limit:
                 yield ConflictMergeScenario(
-                    "", parents[0].hex, parents[1].hex, base, merged, conflicts
+                    "", parents[0].hex, parents[1].hex, base, merged, sources
                 )
             else:
                 break
@@ -286,17 +294,37 @@ def _read_file_content(repo: pygit2.Repository, commit_sha: str, file_path: str)
     tree = commit.tree
     try:
         entry = tree[file_path]
+        blob = repo[entry.id]
     except KeyError as e:
         logger.warning(f"file {file_path} does not exist in commit {commit_sha}")
         return ""
-    blob = repo[entry.id]
-
-    return blob.read_raw().decode()
+    raw_bytes = blob.read_raw()
+    detected_result = chardet.detect(raw_bytes)
+    encoding = detected_result["encoding"]
+    confidence = detected_result["confidence"]
+    if confidence < 0.8:
+        logger.warning(
+            f"low confidence {confidence} for encoding {encoding} of file {file_path} in commit {commit_sha}"
+        )
+    encoding = "utf-8" if encoding is None else encoding
+    try:
+        return raw_bytes.decode(encoding)
+    except UnicodeDecodeError as e:
+        logger.error(f"could not decode file {file_path} in commit {commit_sha}: {e}")
+        return ""
 
 
 def get_conflict_source(
     repo: pygit2.Repository, ms: ConflictMergeScenario, ancestor, ours, theirs
 ) -> Optional[ConflictSource]:
+    """Get the conflict source of the given merge scenario and file paths.
+
+    :param repo: the repository to get the conflict source
+    :param ms: the conflicting merge scenario
+    :param ancestor: the path to the ancestor file
+    :param ours: the path to the ours file
+    :param theirs: the path to the theirs file
+    """
     ours_content = _read_file_content(repo, ms.ours, ours) if ours else ""
     theirs_content = _read_file_content(repo, ms.theirs, theirs) if theirs else ""
     base_content = (
@@ -342,7 +370,13 @@ def get_conflict_source(
     return ConflictSource(
         "",
         ms.ms_id,
-        (ancestor, ours, theirs),
+        PathMapping(
+            {
+                "ancestor": ancestor,
+                "ours": ours,
+                "theirs": theirs,
+            }
+        ),
         ms.ours,
         ms.theirs,
         ms.base,

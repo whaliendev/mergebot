@@ -70,10 +70,13 @@ def mine_repo_conflicts(repo_workset: tuple[pygit2.Repository, int]):
         logger.info(f"a conflict merge scenario found: {ms}")
         ms_collection.insert_one(ms.to_mongo())
         sources = []
-        for conflict in ms.conflicts:
-            cs = get_conflict_source(repo, ms, *conflict)
+        for file in ms.files:
+            cs = get_conflict_source(repo, ms, **file)
             if not cs:
                 continue
             cs.repo_id = repo_meta.repo_id
             sources.append(cs.to_mongo())
-        cs_collection.insert_many(sources)
+        if sources:
+            cs_collection.insert_many(sources)
+        else:
+            logger.warning(f"no conflict source found for {ms}")

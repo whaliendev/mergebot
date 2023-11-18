@@ -1,4 +1,6 @@
 import logging
+import os
+import time
 
 
 class ColorfulFormatter(logging.Formatter):
@@ -45,7 +47,11 @@ ch.setFormatter(ColorfulFormatter())
 logger.addHandler(ch)
 
 # output to file
-fh = logging.FileHandler("eva.log")
+log_dir = "logs"
+os.makedirs(log_dir, exist_ok=True)
+current_time = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
+log_file = os.path.join(log_dir, f"{current_time}.log")
+fh = logging.FileHandler(log_file, encoding="utf-8")
 fh.setLevel(logging.DEBUG)
 fh.setFormatter(formatter)
 logger.addHandler(fh)
