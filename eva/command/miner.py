@@ -1,4 +1,3 @@
-from dataclasses import asdict
 import logging
 from multiprocessing import Pool
 from pathlib import Path

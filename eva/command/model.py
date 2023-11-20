@@ -1,6 +1,6 @@
 from enum import IntEnum
-from dataclasses import dataclass, field
-from typing import Dict, List, Tuple, TypedDict
+from dataclasses import dataclass
+from typing import List, TypedDict
 
 
 class MineStatus(IntEnum):

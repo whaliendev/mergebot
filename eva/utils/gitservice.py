@@ -9,7 +9,7 @@ import chardet
 import pygit2
 from aiofile import AIOFile
 
-from typing import Generator, Optional, List, Tuple
+from typing import Generator, Optional, List
 from command.model import (
     ConflictBlock,
     ConflictMergeScenario,
