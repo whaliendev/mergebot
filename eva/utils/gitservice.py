@@ -197,49 +197,53 @@ def next_conflict_merge_scenario(
     :param repo: the repository to get the next merge scenario with conflicts
     :return: a MergeScenario object
     """
-    head_commit = repo.head.target
+    try:
+        head_commit = repo.head.target
 
-    # --date-order: Show no parents before all of its children are shown, but otherwise show commits in the commit timestamp order.
-    # --author-date-order: Show no parents before all of its children are shown, but otherwise show commits in the author timestamp order.
-    # --topo-order: Show no parents before all of its children are shown, and avoid showing commits on multiple lines of history intermixed.
-    revwalk = repo.walk(head_commit, pygit2.GIT_SORT_TOPOLOGICAL)
+        # --date-order: Show no parents before all of its children are shown, but otherwise show commits in the commit timestamp order.
+        # --author-date-order: Show no parents before all of its children are shown, but otherwise show commits in the author timestamp order.
+        # --topo-order: Show no parents before all of its children are shown, and avoid showing commits on multiple lines of history intermixed.
+        revwalk = repo.walk(head_commit, pygit2.GIT_SORT_TOPOLOGICAL)
 
-    conflicts_cnt = 0
-    for commit in revwalk:
-        parents = commit.parents
-        if len(parents) < 2:
-            continue
+        conflicts_cnt = 0
+        for commit in revwalk:
+            parents = commit.parents
+            if len(parents) < 2:
+                continue
 
-        merged_index = repo.merge_commits(
-            parents[0], parents[1], flags={"fail_on_conflict": False}
-        )
+            merged_index = repo.merge_commits(
+                parents[0], parents[1], flags={"fail_on_conflict": False}
+            )
 
-        if merged_index.conflicts:
-            conflicts_cnt += 1
-            ours = parents[0].hex
-            theirs = parents[1].hex
-            merge_base = repo.merge_base(parents[0].id, parents[1].id)
-            base = merge_base.hex if merge_base else ""
-            merged = commit.hex
+            if merged_index.conflicts:
+                conflicts_cnt += 1
+                ours = parents[0].hex
+                theirs = parents[1].hex
+                merge_base = repo.merge_base(parents[0].id, parents[1].id)
+                base = merge_base.hex if merge_base else ""
+                merged = commit.hex
 
-            sources: List[PathMapping] = []
-            for ancestor, ours, theirs in merged_index.conflicts:
-                sources.append(
-                    PathMapping(
-                        {
-                            "ancestor": ancestor.path if ancestor else "",
-                            "ours": ours.path if ours else "",
-                            "theirs": theirs.path if theirs else "",
-                        }
+                sources: List[PathMapping] = []
+                for ancestor, ours, theirs in merged_index.conflicts:
+                    sources.append(
+                        PathMapping(
+                            {
+                                "ancestor": ancestor.path if ancestor else "",
+                                "ours": ours.path if ours else "",
+                                "theirs": theirs.path if theirs else "",
+                            }
+                        )
                     )
-                )
 
-            if conflicts_cnt <= ms_limit:
-                yield ConflictMergeScenario(
-                    "", parents[0].hex, parents[1].hex, base, merged, sources
-                )
-            else:
-                break
+                if conflicts_cnt <= ms_limit:
+                    yield ConflictMergeScenario(
+                        "", parents[0].hex, parents[1].hex, base, merged, sources
+                    )
+                else:
+                    break
+    except Exception as e:
+        logger.error(f"could not get next conflict merge scenario: {e}")
+        raise e
 
 
 def _get_code_snippet(lines: List[str], start: int, end: int) -> List[str]:
@@ -325,64 +329,70 @@ def get_conflict_source(
     :param ours: the path to the ours file
     :param theirs: the path to the theirs file
     """
-    ours_content = _read_file_content(repo, ms.ours, ours) if ours else ""
-    theirs_content = _read_file_content(repo, ms.theirs, theirs) if theirs else ""
-    base_content = (
-        _read_file_content(repo, ms.base, ancestor) if ancestor and ms.base else ""
-    )
-    merged_content = ""
-    for path in (ancestor, ours, theirs):
-        if not path:
-            continue
-        read_content = _read_file_content(repo, ms.merged, path)
-        if read_content:
-            merged_content = read_content
-            break
-
-    our_file = GitMergeFileInput(ours_content, ours, 0o100644)
-    ancestor_file = GitMergeFileInput(base_content, ancestor, 0o100644)
-    their_file = GitMergeFileInput(theirs_content, theirs, 0o100644)
-    merge_opts = GitMergeFileOptions(
-        ms.base if ms.base else "ANCESTOR",
-        ms.ours,
-        ms.theirs,
-        GIT_MERGE_FILE_FAVOR_NORMAL,
-        GIT_MERGE_FILE_STYLE_DIFF3,
-    )
-
-    if (not ancestor and not ours) or (not ancestor and not theirs):
-        logger.warning(
-            f"strange conflict, two sides are empty, repo: {repo.path}, ms: {ms}, ancestor: {ancestor}, ours: {ours}, theirs: {theirs}"
+    try:
+        ours_content = _read_file_content(repo, ms.ours, ours) if ours else ""
+        theirs_content = _read_file_content(repo, ms.theirs, theirs) if theirs else ""
+        base_content = (
+            _read_file_content(repo, ms.base, ancestor) if ancestor and ms.base else ""
         )
-        return None
+        merged_content = ""
+        for path in (ancestor, ours, theirs):
+            if not path:
+                continue
+            read_content = _read_file_content(repo, ms.merged, path)
+            if read_content:
+                merged_content = read_content
+                break
 
-    merge_output = git_merge_file(ancestor_file, our_file, their_file, merge_opts)
+        our_file = GitMergeFileInput(ours_content, ours, 0o100644)
+        ancestor_file = GitMergeFileInput(base_content, ancestor, 0o100644)
+        their_file = GitMergeFileInput(theirs_content, theirs, 0o100644)
+        merge_opts = GitMergeFileOptions(
+            ms.base if ms.base else "ANCESTOR",
+            ms.ours,
+            ms.theirs,
+            GIT_MERGE_FILE_FAVOR_NORMAL,
+            GIT_MERGE_FILE_STYLE_DIFF3,
+        )
 
-    if merge_output.automergeable:
+        if (not ancestor and not ours) or (not ancestor and not theirs):
+            logger.warning(
+                f"strange conflict, two sides are empty, repo: {repo.path}, ms: {ms}, ancestor: {ancestor}, ours: {ours}, theirs: {theirs}"
+            )
+            return None
+
+        merge_output = git_merge_file(ancestor_file, our_file, their_file, merge_opts)
+
+        if merge_output.automergeable:
+            logger.error(
+                f"conflict is automergeable? repo: {repo.path}, ms: {ms}, ancestor: {ancestor}, ours: {ours}, theirs: {theirs}"
+            )
+            return None
+
+        conflict_content = merge_output.content
+        conflict_blocks = process_conflict_blocks(conflict_content, merged_content)
+
+        return ConflictSource(
+            "",
+            ms.ms_id,
+            PathMapping(
+                {
+                    "ancestor": ancestor,
+                    "ours": ours,
+                    "theirs": theirs,
+                }
+            ),
+            ms.ours,
+            ms.theirs,
+            ms.base,
+            ms.merged,
+            conflict_blocks,
+        )
+    except Exception as e:
         logger.error(
-            f"conflict is automergeable? repo: {repo.path}, ms: {ms}, ancestor: {ancestor}, ours: {ours}, theirs: {theirs}"
+            f"could not get conflict source of {ms.ms_id} in repo {repo.path}: {e}"
         )
-        return None
-
-    conflict_content = merge_output.content
-    conflict_blocks = process_conflict_blocks(conflict_content, merged_content)
-
-    return ConflictSource(
-        "",
-        ms.ms_id,
-        PathMapping(
-            {
-                "ancestor": ancestor,
-                "ours": ours,
-                "theirs": theirs,
-            }
-        ),
-        ms.ours,
-        ms.theirs,
-        ms.base,
-        ms.merged,
-        conflict_blocks,
-    )
+        raise e
 
 
 def process_conflict_blocks(

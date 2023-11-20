@@ -53,7 +53,7 @@ def mine(
     except ValueError as e:
         sample_is_repo = False
         logger.info(
-            f"${sample_repo} is not a valid git repository, we will try to mine it as a directory of git projects"
+            f"${sample} is not a valid git repository, we will try to mine it as a directory of git projects"
         )
 
     if sample_is_repo:
