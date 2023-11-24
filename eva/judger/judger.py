@@ -40,7 +40,7 @@ class ClassifierJudger(BaseJudger):
     class Label(Enum):
         OURS = "ours"
         BASE = "base"
-        THERIS = "theirs"
+        THEIRS = "theirs"
         CONCAT = "concat"
         DELETION = "deletion"
 
@@ -56,7 +56,7 @@ class ClassifierJudger(BaseJudger):
         if self.accept_ours():
             return [ClassifierJudger.Label.OURS.value]
         if self.accept_theirs():
-            return [ClassifierJudger.Label.THERIS.value]
+            return [ClassifierJudger.Label.THEIRS.value]
         if self.accept_base():
             return [ClassifierJudger.Label.BASE.value]
         if self.delete_all_revisions():
@@ -88,7 +88,8 @@ class ClassifierJudger(BaseJudger):
         return self._deflated_base == self._deflated_merged
 
     def concat_of_two_revisions(self) -> bool:
-        if self._deflated_ours or self._deflated_theirs:
+        # any side is empty, return false
+        if not self._deflated_ours or not self._deflated_theirs:
             return False
 
         def concat_length_not_equal():

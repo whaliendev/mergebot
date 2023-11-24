@@ -8,8 +8,9 @@ import click
 import sys
 from utils.gitservice import get_repo
 from command.miner import mine_repos_conflicts
+from command.stat import get_summary_of_merge_db, show_summary
 
-import log
+import log as _
 
 
 @click.group()
@@ -93,6 +94,28 @@ def mine(
 @cli.command()
 def pull():
     pass
+
+
+@cli.command()
+@click.option(
+    "--classifier", is_flag=True, help="use classifier juger to judge conflicts"
+)
+@click.option("--mergebot", is_flag=True, help="use mergebot juger to judge conflicts")
+@click.option("--projectwise", is_flag=True, help="project wise label stat")
+@click.option("--show-ratio", is_flag=True, help="show ratio of each label")
+@click.argument("repos", nargs=-1, type=str)
+def stat(
+    classifier: bool,
+    mergebot: bool,
+    projectwise: bool,
+    show_ratio: bool,
+    repos: List[str],
+):
+    print(f"classifier: {classifier}, mergebot: {mergebot}")
+    summary = get_summary_of_merge_db(classifier, mergebot)
+
+    print(f"summary: {summary.classifier_label_summary}")
+    show_summary(summary, projectwise, show_ratio, repos)
 
 
 if __name__ == "__main__":
