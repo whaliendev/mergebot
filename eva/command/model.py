@@ -257,12 +257,14 @@ class DBSummary:
         result = list(self.cs_collection.aggregate(pipeline))
         self.classifier_label_summary = [
             (
-                self.repo_rel_mapping[aggregate["repo_id"]], # repo_name
-                aggregate["label"], # label
-                aggregate["count"], # count
+                self.repo_rel_mapping[aggregate["repo_id"]],  # repo_name
+                aggregate["label"],  # label
+                aggregate["count"],  # count
             )
             for aggregate in result
             if aggregate["label"] in classifier_label_mapping.keys()
+            and aggregate["repo_id"]
+            in self.repo_rel_mapping.keys()  # in case we are mining a subset of repos
         ]
 
     def fetch_mergebot_summary(self, langs: List[str]):
@@ -299,6 +301,7 @@ class DBSummary:
             )
             for aggregate in result
             if aggregate["label"] in mergebot_label_mapping.keys()
+            and aggregate["repo_id"] in self.repo_rel_mapping.keys()
         ]
 
     @staticmethod

@@ -8,7 +8,8 @@ import click
 import sys
 from utils.gitservice import get_repo
 from command.miner import mine_repos_conflicts
-from command.stat import show_overall_stats
+from command.stat import show_overall_stats, show_projectwise_stats
+from rich import print as rprint
 
 import log as _
 
@@ -97,7 +98,7 @@ def pull():
 
 
 @cli.command()
-@click.option("--projectwise", is_flag=True, help="project wise label stat")
+@click.option("--projectwise", "-P", is_flag=True, help="projectwise label stat")
 @click.option(
     "--classifier", is_flag=True, help="use classifier juger to judge conflicts"
 )
@@ -106,7 +107,7 @@ def pull():
 @click.option(
     "-l",
     "--lang",
-    type=click.Choice(["c", "kt", "java", "go", "rs", "js", "py"]),
+    type=click.Choice(["c", "kt", "java", "go", "rs", "js", "py", "json"]),
     multiple=True,
     help="filter by language",
 )
@@ -119,13 +120,16 @@ def stat(
     lang: List[str],
     repos: List[str],
 ):
+    if not projectwise and repos or projectwise and not repos:
+        rprint(
+            "[bold red]error: [/bold red]repos should be specified when projectwise is set"
+        )
+        exit(1)
     if projectwise:
-        # show projectwise stat
-        pass
+        show_projectwise_stats(classifier, mergebot, show_ratio, lang, repos)
     else:
         # show overall stat
         show_overall_stats(classifier, mergebot, show_ratio, lang)
-        pass
 
 
 if __name__ == "__main__":

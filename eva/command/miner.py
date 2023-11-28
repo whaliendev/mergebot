@@ -17,8 +17,6 @@ logger = logging.getLogger()
 def mine_repos_conflicts(repos: List[str], ms_limit: int):
     with Pool() as pool:
         pool.map(mine_repo_conflicts, [(repo, ms_limit) for repo in repos])
-    # for repo in repos:
-    #     mine_repo_conflicts((repo, ms_limit))
 
 
 def mine_repo_conflicts(repo_workset: tuple[pygit2.Repository, int]):
@@ -54,18 +52,6 @@ def mine_repo_conflicts(repo_workset: tuple[pygit2.Repository, int]):
             ms_collection.delete_many({"repo_id": str(oid)})
             cs_collection.delete_many({"repo_id": str(oid)})
             project_collection.delete_one({"name": repo_name})
-
-    # with mongo_client.start_session() as session:
-    #     with session.start_transaction():
-    #         _mine_repo_conflicts_atomic(
-    #             repo,
-    #             repo_name,
-    #             ms_limit,
-    #             session,
-    #             project_collection,
-    #             ms_collection,
-    #             cs_collection,
-    #         )
 
 
 def _mine_repo_conflicts_atomic(
