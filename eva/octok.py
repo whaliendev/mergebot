@@ -120,7 +120,7 @@ def stat(
     lang: List[str],
     repos: List[str],
 ):
-    if not projectwise and repos or projectwise and not repos:
+    if not projectwise and repos:
         rprint(
             "[bold red]error: [/bold red]repos should be specified when projectwise is set"
         )
