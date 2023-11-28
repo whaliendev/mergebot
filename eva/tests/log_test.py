@@ -1,5 +1,5 @@
 import logging
-from .. import log
+from log import ColorfulFormatter
 
 def test_colorful_formatter():
     # create a log record with level WARNING
@@ -14,7 +14,7 @@ def test_colorful_formatter():
     )
 
     # create an instance of ColorfulFormatter
-    formatter = log.ColorfulFormatter()
+    formatter = ColorfulFormatter()
 
     # format the log record using ColorfulFormatter
     formatted = formatter.format(record)

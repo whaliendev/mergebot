@@ -8,7 +8,7 @@ import click
 import sys
 from utils.gitservice import get_repo
 from command.miner import mine_repos_conflicts
-from command.stat import get_summary_of_merge_db, show_summary
+from command.stat import show_overall_stats
 
 import log as _
 
@@ -97,25 +97,35 @@ def pull():
 
 
 @cli.command()
+@click.option("--projectwise", is_flag=True, help="project wise label stat")
 @click.option(
     "--classifier", is_flag=True, help="use classifier juger to judge conflicts"
 )
 @click.option("--mergebot", is_flag=True, help="use mergebot juger to judge conflicts")
-@click.option("--projectwise", is_flag=True, help="project wise label stat")
 @click.option("--show-ratio", is_flag=True, help="show ratio of each label")
+@click.option(
+    "-l",
+    "--lang",
+    type=click.Choice(["c", "kt", "java", "go", "rs", "js", "py"]),
+    multiple=True,
+    help="filter by language",
+)
 @click.argument("repos", nargs=-1, type=str)
 def stat(
+    projectwise: bool,
     classifier: bool,
     mergebot: bool,
-    projectwise: bool,
     show_ratio: bool,
+    lang: List[str],
     repos: List[str],
 ):
-    print(f"classifier: {classifier}, mergebot: {mergebot}")
-    summary = get_summary_of_merge_db(classifier, mergebot)
-
-    print(f"summary: {summary.classifier_label_summary}")
-    show_summary(summary, projectwise, show_ratio, repos)
+    if projectwise:
+        # show projectwise stat
+        pass
+    else:
+        # show overall stat
+        show_overall_stats(classifier, mergebot, show_ratio, lang)
+        pass
 
 
 if __name__ == "__main__":

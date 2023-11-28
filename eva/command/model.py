@@ -1,3 +1,4 @@
+from functools import reduce
 import logging
 from enum import IntEnum
 from dataclasses import dataclass
@@ -8,6 +9,7 @@ import pymongo
 from config import mongo_config
 
 from serializer.mongo import get_mongo_client
+from utils import lang_exts
 
 
 logger = logging.getLogger()
@@ -194,67 +196,46 @@ class ConflictSource:
 
 
 class DBSummary:
-    repo_cnt: int
-    ms_cnt: int
-    cs_cnt: int
-    cb_cnt: int
     repo_rel_mapping: Dict[str, str]
     per_repo_summary: List[Tuple[str, int, int]]  # repo_name, ms_cnt, cs_cnt
 
     classifier_label_summary: List[Tuple[str, str, int]]  # repo_name, label, cnt
     mergebot_label_summary: List[Tuple[str, str, int]]  # repo_name, label, cnt
 
-    __db: pymongo.database.Database
-    __repo_collection: pymongo.collection.Collection
-    __ms_collection: pymongo.collection.Collection
-    __cs_collection: pymongo.collection.Collection
+    db: pymongo.database.Database
+    repo_collection: pymongo.collection.Collection
+    ms_collection: pymongo.collection.Collection
+    cs_collection: pymongo.collection.Collection
 
     def __init__(self) -> None:
         mongo_client = get_mongo_client()
 
-        self.__db = mongo_client[mongo_config.EVA_DB]
-        self.__repo_collection = self.__db[mongo_config.PROJECT_COLLECTION]
-        self.__ms_collection = self.__db[mongo_config.MS_COLLECTION]
-        self.__cs_collection = self.__db[mongo_config.CS_COLLECTION]
+        self.db = mongo_client[mongo_config.EVA_DB]
+        self.repo_collection = self.db[mongo_config.PROJECT_COLLECTION]
+        self.ms_collection = self.db[mongo_config.MS_COLLECTION]
+        self.cs_collection = self.db[mongo_config.CS_COLLECTION]
 
-    def fill_overall_summary(self):
-        self.repo_cnt = self.__repo_collection.count_documents(
-            {"mined": MineStatus.DONE.value}
-        )
-        self.ms_cnt = self.__ms_collection.count_documents({})
-        self.cs_cnt = self.__cs_collection.count_documents({})
-        cb_pipeline = [
-            {"$unwind": "$conflicts"},
-            {"$group": {"_id": None, "conflict_count": {"$sum": 1}}},
-        ]
-        cb_aggregate_result = list(self.__cs_collection.aggregate(cb_pipeline))
-        self.cb_cnt = (
-            cb_aggregate_result[0]["conflict_count"]
-            if len(cb_aggregate_result) > 0
-            else 0
-        )
-
+    def fill_repo_mapping(self) -> None:
         self.repo_rel_mapping = {}
         self.per_repo_summary = []
 
-        for repo in self.__repo_collection.find({"mined": MineStatus.DONE.value}):
+        for repo in self.repo_collection.find({"mined": MineStatus.DONE.value}):
             repo_name = repo["name"]
             repo_id_str = str(repo["_id"])
-            ms_cnt = self.__ms_collection.count_documents({"repo_id": repo_id_str})
-            cs_cnt = self.__cs_collection.count_documents({"repo_id": repo_id_str})
+            ms_cnt = self.ms_collection.count_documents({"repo_id": repo_id_str})
+            cs_cnt = self.cs_collection.count_documents({"repo_id": repo_id_str})
             self.repo_rel_mapping[repo_id_str] = repo_name
             self.per_repo_summary.append((repo_name, ms_cnt, cs_cnt))
 
-        # print(self.repo_rel_mapping)
-
-    def fetch_classifier_summary(self):
+    def fetch_classifier_summary(self, langs: List[str]):
         if self.repo_rel_mapping is None:
-            self.fill_overall_summary()
+            self.fill_repo_mapping()
 
         classifier_label_mapping = {
             label.value: label for label in ClassifierJudger.Label
         }
         pipeline = [
+            {"$match": DBSummary.gen_lang_filter(langs)},
             {"$unwind": "$conflicts"},
             {"$unwind": "$conflicts.labels"},
             {"$match": {"conflicts.labels": {"$ne": None, "$exists": True}}},
@@ -273,24 +254,24 @@ class DBSummary:
                 }
             },
         ]
-        result = list(self.__cs_collection.aggregate(pipeline))
+        result = list(self.cs_collection.aggregate(pipeline))
         self.classifier_label_summary = [
             (
-                self.repo_rel_mapping[aggregate["repo_id"]],
-                aggregate["label"],
-                aggregate["count"],
+                self.repo_rel_mapping[aggregate["repo_id"]], # repo_name
+                aggregate["label"], # label
+                aggregate["count"], # count
             )
             for aggregate in result
             if aggregate["label"] in classifier_label_mapping.keys()
         ]
-        # print(f"classifier label summary: {self.classifier_label_summary}")
 
-    def fetch_mergebot_summary(self):
+    def fetch_mergebot_summary(self, langs: List[str]):
         if self.repo_rel_mapping is None:
-            self.fill_overall_summary()
+            self.fill_repo_mapping()
 
         mergebot_label_mapping = {label.value: label for label in MergebotJudger.Label}
         pipeline = [
+            {"$match": DBSummary.gen_lang_filter(langs)},
             {"$unwind": "$conflicts"},
             {"$unwind": "$conflicts.labels"},
             {"$match": {"conflicts.labels": {"$ne": None, "$exists": True}}},
@@ -309,8 +290,7 @@ class DBSummary:
                 }
             },
         ]
-        result = list(self.__cs_collection.aggregate(pipeline))
-        # logger.debug(f"mergebot aggregate result: {result}")
+        result = list(self.cs_collection.aggregate(pipeline))
         self.mergebot_label_summary = [
             (
                 self.repo_rel_mapping[aggregate["repo_id"]],
@@ -320,3 +300,17 @@ class DBSummary:
             for aggregate in result
             if aggregate["label"] in mergebot_label_mapping.keys()
         ]
+
+    @staticmethod
+    def gen_lang_filter(langs: List[str]):
+        def langs_union(langs: List[str]) -> str:
+            return "|".join(reduce(lambda x, y: x + y, map(lang_exts, langs)))
+
+        filter = {}
+        if langs:
+            filter["$or"] = [
+                {"paths.ancestor": {"$regex": f"\\.({langs_union(langs)})$"}},
+                {"paths.ours": {"$regex": f"\\.({langs_union(langs)})$"}},
+                {"paths.theirs": {"$regex": f"\\.({langs_union(langs)})$"}},
+            ]
+        return filter
