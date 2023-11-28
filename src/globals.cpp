@@ -5,7 +5,7 @@
 #include "mergebot/globals.h"
 
 namespace mergebot {
-const std::string MBDIR = "~/.mergebot";
+const std::string MBDIR = "/tmp/.mergebot";
 
 const std::string LOG_FOLDER = "./logs";
 
