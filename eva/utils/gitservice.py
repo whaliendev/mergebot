@@ -302,6 +302,11 @@ def _read_file_content(repo: pygit2.Repository, commit_sha: str, file_path: str)
     except KeyError as e:
         logger.warning(f"file {file_path} does not exist in commit {commit_sha}")
         return ""
+
+    if blob.is_binary:
+        logger.info(f"file {file_path} in commit {commit_sha} is binary")
+        return ""
+
     raw_bytes = blob.read_raw()
     detected_result = chardet.detect(raw_bytes)
     encoding = detected_result["encoding"]
