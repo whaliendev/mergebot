@@ -64,7 +64,7 @@ std::string extractConflictBlock(int Index, const char *Start, size_t Size) {
 
 bool isCppSource(std::string const &Filename) {
   const char *CppSourceExt[] = {".cc",  ".cpp", ".cxx", ".cx",
-                                ".c++", ".C",   ".c++"};
+                                ".c++", ".C",   ".c++", ".c"};
   for (auto it = std::begin(CppSourceExt); it != std::end(CppSourceExt); ++it) {
     if (util::ends_with(Filename, *it)) {
       return true;

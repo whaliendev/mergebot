@@ -160,7 +160,7 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
         project, fileNames.size());
     throw AppBaseException(
         "U1000", fmt::format("当前项目[{}]有{}个冲突文件，但由于都不是C/"
-                             "C++相关的源文件，mergebot-sa当前阶段无法处理",
+                             "C++相关的源文件，mergebot-sa 无法处理",
                              project, fileNames.size()));
   }
 

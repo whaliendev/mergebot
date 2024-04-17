@@ -88,9 +88,14 @@ bool IsCppHeader(std::string_view Path) {
 }
 
 bool IsCSource(std::string_view Path) {
+  using namespace std::string_view_literals;
   std::unordered_set<std::string_view> c_exts = {".h", ".c"};
-  // TODO(hwa): enable when support C lang is needed
-  return false;
+  auto pos = Path.find_last_of("."sv);
+  if (pos == std::string_view::npos) {
+    return false;
+  }
+  std::string_view ext = Path.substr(pos);
+  return c_exts.count(ext);
 }
 } // namespace details
 namespace sa {
@@ -189,7 +194,7 @@ void GraphBuilder::processTranslationUnit(const std::string &Path) {
     return;
   }
 
-  if (details::IsCppSource(Path)) {
+  if (details::IsCppSource(Path) || details::IsCSource(Path)) {
     processCppTranslationUnit(Path, FilePath, IsConflicting);
   } else {
     spdlog::info("Side: [{}], translation unit {} is not a C++ source file. We "
