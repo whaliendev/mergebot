@@ -439,7 +439,7 @@ crow::json::wvalue doPostMergeScenario(const crow::request& req,
 
   internal::handleMergeScenario(project, path, ms, compile_db_path, conflicts,
                                 res);
-  // default construct a crow::json::wvalue to indicate return successfully
+  // default constructs a crow::json::wvalue to indicate return successfully
   return {};
 }
 }  // namespace internal
