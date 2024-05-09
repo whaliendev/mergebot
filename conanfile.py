@@ -157,7 +157,7 @@ class MergebotConan(ConanFile):
 
     _mergebot_docs = [
         'README.zh-CN.md',
-        'api-mergebot-sa_v1.3.md'
+        'api-mergebot-sa.md'
     ]
 
     def layout(self):
