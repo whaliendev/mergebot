@@ -10,6 +10,7 @@ from typing import Dict, Generator, Iterable, List, Optional, Tuple
 
 import urllib.request
 import urllib.parse
+
 import log as _
 from argparse import ArgumentParser
 from utils import gitservice
@@ -445,7 +446,7 @@ def write_diff_hunks_to_file(
     ms_out_dir: str,
     filename: str,
 ):
-    diff_hunks_file = os.path.join(ms_out_dir, f"{filename}.diff_hunks")
+    diff_hunks_file = os.path.join(ms_out_dir, f"{filename}_processed.diff")
     with open(diff_hunks_file, "w") as f:
         f.write(first_line)
         f.write(second_line)
@@ -486,7 +487,6 @@ def analyze_diff_lines(diff_lines: List[str], ms_out_dir: str, filename: str) ->
             deletion = processor(diff_hunk.deletion_list)
             addition = processor(diff_hunk.addition_list)
             if deletion != addition:
-                # only consider one side of the diff
                 diff_line_count += len(diff_hunk.deletion_list)
                 diff_line_count += len(diff_hunk.addition_list)
                 DiffHunkList.append(diff_hunk)
