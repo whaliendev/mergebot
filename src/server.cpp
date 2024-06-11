@@ -173,4 +173,14 @@ void ConfigBPRoutes(crow::Blueprint& bp) {
           [](const crow::request& req, crow::response& res) {
             server::GetFileResolution(req, res);
           });
+
+  CROW_BP_ROUTE(bp, "/health")
+      .methods(crow::HTTPMethod::OPTIONS)([](const crow::request& req) {
+        return crow::response(crow::status::OK);
+      });
+
+  CROW_BP_ROUTE(bp, "/health")
+      .methods(crow::HTTPMethod::GET)([](const crow::request& req) {
+        return crow::response(crow::status::OK, "OK");
+      });
 }
