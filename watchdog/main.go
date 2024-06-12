@@ -18,12 +18,22 @@ import (
 )
 
 const (
-	MERGEBOT_CACHE_DIR       = "/tmp/.mergebot"
+	MERGEBOT_CACHE_DIR = "/tmp/.mergebot"
+
+	// The following constants are used for mergebot health check
 	MERGEBOT_HOST            = "127.0.0.1"
 	MERGEBOT_LISTEN_PORT     = 18080
 	MERGEBOT_HEALTH_ENDPOINT = "/api/sa/health"
-	CHECK_INTERVAL           = 5 * time.Second
-	UNRESPONSIVE_THRESHOLD   = 3 * time.Second
+	INITIAL_DELAY_SECONDS    = 1 * time.Second
+
+	PERIOD_SECONDS     = 1 * time.Second
+	FAILURES_THRESHOLD = 3
+	SUCCESS_THRESHOLD  = 1
+	TIMEOUT_SECONDS    = 1 * time.Second
+
+	// Check interval should be longer than the period of mergebot health check,
+	// which is >= FAILURES_THRESHOLD * PERIOD_SECONDS
+	CHECK_INTERVAL = 5 * time.Second
 )
 
 func preliminaryCheck() error {
@@ -71,37 +81,64 @@ func configureZapLogger() {
 	zap.ReplaceGlobals(logger)
 }
 
-func CheckMergebotHealth(host string, port int) (healthy bool) {
+// CheckMergebotHealth checks the health of the mergebot service by sending a GET request to the health endpoint.
+func CheckMergebotHealth(host string, port int) bool {
 	healthEndpoint := fmt.Sprintf("http://%s:%d%s", host, port, MERGEBOT_HEALTH_ENDPOINT)
+	ticker := time.NewTicker(PERIOD_SECONDS)
+	defer ticker.Stop()
 
-	client := &http.Client{
-		Timeout: UNRESPONSIVE_THRESHOLD,
+	failures := 0
+
+	for {
+		select {
+		case <-ticker.C:
+			client := &http.Client{
+				Timeout: TIMEOUT_SECONDS,
+			}
+			resp, err := client.Get(healthEndpoint)
+
+			if err != nil {
+				zap.S().Error("health check failed with error: ", err)
+				failures++
+				if failures >= FAILURES_THRESHOLD {
+					return false
+				}
+				continue
+			}
+
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK {
+				zap.S().Error("health check failed with status code: ", resp.StatusCode)
+				failures++
+				if failures >= FAILURES_THRESHOLD {
+					return false
+				}
+				continue
+			}
+
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				zap.S().Error("failed to read response body: ", err)
+				failures++
+				if failures >= FAILURES_THRESHOLD {
+					return false
+				}
+				continue
+			}
+
+			if string(body) != "OK" {
+				zap.S().Error("health check failed with response body: ", string(body))
+				failures++
+				if failures >= FAILURES_THRESHOLD {
+					return false
+				}
+			} else {
+				// Successfully received "OK" response.
+				return true
+			}
+		}
 	}
-
-	resp, err := client.Get(healthEndpoint)
-	if err != nil {
-		zap.S().Error("health check failed with error: ", err)
-		return false
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		zap.S().Error("health check failed with status code: ", resp.StatusCode)
-		return false
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		zap.S().Error("failed to read response body: ", err)
-		return false
-	}
-
-	if string(body) != "OK" {
-		zap.S().Error("health check failed with response body: ", string(body))
-		return false
-	}
-
-	return true
 }
 
 // At this point, we cannot easily implement the following functions.
@@ -116,22 +153,30 @@ func CheckMergebotHealth(host string, port int) (healthy bool) {
 // }
 
 func markPendingRequestsAsFinished() {
-
+	zap.S().Debug("begin to mark pending requests as finished")
+	// TODO(hwa): recursively delete all RUNNING and PENDING directories in MERGEBOT_CACHE_DIR based on the modification time
 }
 
-func killProcess(name string) {
+func killByName(name string) {
 	cmd := exec.Command("pkill", name)
-	cmd.Run()
+	err := cmd.Run()
+	if err != nil {
+		if err == exec.ErrNotFound {
+			fmt.Printf("process '%s' not found\n", name)
+			zap.S().Fatalf("process '%s' not found", name)
+		}
+		// swallow the error intentionally, as the process may not exist
+		zap.S().Info("failed to kill process", zap.Error(err))
+	}
+	zap.S().Info("killed process", zap.String("name", name))
 }
 
-func killProcessWithParent(name string, parentName string) {
-
-}
-
-func killTCPListenersOnPort(port int) error {
+func KillTCPListenersOnPort(port int) error {
+	zap.S().Debugf("killing TCP listeners on port %d", port)
 	lsofCmd := exec.Command("lsof", "-i", fmt.Sprintf("tcp:%d", port), "-t")
 	output, err := lsofCmd.Output()
 	if err != nil {
+		zap.S().Errorf("failed to list TCP listeners on port %d: %v", port, err)
 		return fmt.Errorf("failed to list TCP listeners on port %d: %v", port, err)
 	}
 	pidStrings := strings.Fields(string(output))
@@ -139,6 +184,7 @@ func killTCPListenersOnPort(port int) error {
 		zap.S().Infof("no TCP listeners found on port %d", port)
 		return nil
 	}
+	zap.S().Infof("found TCP listeners on port %d: %v", port, pidStrings)
 
 	for _, pidStr := range pidStrings {
 		pid, err := strconv.Atoi(pidStr)
@@ -155,9 +201,26 @@ func killTCPListenersOnPort(port int) error {
 func killByPID(pid int) {
 	killCmd := exec.Command("kill", "-9", strconv.Itoa(pid))
 	killCmd.Run()
+
+	err := killCmd.Run()
+	if err != nil {
+		if err == exec.ErrNotFound {
+			fmt.Printf("process with PID %d not found\n", pid)
+			zap.S().Fatalf("process with PID %d not found", pid)
+		}
+		// swallow the error intentionally, as the process may not exist
+		zap.S().Infof("failed to kill process with PID %d: %v", pid, err)
+	}
+	zap.S().Infof("killed process with PID %d", pid)
+}
+
+// KillProcessByName kills the process with the given name and all its children.
+func KillProcessByName(name string) {
+
 }
 
 func startMergebotService() error {
+	// TODO(hwa): start mergebot service
 	return nil
 }
 
@@ -188,17 +251,17 @@ func main() {
 		}
 
 		// Mergebot is down or unresponsive
+		ticker.Reset(CHECK_INTERVAL)
 		zap.S().Error("mergebot is unhealthy, taking corrective actions")
 
 		// Start a goroutine to clean cache dir and collect pending requests
 		go markPendingRequestsAsFinished()
 
 		// 2.2.1 Kill mergebot and clangd
-		killProcess("mergebot")
-		killProcessWithParent("clangd", "mergebot")
+		KillProcessByName("mergebot")
 
 		// 2.2.2 Kill all TCP services listening on MERGEBOT_LISTEN_PORT
-		if err := killTCPListenersOnPort(MERGEBOT_LISTEN_PORT); err != nil {
+		if err := KillTCPListenersOnPort(MERGEBOT_LISTEN_PORT); err != nil {
 			zap.S().Error("failed to kill TCP listeners on port", zap.Error(err))
 		}
 
@@ -211,7 +274,7 @@ func main() {
 		// }
 
 		// Wait for mergebot to be healthy
-		time.Sleep(1 * time.Second)
+		time.Sleep(INITIAL_DELAY_SECONDS)
 		if !CheckMergebotHealth(MERGEBOT_HOST, MERGEBOT_LISTEN_PORT) {
 			zap.S().Error("mergebot is still unhealthy after restart")
 			continue
