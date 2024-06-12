@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -33,6 +34,8 @@ const (
 	TIMEOUT_SECONDS    = 1 * time.Second
 
 	CHECK_INTERVAL = 5 * time.Second
+
+	LOG_LENTH_THRESH = 3000
 )
 
 func preliminaryCheck() error {
@@ -93,7 +96,7 @@ func CheckMergebotHealth(host string, port int) bool {
 			Timeout: TIMEOUT_SECONDS,
 		}
 		resp, err := client.Get(healthEndpoint)
-	
+
 		if err != nil {
 			zap.S().Error("health check failed with error: ", err)
 			failures++
@@ -102,9 +105,9 @@ func CheckMergebotHealth(host string, port int) bool {
 			}
 			continue
 		}
-	
+
 		defer resp.Body.Close()
-	
+
 		if resp.StatusCode != http.StatusOK {
 			zap.S().Error("health check failed with status code: ", resp.StatusCode)
 			failures++
@@ -113,7 +116,7 @@ func CheckMergebotHealth(host string, port int) bool {
 			}
 			continue
 		}
-	
+
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			zap.S().Error("failed to read response body: ", err)
@@ -123,7 +126,7 @@ func CheckMergebotHealth(host string, port int) bool {
 			}
 			continue
 		}
-	
+
 		if string(body) != "OK" {
 			zap.S().Error("health check failed with response body: ", string(body))
 			failures++
@@ -200,27 +203,13 @@ func processProjectDir(dirPath string) {
 			if _, err := os.Stat(runningFilePath); err == nil {
 				// RUNNING file exists, remove it
 				if err := os.Remove(runningFilePath); err != nil {
-					zap.S().Error("Failed to remove RUNNING file:", zap.String("file", runningFilePath), zap.Error(err))
+					zap.S().Error("Failed to remove running file:", zap.String("file", runningFilePath), zap.Error(err))
 				} else {
 					zap.S().Debug("Removed RUNNING file successfully", zap.String("file", runningFilePath))
 				}
 			}
 		}
 	}
-}
-
-func killByName(name string) {
-	cmd := exec.Command("pkill", name)
-	err := cmd.Run()
-	if err != nil {
-		if err == exec.ErrNotFound {
-			fmt.Printf("process '%s' not found\n", name)
-			zap.S().Fatalf("process '%s' not found", name)
-		}
-		// swallow the error intentionally, as the process may not exist
-		zap.S().Info("failed to kill process", zap.Error(err))
-	}
-	zap.S().Info("killed process", zap.String("name", name))
 }
 
 func KillTCPListenersOnPort(port int) error {
@@ -246,13 +235,13 @@ func KillTCPListenersOnPort(port int) error {
 		}
 
 		killByPID(pid)
+		time.Sleep(300 * time.Millisecond)
 	}
 	return nil
 }
 
 func killByPID(pid int) {
 	killCmd := exec.Command("kill", "-9", strconv.Itoa(pid))
-	killCmd.Run()
 
 	err := killCmd.Run()
 	if err != nil {
@@ -267,23 +256,53 @@ func killByPID(pid int) {
 }
 
 func startMergebotService() error {
+	// Get current working directory
 	wd, err := os.Getwd()
 	if err != nil {
-		zap.S().Error("failed to get current working directory", zap.Error(err))
+		zap.S().Error("Failed to get current working directory", zap.Error(err))
 		return err
 	}
 
+	// Set the dynamic library path and mergebot executable path
 	dylibPath := filepath.Join(wd, "dylib")
 	mergebotPath := filepath.Join(wd, "mergebot")
-	mergebotCmd := fmt.Sprintf("LD_LIBRARY_PATH=%s:%s %s", wd, dylibPath, mergebotPath)
-	zap.S().Debugln("mergebotCmd: ", mergebotCmd)
-	cmd := exec.Command("sh", "-c", mergebotCmd)
+
+	// Prepare the command
+	cmd := exec.Command(mergebotPath)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("LD_LIBRARY_PATH=%s:%s", wd, dylibPath))
+
+	// Create buffers to capture standard output and standard error
+	var stdoutBuf, stderrBuf bytes.Buffer
+	cmd.Stdout = &stdoutBuf
+	cmd.Stderr = &stderrBuf
+
+	// Start the command
 	err = cmd.Start()
 	if err != nil {
-		zap.S().Error("failed to start mergebot", zap.Error(err))
+		zap.S().Error("Failed to start mergebot", zap.Error(err))
 		return err
 	}
 
+	// Wait for the process to exit and log its status
+	go func() {
+		err := cmd.Wait()
+		stdout := stdoutBuf.String()
+		stderr := stderrBuf.String()
+		if len(stdout) >= LOG_LENTH_THRESH {
+			stdout = stdout[:LOG_LENTH_THRESH]
+		}
+		if len(stderr) >= LOG_LENTH_THRESH {
+			stderr = stderr[:LOG_LENTH_THRESH]
+		}
+
+		if err != nil {
+			zap.S().Error("Mergebot exited with error", zap.Error(err), zap.String("stdout", stdout), zap.String("stderr", stderr))
+		} else {
+			zap.S().Info("Mergebot exited successfully", zap.String("stdout", stdout), zap.String("stderr", stderr))
+		}
+	}()
+
+	zap.S().Debug("Mergebot started successfully")
 	return nil
 }
 
@@ -303,6 +322,7 @@ func killMergebotService() {
 		}
 
 		killChildProcesses(pid)
+		time.Sleep(300 * time.Millisecond)
 		killByPID(pid)
 	}
 }
@@ -319,8 +339,9 @@ func killChildProcesses(pid int) {
 		}
 		// swallow the error intentionally, as the process may not exist
 		zap.S().Infof("failed to kill child processes of PID %d: %v", pid, err)
+	} else {
+		zap.S().Infof("killed child processes of PID %d", pid)
 	}
-	zap.S().Infof("killed child processes of PID %d", pid)
 }
 
 func main() {
@@ -344,6 +365,8 @@ func main() {
 	//      2.2.3 restart mergebot and clangd, and wait for mergebot to be healthy
 	ticker := time.NewTicker(CHECK_INTERVAL)
 	defer ticker.Stop()
+	// every new run, clean all previous pending requests
+	go markPendingRequestsAsFinished()
 	for range ticker.C {
 		if CheckMergebotHealth(MERGEBOT_HOST, MERGEBOT_LISTEN_PORT) {
 			continue // mergebot is healthy, do nothing
@@ -368,15 +391,11 @@ func main() {
 		if err := startMergebotService(); err != nil {
 			zap.L().Error("failed to restart mergebot", zap.Error(err))
 		}
-		// if err := startProcess("clangd"); err != nil {
-		// 	zap.L().Error("Failed to restart clangd", zap.Error(err))
-		// }
 
 		// Wait for mergebot to be healthy
 		time.Sleep(INITIAL_DELAY_SECONDS)
 		if !CheckMergebotHealth(MERGEBOT_HOST, MERGEBOT_LISTEN_PORT) {
 			zap.S().Error("mergebot is still unhealthy after restart")
-			continue
 		}
 
 		// 2.2.4 Replay pending requests
