@@ -88,56 +88,54 @@ func CheckMergebotHealth(host string, port int) bool {
 
 	failures := 0
 
-	for {
-		select {
-		case <-ticker.C:
-			client := &http.Client{
-				Timeout: TIMEOUT_SECONDS,
+	for range ticker.C {
+		client := &http.Client{
+			Timeout: TIMEOUT_SECONDS,
+		}
+		resp, err := client.Get(healthEndpoint)
+	
+		if err != nil {
+			zap.S().Error("health check failed with error: ", err)
+			failures++
+			if failures >= FAILURES_THRESHOLD {
+				return false
 			}
-			resp, err := client.Get(healthEndpoint)
-
-			if err != nil {
-				zap.S().Error("health check failed with error: ", err)
-				failures++
-				if failures >= FAILURES_THRESHOLD {
-					return false
-				}
-				continue
+			continue
+		}
+	
+		defer resp.Body.Close()
+	
+		if resp.StatusCode != http.StatusOK {
+			zap.S().Error("health check failed with status code: ", resp.StatusCode)
+			failures++
+			if failures >= FAILURES_THRESHOLD {
+				return false
 			}
-
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusOK {
-				zap.S().Error("health check failed with status code: ", resp.StatusCode)
-				failures++
-				if failures >= FAILURES_THRESHOLD {
-					return false
-				}
-				continue
+			continue
+		}
+	
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			zap.S().Error("failed to read response body: ", err)
+			failures++
+			if failures >= FAILURES_THRESHOLD {
+				return false
 			}
-
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				zap.S().Error("failed to read response body: ", err)
-				failures++
-				if failures >= FAILURES_THRESHOLD {
-					return false
-				}
-				continue
+			continue
+		}
+	
+		if string(body) != "OK" {
+			zap.S().Error("health check failed with response body: ", string(body))
+			failures++
+			if failures >= FAILURES_THRESHOLD {
+				return false
 			}
-
-			if string(body) != "OK" {
-				zap.S().Error("health check failed with response body: ", string(body))
-				failures++
-				if failures >= FAILURES_THRESHOLD {
-					return false
-				}
-			} else {
-				// Successfully received "OK" response.
-				return true
-			}
+		} else {
+			// Successfully received "OK" response.
+			return true
 		}
 	}
+	return false
 }
 
 // At this point, we cannot easily implement the following functions.
