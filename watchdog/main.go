@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -148,9 +150,64 @@ func CheckMergebotHealth(host string, port int) bool {
 
 // }
 
+type dirInfo struct {
+	path       string
+	accessTime time.Time
+}
+
 func markPendingRequestsAsFinished() {
 	zap.S().Debug("begin to mark pending requests as finished")
-	// TODO(hwa): recursively delete all RUNNING and PENDING directories in MERGEBOT_CACHE_DIR based on the modification time
+	// Get all project directories
+	projectDirs, err := os.ReadDir(MERGEBOT_CACHE_DIR)
+	if err != nil {
+		zap.S().Error("Failed to read base directory:", zap.Error(err))
+	}
+
+	var dirs []dirInfo
+	for _, dir := range projectDirs {
+		if dir.IsDir() {
+			dirPath := filepath.Join(MERGEBOT_CACHE_DIR, dir.Name())
+			stat, err := os.Stat(dirPath)
+			if err != nil {
+				zap.S().Error("Failed to get directory stats:", zap.String("directory", dirPath), zap.Error(err))
+				continue
+			}
+			dirs = append(dirs, dirInfo{path: dirPath, accessTime: stat.ModTime()})
+		}
+	}
+
+	// Sort directories by last access time in descending order
+	sort.Slice(dirs, func(i, j int) bool {
+		return dirs[i].accessTime.After(dirs[j].accessTime)
+	})
+
+	// Iterate through sorted directories
+	for _, dir := range dirs {
+		processProjectDir(dir.path)
+	}
+}
+
+func processProjectDir(dirPath string) {
+	// Iterate through subdirectories (merge scenarios)
+	mergeScenarios, err := os.ReadDir(dirPath)
+	if err != nil {
+		zap.S().Error("Failed to read project directory:", zap.String("directory", dirPath), zap.Error(err))
+	}
+
+	for _, scenario := range mergeScenarios {
+		if scenario.IsDir() {
+			scenarioPath := filepath.Join(dirPath, scenario.Name())
+			runningFilePath := filepath.Join(scenarioPath, "running")
+			if _, err := os.Stat(runningFilePath); err == nil {
+				// RUNNING file exists, remove it
+				if err := os.Remove(runningFilePath); err != nil {
+					zap.S().Error("Failed to remove RUNNING file:", zap.String("file", runningFilePath), zap.Error(err))
+				} else {
+					zap.S().Debug("Removed RUNNING file successfully", zap.String("file", runningFilePath))
+				}
+			}
+		}
+	}
 }
 
 func killByName(name string) {
@@ -211,14 +268,60 @@ func killByPID(pid int) {
 }
 
 func startMergebotService() error {
-	// TODO(hwa): start mergebot service
+	wd, err := os.Getwd()
+	if err != nil {
+		zap.S().Error("failed to get current working directory", zap.Error(err))
+		return err
+	}
+
+	dylibPath := filepath.Join(wd, "dylib")
+	mergebotPath := filepath.Join(wd, "mergebot")
+	mergebotCmd := fmt.Sprintf("LD_LIBRARY_PATH=%s:%s %s", wd, dylibPath, mergebotPath)
+	zap.S().Debugln("mergebotCmd: ", mergebotCmd)
+	cmd := exec.Command("sh", "-c", mergebotCmd)
+	err = cmd.Start()
+	if err != nil {
+		zap.S().Error("failed to start mergebot", zap.Error(err))
+		return err
+	}
+
 	return nil
 }
 
 func killMergebotService() {
-	// TODO(hwa): kill mergebot service
-	// ps -o pgid= -p $(pgrep mergebot) | xargs kill -9
-	// kill clangd initiated by mergebot
+	pgrepCmd := exec.Command("pgrep", "-x", "mergebot")
+	output, err := pgrepCmd.Output()
+	if err != nil {
+		zap.S().Error("failed to find mergebot process", zap.Error(err))
+		return
+	}
+	pidStrings := strings.Fields(string(output))
+	for _, pidStr := range pidStrings {
+		pid, err := strconv.Atoi(pidStr)
+		if err != nil {
+			zap.S().Errorf("Invalid PID '%s' found: %v\n", pidStr, err)
+			continue
+		}
+
+		killChildProcesses(pid)
+		killByPID(pid)
+	}
+}
+
+func killChildProcesses(pid int) {
+	// Use pkill to kill the process tree starting from a specific PID
+	pkillCmd := exec.Command("pkill", "-P", strconv.Itoa(pid))
+	err := pkillCmd.Run()
+	if err != nil {
+		if err == exec.ErrNotFound {
+			fmt.Printf("process with PID %d not found\n", pid)
+			zap.S().Fatalf("process with PID %d not found", pid)
+
+		}
+		// swallow the error intentionally, as the process may not exist
+		zap.S().Infof("failed to kill child processes of PID %d: %v", pid, err)
+	}
+	zap.S().Infof("killed child processes of PID %d", pid)
 }
 
 func main() {
