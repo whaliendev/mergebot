@@ -31,8 +31,6 @@ const (
 	SUCCESS_THRESHOLD  = 1
 	TIMEOUT_SECONDS    = 1 * time.Second
 
-	// Check interval should be longer than the period of mergebot health check,
-	// which is >= FAILURES_THRESHOLD * PERIOD_SECONDS
 	CHECK_INTERVAL = 5 * time.Second
 )
 
@@ -214,14 +212,15 @@ func killByPID(pid int) {
 	zap.S().Infof("killed process with PID %d", pid)
 }
 
-// KillProcessByName kills the process with the given name and all its children.
-func KillProcessByName(name string) {
-
-}
-
 func startMergebotService() error {
 	// TODO(hwa): start mergebot service
 	return nil
+}
+
+func killMergebotService() {
+	// TODO(hwa): kill mergebot service
+	// ps -o pgid= -p $(pgrep mergebot) | xargs kill -9
+	// kill clangd initiated by mergebot
 }
 
 func main() {
@@ -258,7 +257,7 @@ func main() {
 		go markPendingRequestsAsFinished()
 
 		// 2.2.1 Kill mergebot and clangd
-		KillProcessByName("mergebot")
+		killMergebotService()
 
 		// 2.2.2 Kill all TCP services listening on MERGEBOT_LISTEN_PORT
 		if err := KillTCPListenersOnPort(MERGEBOT_LISTEN_PORT); err != nil {
