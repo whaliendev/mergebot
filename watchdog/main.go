@@ -28,15 +28,88 @@ const (
 	MERGEBOT_HEALTH_ENDPOINT = "/api/sa/health"
 	INITIAL_DELAY_SECONDS    = 1 * time.Second
 
+	// k8s style readiness probe parameters
 	PERIOD_SECONDS     = 1 * time.Second
 	FAILURES_THRESHOLD = 3
 	SUCCESS_THRESHOLD  = 1
 	TIMEOUT_SECONDS    = 1 * time.Second
 
+	// CHECK_INTERVAL is used to check the health of mergebot periodically
 	CHECK_INTERVAL = 5 * time.Second
 
+	// LOG_LENTH_THRESH is used to limit the length of mergebot logs written to watchdog log file
 	LOG_LENTH_THRESH = 3000
 )
+
+func main() {
+	// 0. fundamental check
+	err := preliminaryCheck()
+	if err != nil {
+		panic(err)
+	}
+
+	// 1. prepare logger
+	configureZapLogger()
+	defer zap.L().Sync()
+	zap.L().Info("Start watchdog")
+
+	// 2. loop to check mergebot health
+	//   2.1 if mergebot is healthy, do nothing
+	//   2.2 if mergebot is down or take too long to response:
+	//      - start a goroutine to mark pending requests as finished
+	//      2.2.1 kill mergebot and clangd
+	//      2.2.2 kill all the tcp service listen on MERGEBOT_LISTEN_PORT.
+	//      2.2.3 restart mergebot and clangd, and wait for mergebot to be healthy
+	ticker := time.NewTicker(CHECK_INTERVAL)
+	defer ticker.Stop()
+	// every new run, clean all previous pending requests
+	go markPendingRequestsAsFinished()
+	for range ticker.C {
+		if checkMergebotHealth(MERGEBOT_HOST, MERGEBOT_LISTEN_PORT) {
+			continue // mergebot is healthy, do nothing
+		}
+
+		// Mergebot is down or unresponsive
+		ticker.Reset(CHECK_INTERVAL)
+		zap.S().Error("mergebot is unhealthy, taking corrective actions")
+
+		// Start a goroutine to clean cache dir and collect pending requests
+		go markPendingRequestsAsFinished()
+
+		// 2.2.1 Kill mergebot and clangd
+		killMergebotService()
+
+		// 2.2.2 Kill all TCP services listening on MERGEBOT_LISTEN_PORT
+		if err := KillTCPListenersOnPort(MERGEBOT_LISTEN_PORT); err != nil {
+			zap.S().Error("failed to kill TCP listeners on port", zap.Error(err))
+		}
+
+		// 2.2.3 Restart mergebot and clangd
+		if err := startMergebotService(); err != nil {
+			zap.L().Error("failed to restart mergebot", zap.Error(err))
+		}
+
+		// Wait for mergebot to be healthy
+		time.Sleep(INITIAL_DELAY_SECONDS)
+		if !checkMergebotHealth(MERGEBOT_HOST, MERGEBOT_LISTEN_PORT) {
+			zap.S().Error("mergebot is still unhealthy after restart")
+		}
+
+		// 2.2.4 Replay pending requests
+		// replayPendingRequests()
+	}
+}
+
+// At this point, we cannot easily implement the following functions.
+// As replayPendingRequests need to collect all the params of these requests,
+// while mergebot doesn't record these params.
+// func cleanAndCollectPendingRequest() {
+
+// }
+
+// func replayPendingRequests() {
+
+// }
 
 func preliminaryCheck() error {
 	//  Check 1: Verify that the OS is Unix-like
@@ -52,6 +125,15 @@ func preliminaryCheck() error {
 	}
 	if info.Mode().Perm()&0111 == 0 {
 		return fmt.Errorf("unexpected permission of mergebot binary")
+	}
+
+	// Check 3: Check the existence of kill, pkill, lsof, pgrep
+	killExists, _, _ := CheckBinaryExists("kill")
+	pkillExists, _, _ := CheckBinaryExists("pkill")
+	lsofExists, _, _ := CheckBinaryExists("lsof")
+	pgrepExists, _, _ := CheckBinaryExists("pgrep")
+	if !killExists || !pkillExists || !lsofExists || !pgrepExists {
+		return fmt.Errorf("binary executable needed by watchdog not installed, on ubuntu, you can install then by typing \n\n\nsudo apt-get install kill pkill lsof pgrep\n\n\n in the terminal")
 	}
 	return nil
 }
@@ -83,8 +165,7 @@ func configureZapLogger() {
 	zap.ReplaceGlobals(logger)
 }
 
-// CheckMergebotHealth checks the health of the mergebot service by sending a GET request to the health endpoint.
-func CheckMergebotHealth(host string, port int) bool {
+func checkMergebotHealth(host string, port int) bool {
 	healthEndpoint := fmt.Sprintf("http://%s:%d%s", host, port, MERGEBOT_HEALTH_ENDPOINT)
 	ticker := time.NewTicker(PERIOD_SECONDS)
 	defer ticker.Stop()
@@ -141,17 +222,6 @@ func CheckMergebotHealth(host string, port int) bool {
 	return false
 }
 
-// At this point, we cannot easily implement the following functions.
-// As replayPendingRequests need to collect all the params of these requests,
-// while mergebot doesn't record these params.
-// func cleanAndCollectPendingRequest() {
-
-// }
-
-// func replayPendingRequests() {
-
-// }
-
 type dirInfo struct {
 	path       string
 	accessTime time.Time
@@ -201,7 +271,7 @@ func processProjectDir(dirPath string) {
 			scenarioPath := filepath.Join(dirPath, scenario.Name())
 			runningFilePath := filepath.Join(scenarioPath, "running")
 			if _, err := os.Stat(runningFilePath); err == nil {
-				// RUNNING file exists, remove it
+				// running file exists, remove it
 				if err := os.Remove(runningFilePath); err != nil {
 					zap.S().Error("Failed to remove running file:", zap.String("file", runningFilePath), zap.Error(err))
 				} else {
@@ -210,48 +280,6 @@ func processProjectDir(dirPath string) {
 			}
 		}
 	}
-}
-
-func KillTCPListenersOnPort(port int) error {
-	zap.S().Debugf("killing TCP listeners on port %d", port)
-	lsofCmd := exec.Command("lsof", "-i", fmt.Sprintf("tcp:%d", port), "-t")
-	output, err := lsofCmd.Output()
-	if err != nil {
-		zap.S().Errorf("failed to list TCP listeners on port %d: %v", port, err)
-		return fmt.Errorf("failed to list TCP listeners on port %d: %v", port, err)
-	}
-	pidStrings := strings.Fields(string(output))
-	if len(pidStrings) == 0 {
-		zap.S().Infof("no TCP listeners found on port %d", port)
-		return nil
-	}
-	zap.S().Infof("found TCP listeners on port %d: %v", port, pidStrings)
-
-	for _, pidStr := range pidStrings {
-		pid, err := strconv.Atoi(pidStr)
-		if err != nil {
-			zap.S().Errorf("Invalid PID '%s' found: %v\n", pidStr, err)
-			continue
-		}
-
-		killByPID(pid)
-	}
-	return nil
-}
-
-func killByPID(pid int) {
-	killCmd := exec.Command("kill", "-9", strconv.Itoa(pid))
-
-	err := killCmd.Run()
-	if err != nil {
-		if err == exec.ErrNotFound {
-			fmt.Printf("process with PID %d not found\n", pid)
-			zap.S().Fatalf("process with PID %d not found", pid)
-		}
-		// swallow the error intentionally, as the process may not exist
-		zap.S().Infof("failed to kill process with PID %d: %v", pid, err)
-	}
-	zap.S().Infof("killed process with PID %d", pid)
 }
 
 func startMergebotService() error {
@@ -320,83 +348,7 @@ func killMergebotService() {
 			continue
 		}
 
-		killChildProcesses(pid)
-		killByPID(pid)
-	}
-}
-
-func killChildProcesses(pid int) {
-	// Use pkill to kill the process tree starting from a specific PID
-	pkillCmd := exec.Command("pkill", "-P", strconv.Itoa(pid))
-	err := pkillCmd.Run()
-	if err != nil {
-		if err == exec.ErrNotFound {
-			fmt.Printf("process with PID %d not found\n", pid)
-			zap.S().Fatalf("process with PID %d not found", pid)
-
-		}
-		// swallow the error intentionally, as the process may not exist
-		zap.S().Infof("failed to kill child processes of PID %d: %v", pid, err)
-	} else {
-		zap.S().Infof("killed child processes of PID %d", pid)
-	}
-}
-
-func main() {
-	// 0. fundamental check
-	err := preliminaryCheck()
-	if err != nil {
-		panic(err)
-	}
-
-	// 1. prepare logger
-	configureZapLogger()
-	defer zap.L().Sync()
-	zap.L().Info("Start watchdog")
-
-	// 2. loop to check mergebot health
-	//   2.1 if mergebot is healthy, do nothing
-	//   2.2 if mergebot is down or take too long to response:
-	//      - start a goroutine to mark pending requests as finished
-	//      2.2.1 kill mergebot and clangd
-	//      2.2.2 kill all the tcp service listen on MERGEBOT_LISTEN_PORT.
-	//      2.2.3 restart mergebot and clangd, and wait for mergebot to be healthy
-	ticker := time.NewTicker(CHECK_INTERVAL)
-	defer ticker.Stop()
-	// every new run, clean all previous pending requests
-	go markPendingRequestsAsFinished()
-	for range ticker.C {
-		if CheckMergebotHealth(MERGEBOT_HOST, MERGEBOT_LISTEN_PORT) {
-			continue // mergebot is healthy, do nothing
-		}
-
-		// Mergebot is down or unresponsive
-		ticker.Reset(CHECK_INTERVAL)
-		zap.S().Error("mergebot is unhealthy, taking corrective actions")
-
-		// Start a goroutine to clean cache dir and collect pending requests
-		go markPendingRequestsAsFinished()
-
-		// 2.2.1 Kill mergebot and clangd
-		killMergebotService()
-
-		// 2.2.2 Kill all TCP services listening on MERGEBOT_LISTEN_PORT
-		if err := KillTCPListenersOnPort(MERGEBOT_LISTEN_PORT); err != nil {
-			zap.S().Error("failed to kill TCP listeners on port", zap.Error(err))
-		}
-
-		// 2.2.3 Restart mergebot and clangd
-		if err := startMergebotService(); err != nil {
-			zap.L().Error("failed to restart mergebot", zap.Error(err))
-		}
-
-		// Wait for mergebot to be healthy
-		time.Sleep(INITIAL_DELAY_SECONDS)
-		if !CheckMergebotHealth(MERGEBOT_HOST, MERGEBOT_LISTEN_PORT) {
-			zap.S().Error("mergebot is still unhealthy after restart")
-		}
-
-		// 2.2.4 Replay pending requests
-		// replayPendingRequests()
+		KillChildProcesses(pid)
+		KillByPID(pid)
 	}
 }
