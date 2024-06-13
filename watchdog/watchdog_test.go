@@ -10,7 +10,7 @@ import (
 )
 
 func TestCheckMergebotHealth(t *testing.T) {
-	healthy := CheckMergebotHealth(MERGEBOT_HOST, MERGEBOT_LISTEN_PORT)
+	healthy := checkMergebotHealth(MERGEBOT_HOST, MERGEBOT_LISTEN_PORT)
 	if healthy {
 		t.Errorf("expected false, got %v", healthy)
 	}
@@ -27,7 +27,7 @@ func TestCheckMergebotHealthWithMockServer(t *testing.T) {
 
 	host, port, _ := parseHostAndPort(ts.URL)
 
-	healthy := CheckMergebotHealth(host, port)
+	healthy := checkMergebotHealth(host, port)
 	if !healthy {
 		t.Errorf("expected true, got %v", healthy)
 	}
