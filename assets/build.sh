@@ -26,7 +26,7 @@ echo "Installing dependencies and building Debug version..."
 (cd "$mergebot_dir" && cmake --build build/Debug)
 
 # Build watchdog monitor
-echo "Building watchdog monitor..."
-(cd "$mergebot_dir/watchdog" && go build -o $mergebot_dir/build/Release/bin/watchdog . && cp $mergebot_dir/build/Release/bin/watchdog $mergebot_dir/build/Debug/bin/watchdog)
+echo "Building husky monitor..."
+(cd "$mergebot_dir/husky" && go build -o $mergebot_dir/build/Release/bin/husky . && cp $mergebot_dir/build/Release/bin/husky $mergebot_dir/build/Debug/bin/husky)
 
 echo "Operations completed successfully"

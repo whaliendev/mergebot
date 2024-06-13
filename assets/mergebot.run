@@ -5,9 +5,9 @@ set -euo pipefail
 # A function to forward the signal received by the script to the watchdog process.
 forward_signal() {
   local signal=$1
-  echo "-- Forwarding signal $signal to watchdog..."
-  kill -s "$signal" "$watchdog_pid" 2>/dev/null
-  wait "$watchdog_pid" 2>/dev/null
+  echo "-- Forwarding signal $signal to husky..."
+  kill -s "$signal" "$husky_pid" 2>/dev/null
+  wait "$husky_pid" 2>/dev/null
   exit 0 # Exit indicating signal handling was graceful
 }
 
@@ -33,13 +33,11 @@ fi
 
 echo "-- mergebot dir: $(realpath "$MB_BIN_DIR")"
 
+# run watchdog monitor to do readiness check
+echo "-- $MB_BIN_DIR/husky: starting..."
+$MB_BIN_DIR/husky &
+husky_pid=$!
+
 # run mergebot with LD_LIBRARY_PATH modified
 LD_LIBRARY_PATH="$MB_BIN_DIR:$MB_BIN_DIR/dylib" "$MB_BIN_DIR/mergebot"
 
-# wait 1s for mergebot to be ready
-sleep 1
-
-# run watchdog monitor to do readiness check
-echo "-- $MB_BIN_DIR/watchdog: starting..."
-$MB_BIN_DIR/watchdog &
-watchdog_pid=$!
