@@ -235,7 +235,6 @@ func KillTCPListenersOnPort(port int) error {
 		}
 
 		killByPID(pid)
-		time.Sleep(300 * time.Millisecond)
 	}
 	return nil
 }
@@ -322,7 +321,6 @@ func killMergebotService() {
 		}
 
 		killChildProcesses(pid)
-		time.Sleep(300 * time.Millisecond)
 		killByPID(pid)
 	}
 }
