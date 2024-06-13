@@ -2,6 +2,20 @@
 
 set -euo pipefail
 
+# A function to forward the signal received by the script to the watchdog process.
+forward_signal() {
+  local signal=$1
+  echo "-- Forwarding signal $signal to watchdog..."
+  kill -s "$signal" "$watchdog_pid" 2>/dev/null
+  wait "$watchdog_pid" 2>/dev/null
+  exit 0 # Exit indicating signal handling was graceful
+}
+
+# Setup traps for SIGINT and SIGTERM signals.
+# Pass along the signal that was caught to the forward_signal function.
+trap 'forward_signal SIGINT' SIGINT
+trap 'forward_signal SIGTERM' SIGTERM
+
 # get the directory where mergebot.run script is located
 script_dir="$(dirname "$0")"
 
@@ -21,3 +35,11 @@ echo "-- mergebot dir: $(realpath "$MB_BIN_DIR")"
 
 # run mergebot with LD_LIBRARY_PATH modified
 LD_LIBRARY_PATH="$MB_BIN_DIR:$MB_BIN_DIR/dylib" "$MB_BIN_DIR/mergebot"
+
+# wait 1s for mergebot to be ready
+sleep 1
+
+# run watchdog monitor to do readiness check
+echo "-- $MB_BIN_DIR/watchdog: starting..."
+$MB_BIN_DIR/watchdog &
+watchdog_pid=$!
