@@ -60,6 +60,7 @@ func main() {
 	//      2.2.1 kill mergebot and clangd
 	//      2.2.2 kill all the tcp service listen on MERGEBOT_LISTEN_PORT.
 	//      2.2.3 restart mergebot and clangd, and wait for mergebot to be healthy
+        time.Sleep(3 * time.Second)
 	ticker := time.NewTicker(CHECK_INTERVAL)
 	defer ticker.Stop()
 	// every new run, clean all previous pending requests
