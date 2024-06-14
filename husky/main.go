@@ -7,11 +7,13 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"go.uber.org/zap"
@@ -53,6 +55,25 @@ func main() {
 	defer zap.L().Sync()
 	zap.L().Info("Start husky")
 
+	// Setting up signal handling
+	signals := make(chan os.Signal, 1)
+	// Notify this channel on SIGINT or SIGTERM
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		for sig := range signals {
+			if sig == syscall.SIGINT || sig == syscall.SIGTERM {
+				// Perform your cleanup here, e.g.,
+				// flushing logs or stopping any background tasks...
+				zap.S().Info("Received signal", zap.String("signal", sig.String()), zap.String("action", "cleaning up and exitiing..."))
+				fmt.Println("Received signal", sig.String(), "cleaning up and exiting...")
+				zap.L().Sync()
+				// After cleanup, exit
+				os.Exit(0)
+			}
+		}
+	}()
+
 	// 2. loop to check mergebot health
 	//   2.1 if mergebot is healthy, do nothing
 	//   2.2 if mergebot is down or take too long to response:
@@ -60,7 +81,7 @@ func main() {
 	//      2.2.1 kill mergebot and clangd
 	//      2.2.2 kill all the tcp service listen on MERGEBOT_LISTEN_PORT.
 	//      2.2.3 restart mergebot and clangd, and wait for mergebot to be healthy
-        time.Sleep(3 * time.Second)
+	time.Sleep(3 * time.Second)
 	ticker := time.NewTicker(CHECK_INTERVAL)
 	defer ticker.Stop()
 	// every new run, clean all previous pending requests
