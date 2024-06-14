@@ -37,7 +37,7 @@ const (
 	// CHECK_INTERVAL is used to check the health of mergebot periodically
 	CHECK_INTERVAL = 5 * time.Second
 
-	// LOG_LENTH_THRESH is used to limit the length of mergebot logs written to watchdog log file
+	// LOG_LENTH_THRESH is used to limit the length of mergebot logs written to husky log file
 	LOG_LENTH_THRESH = 3000
 )
 
@@ -51,7 +51,7 @@ func main() {
 	// 1. prepare logger
 	configureZapLogger()
 	defer zap.L().Sync()
-	zap.L().Info("Start watchdog")
+	zap.L().Info("Start husky")
 
 	// 2. loop to check mergebot health
 	//   2.1 if mergebot is healthy, do nothing
@@ -122,7 +122,7 @@ func preliminaryCheck() error {
 	mergebotPath := "./mergebot"
 	info, err := os.Stat(mergebotPath)
 	if os.IsNotExist(err) {
-		return fmt.Errorf("you should put watchdog and mergebot in the same dir")
+		return fmt.Errorf("you should put husky and mergebot in the same dir")
 	}
 	if info.Mode().Perm()&0111 == 0 {
 		return fmt.Errorf("unexpected permission of mergebot binary")
@@ -134,13 +134,13 @@ func preliminaryCheck() error {
 	lsofExists, _, _ := CheckBinaryExists("lsof")
 	pgrepExists, _, _ := CheckBinaryExists("pgrep")
 	if !killExists || !pkillExists || !lsofExists || !pgrepExists {
-		return fmt.Errorf("binary executable needed by watchdog not installed, on ubuntu, you can install then by typing \n\n\nsudo apt-get install kill pkill lsof pgrep\n\n\n in the terminal")
+		return fmt.Errorf("binary executable needed by husky not installed, on ubuntu, you can install then by typing \n\n\nsudo apt-get install kill pkill lsof pgrep\n\n\n in the terminal")
 	}
 	return nil
 }
 
 func configureZapLogger() {
-	logFilePath := filepath.Join(".", "watchdog.log")
+	logFilePath := filepath.Join(".", "husky.log")
 
 	// set up a rolling log writer
 	lumberjackLogger := &lumberjack.Logger{
