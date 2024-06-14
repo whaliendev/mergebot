@@ -14,7 +14,6 @@ forward_signal() {
 # Setup traps for SIGINT and SIGTERM signals.
 # Pass along the signal that was caught to the forward_signal function.
 trap 'forward_signal SIGINT' SIGINT
-trap 'forward_signal SIGTERM' SIGTERM
 
 # get the directory where mergebot.run script is located
 script_dir="$(dirname "$0")"

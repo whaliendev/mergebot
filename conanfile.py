@@ -151,6 +151,7 @@ class MergebotConan(ConanFile):
 
     _mergebot_assets = [
         'mergebot.run',
+        'mergebot.shutdown',
         'setup.sh',
         "clangd.gz"
     ]
