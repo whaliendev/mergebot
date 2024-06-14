@@ -66,7 +66,8 @@ func main() {
 				// Perform your cleanup here, e.g.,
 				// flushing logs or stopping any background tasks...
 				zap.S().Info("Received signal", zap.String("signal", sig.String()), zap.String("action", "cleaning up and exitiing..."))
-				fmt.Println("Received signal", sig.String(), "cleaning up and exiting...")
+				fmt.Println("Received signal", sig.String(), " cleaning up and exiting...")
+				killMergebotService()
 				zap.L().Sync()
 				// After cleanup, exit
 				os.Exit(0)
