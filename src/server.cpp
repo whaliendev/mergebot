@@ -123,19 +123,29 @@ void InitLogger() {
 
 void InitMergebot() {
   namespace fs = std::filesystem;
-  // create dir .mergebot.
-  // we may need to generate default configuration at boot in the near future.
+  // Create dir .mergebot.
+  // We may need to generate default configuration at boot in the near future.
   // Note that "Home" is Unix based OS specific, on windows, use
   // `getenv("USERPROFILE")`
   fs::path mergebotDirPath = mergebot::util::toabs(mergebot::MBDIR);
-  if (fs::exists(mergebotDirPath)) return;
+
   try {
+    // If directory exists, remove it recursively
+    if (fs::exists(mergebotDirPath)) {
+      spdlog::warn("Directory {} exists, removing it...", mergebotDirPath.string());
+      fs::remove_all(mergebotDirPath);
+    }
+
+    // Create the new directory
     fs::create_directory(mergebotDirPath);
+    spdlog::info("Directory {} created successfully", mergebotDirPath.string());
+
   } catch (const std::exception& ex) {
-    spdlog::error("failed to init mergebot, reason: {}", ex.what());
+    spdlog::error("Failed to init mergebot, reason: {}", ex.what());
     exit(1);
   }
 }
+
 
 void ConfigBPRoutes(crow::Blueprint& bp) {
   // initially, post configuration
