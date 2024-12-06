@@ -80,7 +80,7 @@ bool writeConflictFiles(const fs::path& msCacheDir,
   using namespace llvm;
   std::string firstFile = fs::path(path) / relFirstFile;
   ErrorOr<std::unique_ptr<MemoryBuffer>> fileOrErr =
-      MemoryBuffer::getFile(firstFile);
+      MemoryBuffer::getFile(firstFile, false, false);
   if (auto err = fileOrErr.getError()) {
     spdlog::warn(
         "failed to open file [{}] for checking conflicting status, err msg: {}",

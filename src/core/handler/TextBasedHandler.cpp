@@ -270,7 +270,7 @@ bool TextBasedHandler::checkOneSideDelta(std::string_view Our,
   fs::path Relative = fs::relative(CF.Filename, Meta.ProjectPath);
   fs::path ConflictFile = fs::path(Meta.MSCacheDir) / "conflicts" / Relative;
   llvm::ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
-      MemoryBuffer::getFile(ConflictFile.string());
+      MemoryBuffer::getFile(ConflictFile.string(), false, false);
   if (auto Err = FileOrErr.getError()) {
     spdlog::info("fail to read conflict file [{}], err message: {}",
                  ConflictFile.string(), Err.message());
@@ -620,7 +620,7 @@ bool TextBasedHandler::checkDeletion(std::string_view Our,
   fs::path Relative = fs::relative(CF.Filename, Meta.ProjectPath);
   fs::path ConflictFile = fs::path(Meta.MSCacheDir) / "conflicts" / Relative;
   llvm::ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
-      MemoryBuffer::getFile(ConflictFile.string());
+      MemoryBuffer::getFile(ConflictFile.string(), false, false);
   if (auto Err = FileOrErr.getError()) {
     spdlog::info("fail to read conflict file [{}], err message: {}",
                  ConflictFile.string(), Err.message());
