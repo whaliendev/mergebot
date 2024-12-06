@@ -1,0 +1,59 @@
+{
+  "name": "conflict_vue",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve --port 3000",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+  "dependencies": {
+    "axios": "^1.5.1",
+    "babel-plugin-component": "^1.1.1",
+    "core-js": "^3.8.3",
+    "crypto-js": "^4.2.0",
+    "diff": "^5.1.0",
+    "diff-match-patch": "^1.0.5",
+    "element-ui": "^2.15.14",
+    "monaco-editor": "0.44.0",
+    "monaco-editor-webpack-plugin": "^7.1.0",
+    "nano-assign": "^1.0.1",
+    "patch-package": "^8.0.0",
+    "path-browserify": "^1.0.1",
+    "register-service-worker": "^1.7.2",
+    "resize-observer-polyfill": "^1.5.1",
+    "vue": "^2.7.15",
+    "vue-router": "^3.5.1",
+    "vuex": "^3.6.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.16",
+    "@babel/eslint-parser": "^7.12.16",
+    "@vue/cli-plugin-babel": "~5.0.0",
+    "@vue/cli-plugin-eslint": "~5.0.0",
+    "@vue/cli-plugin-pwa": "~5.0.0",
+    "@vue/cli-plugin-router": "~5.0.0",
+    "@vue/cli-plugin-vuex": "~5.0.0",
+    "@vue/cli-service": "~5.0.0",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.0",
+    "eslint-plugin-vue": "^9.0.0",
+    "postcss": "^8.4.31",
+    "prettier": "^3.1.1",
+    "sass": "^1.32.7",
+    "sass-loader": "^12.0.0",
+    "tailwindcss": "^3.3.3"
+  },
+  "vuePlugins": {
+    "service": [
+      "./cli-plugin-monaco-editor.js"
+    ]
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "monaco-editor@0.44.0": "patches/monaco-editor@0.44.0.patch"
+    }
+  }
+}

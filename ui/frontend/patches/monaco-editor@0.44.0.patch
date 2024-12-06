@@ -1,0 +1,33 @@
+diff --git a/esm/vs/editor/browser/widget/diffEditor/diffEditorViewModel.js b/esm/vs/editor/browser/widget/diffEditor/diffEditorViewModel.js
+index 3c79853e6e15a591cdc09d134a4ac824686a9a18..4257ebeebe349a2b2f2870da1e08626b553e6980 100644
+--- a/esm/vs/editor/browser/widget/diffEditor/diffEditorViewModel.js
++++ b/esm/vs/editor/browser/widget/diffEditor/diffEditorViewModel.js
+@@ -95,10 +95,12 @@ let DiffEditorViewModel = class DiffEditorViewModel extends Disposable {
+             const modifiedDecorationIds = model.modified.deltaDecorations(lastUnchangedRegions.modifiedDecorationIds, newUnchangedRegions.map(r => ({ range: r.modifiedUnchangedRange.toInclusiveRange(), options: { description: 'unchanged' } })));
+             for (const r of newUnchangedRegions) {
+                 for (let i = 0; i < lastUnchangedRegions.regions.length; i++) {
+-                    if (r.originalUnchangedRange.intersectsStrict(lastUnchangedRegionsOrigRanges[i])
+-                        && r.modifiedUnchangedRange.intersectsStrict(lastUnchangedRegionsModRanges[i])) {
+-                        r.setHiddenModifiedRange(lastUnchangedRegions.regions[i].getHiddenModifiedRange(undefined), tx);
+-                        break;
++                    if (lastUnchangedRegionsOrigRanges[i] != null && lastUnchangedRegionsModRanges[i] != null) {
++                        if (r.originalUnchangedRange.intersectsStrict(lastUnchangedRegionsOrigRanges[i])
++                            && r.modifiedUnchangedRange.intersectsStrict(lastUnchangedRegionsModRanges[i])) {
++                            r.setHiddenModifiedRange(lastUnchangedRegions.regions[i].getHiddenModifiedRange(undefined), tx);
++                            break;
++                        }
+                     }
+                 }
+             }
+diff --git a/esm/vs/editor/contrib/suggest/browser/suggestController.js b/esm/vs/editor/contrib/suggest/browser/suggestController.js
+index 2cd270d73c5d3ea9855c21cce16be015e89b3491..5e0d8472a73146726835d374684c9d0164d5d78e 100644
+--- a/esm/vs/editor/contrib/suggest/browser/suggestController.js
++++ b/esm/vs/editor/contrib/suggest/browser/suggestController.js
+@@ -80,6 +80,7 @@ class LineSuffix {
+         // the cursor to the line end.
+         if (this._marker) {
+             const range = this._model.getDecorationRange(this._marker[0]);
++            if (!range) return this._model.getLineMaxColumn(position.lineNumber) - position.column;
+             const end = this._model.getOffsetAt(range.getStartPosition());
+             return end - this._model.getOffsetAt(position);
+         }
