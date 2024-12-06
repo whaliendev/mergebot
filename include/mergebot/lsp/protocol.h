@@ -463,7 +463,7 @@ struct ClientCapabilities {
     for (size_t i = SymbolKindMin; i <= SymbolKindMax; ++i) {
       WorkspaceSymbolKinds.push_back(static_cast<SymbolKind>(i));
     }
-    for (size_t i = CompletionItemKindMax; i <= CompletionItemKindMax; ++i) {
+    for (size_t i = CompletionItemKindMin; i <= CompletionItemKindMax; ++i) {
       CompletionItemKinds.push_back(static_cast<CompletionItemKind>(i));
     }
     offsetEncoding = {OffsetEncoding::UTF8};
