@@ -24,7 +24,7 @@
 namespace mergebot {
 namespace sa {
 
-bool StyleBasedHandler::NeedFormat = true;
+bool StyleBasedHandler::NeedFormat = false;
 /// llvm, chromium, mozilla, google, webkit, gnu, microsoft
 std::string StyleBasedHandler::Style = "google";
 /// "ours" or "theirs"
