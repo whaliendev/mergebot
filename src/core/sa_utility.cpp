@@ -289,7 +289,7 @@ constructConflictFiles(std::vector<std::string> &ConflictFilePaths) {
   for (const auto &ConflictFilePath : ConflictFilePaths) {
     std::string AbsoluteFilePath = util::toabs(ConflictFilePath);
     ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
-        MemoryBuffer::getFile(AbsoluteFilePath);
+        MemoryBuffer::getFile(AbsoluteFilePath, false, false);
     if (auto Err = FileOrErr.getError()) {
       spdlog::error(
           "failed to extract conflict blocks for source file [{}], err "
