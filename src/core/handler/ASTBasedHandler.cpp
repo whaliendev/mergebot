@@ -1,7 +1,7 @@
 //
 // Created by whalien on 13/03/23.
 //
-// #define MB_EXPORT_GRAPH
+#define MB_EXPORT_GRAPH
 
 #ifdef MB_EXPORT_GRAPH
 #include "mergebot/core/semantic/graph_export.h"
