@@ -1,6 +1,9 @@
 # conflict_vue
 
-**!!! 注意：请一定使用 pnpm 来安装依赖和构建。因为使用的关键组件 monaco-editor 有些 NPE 和 Array Index Out of Bound 问题目前只在下游修复了（patches 目录内的内容）。**
+**!!! Attention: Please make sure to use pnpm to install dependencies and build
+the project. This is because some issues in the key component monaco-editor,
+such as NPE (Null Pointer Exception) and Array Index Out of Bound, have only
+been fixed downstream (in the patches directory).**
 
 ## Project setup
 
