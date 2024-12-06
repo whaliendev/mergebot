@@ -2,6 +2,11 @@ import os
 from pygit2 import C
 import subprocess
 import tempfile
+from typing import Optional, List
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 ###################
 # git_merge_file_favor_t
@@ -157,3 +162,47 @@ def git_merge_file(
         return GitMergeFileResult(
             automergeable, ancestor.path, ancestor.mode, result.stdout.decode()
         )
+
+def get_conflict_files(repo_path: str) -> Optional[List[str]]:
+    result = subprocess.run(
+        ["git", "diff", "--name-only", "--diff-filter=U"],
+        cwd=repo_path,
+        capture_output=True,
+        text=True,
+    )
+
+    if result.returncode == 0:
+        return result.stdout.strip().split("\n")
+    else:
+        logger.error("fail to get conflict files")
+        return None
+
+
+def git_checkout(repo_path: str, commit_hash: str) -> None:
+    subprocess.run(["git", "checkout", commit_hash], cwd=repo_path, check=True)
+
+
+def git_merge(repo_path: str, commit_hash: str) -> None:
+    result = subprocess.run(["git", "merge", commit_hash], cwd=repo_path)
+
+    if result.returncode != 0:
+        logger.error(f"Merge failed with {commit_hash}, stderr: {result.stderr}")
+    else:
+        logger.info(f"Merge succeeded with {commit_hash}")
+
+
+def is_in_merging(repo_path: str) -> bool:
+    merge_head_file = os.path.join(repo_path, ".git", "MERGE_HEAD")
+    return os.path.exists(merge_head_file)
+
+
+def git_merge_abort(repo_path: str) -> None:
+    subprocess.run(["git", "merge", "--abort"], cwd=repo_path, check=True)
+
+
+def git_stash_changes(repo_path: str) -> None:
+    subprocess.run(["git", "stash"], cwd=repo_path, check=True)
+
+
+def clear_git_stash(repo_path: str) -> None:
+    subprocess.run(["git", "stash", "clear"], cwd=repo_path, check=True)

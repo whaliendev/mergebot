@@ -14,11 +14,13 @@ import urllib.parse
 import log as _
 from argparse import ArgumentParser
 from utils import gitservice
+from utils.fileop import expand_path, remove_cpp_comments
+from utils.git import get_conflict_files, git_checkout, git_merge, git_merge_abort, git_stash_changes, clear_git_stash
 from os.path import join
 
 logger = logging.getLogger()
 
-C_EXTENSIONS = set([".c", ".cpp", ".h", ".hpp", ".cc", ".cxx", ".hxx", ".C", ".cx"])
+C_EXTENSIONS = {".c", ".cpp", ".h", ".hpp", ".cc", ".cxx", ".hxx", ".C", ".cx"}
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
     "Content-Type": "application/json",
@@ -131,34 +133,36 @@ class EvaluateEncoder(json.JSONEncoder):
         else:
             return super().default(o)
 
+
+def object_hook(obj):
+    if "conflict_sources" in obj:
+        return MergeScenarioStatistics(
+            conflict_sources=obj["conflict_sources"],
+            total_diff_line_count=obj["total_diff_line_count"],
+            total_merged_line_count=obj["total_merged_line_count"],
+            total_mergebot_line_count=obj["total_mergebot_line_count"],
+        )
+    elif "file_path" in obj:
+        return ConflictSource(
+            file_path=obj["file_path"],
+            merged_line_count=obj["merged_line_count"],
+            mergebot_line_count=obj["mergebot_line_count"],
+            diff_line_count=obj["diff_line_count"],
+        )
+    elif "merged" in obj:
+        return MergeScenario(
+            merged=obj["merged"],
+            ours=obj["ours"],
+            theirs=obj["theirs"],
+            base=obj["base"],
+            files=obj["files"],
+        )
+    return obj
+
+
 class EvaluateDecoder(json.JSONDecoder):
     def __init__(self, *args, **kwargs):
-        super().__init__(object_hook=self.object_hook, *args, **kwargs)
-
-    def object_hook(self, obj):
-        if "conflict_sources" in obj:
-            return MergeScenarioStatistics(
-                conflict_sources=obj["conflict_sources"],
-                total_diff_line_count=obj["total_diff_line_count"],
-                total_merged_line_count=obj["total_merged_line_count"],
-                total_mergebot_line_count=obj["total_mergebot_line_count"],
-            )
-        elif "file_path" in obj:
-            return ConflictSource(
-                file_path=obj["file_path"],
-                merged_line_count=obj["merged_line_count"],
-                mergebot_line_count=obj["mergebot_line_count"],
-                diff_line_count=obj["diff_line_count"],
-            )
-        elif "merged" in obj:
-            return MergeScenario(
-                merged=obj["merged"],
-                ours=obj["ours"],
-                theirs=obj["theirs"],
-                base=obj["base"],
-                files=obj["files"],
-            )
-        return obj
+        super().__init__(object_hook=object_hook, *args, **kwargs)
 
 
 def is_valid_directory(parser: ArgumentParser, arg: str) -> str:
@@ -173,15 +177,6 @@ def is_valid_file(parser: ArgumentParser, arg: str) -> str:
         parser.error(f"The file {arg} does not exist!")
     else:
         return arg
-
-
-def expand_path(path: str) -> str:
-    expanded_path = os.path.expanduser(os.path.expandvars(path))
-
-    if not os.path.isabs(expanded_path):
-        expanded_path = os.path.abspath(expanded_path)
-
-    return expanded_path
 
 
 def mine_merged_list(
@@ -242,51 +237,6 @@ def mine_git_repo(
     except Exception as e:
         logger.error(f"could not get next conflict merge scenario: {e}")
         raise e
-
-
-def get_conflict_files(repo_path: str) -> Optional[List[str]]:
-    result = subprocess.run(
-        ["git", "diff", "--name-only", "--diff-filter=U"],
-        cwd=repo_path,
-        capture_output=True,
-        text=True,
-    )
-
-    if result.returncode == 0:
-        return result.stdout.strip().split("\n")
-    else:
-        logger.error("fail to get conflict files")
-        return None
-
-
-def git_checkout(repo_path: str, commit_hash: str) -> None:
-    subprocess.run(["git", "checkout", commit_hash], cwd=repo_path, check=True)
-
-
-def git_merge(repo_path: str, commit_hash: str) -> None:
-    result = subprocess.run(["git", "merge", commit_hash], cwd=repo_path)
-
-    if result.returncode != 0:
-        logger.error(f"Merge failed with {commit_hash}, stderr: {result.stderr}")
-    else:
-        logger.info(f"Merge succeeded with {commit_hash}")
-
-
-def is_in_merging(repo_path: str) -> bool:
-    merge_head_file = os.path.join(repo_path, ".git", "MERGE_HEAD")
-    return os.path.exists(merge_head_file)
-
-
-def git_merge_abort(repo_path: str) -> None:
-    subprocess.run(["git", "merge", "--abort"], cwd=repo_path, check=True)
-
-
-def git_stash_changes(repo_path: str) -> None:
-    subprocess.run(["git", "stash"], cwd=repo_path, check=True)
-
-
-def clear_git_stash(repo_path: str) -> None:
-    subprocess.run(["git", "stash", "clear"], cwd=repo_path, check=True)
 
 
 def read_file(file_path: str) -> List[str]:
@@ -377,19 +327,6 @@ def start_and_wait_mergebot_cpp(
         )
         return False
     return True
-
-
-def remove_cpp_comments(input_path, output_path):
-    """use gcc -fpreprocessed -dD -P -E input_path > output_path to remove comments"""
-    if not os.path.exists(input_path):
-        logger.error(f"input_path does not exist")
-        exit(1)
-
-    subprocess.run(
-        ["gcc", "-fpreprocessed", "-dD", "-P", "-E", input_path],
-        stdout=open(output_path, "w"),
-        check=True,
-    )
 
 
 def get_diff_lines(
