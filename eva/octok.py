@@ -38,7 +38,8 @@ def evaluate():
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
 )
 @click.argument(
-    "sample", nargs=1, type=click.Path(exists=True, file_okay=False, dir_okay=True)
+    "sample", nargs=1,
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
 )
 def mine(
     limit: int,

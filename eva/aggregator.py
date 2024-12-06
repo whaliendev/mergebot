@@ -32,7 +32,7 @@ def aggeragate_statistics(projects, out_dir):
             except Exception as e:
                 print(f'project: {project}, merge_scenario: {merge_scenario}, error: {e}')
                 continue
-        
+
         total_diff_lines = sum([stat.total_diff_line_count for stat in stats])
         total_merged_lines = sum([stat.total_merged_line_count for stat in stats])
         total_mergebot_lines = sum([stat.total_mergebot_line_count for stat in stats])
@@ -47,7 +47,7 @@ def aggeragate_statistics(projects, out_dir):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: stat.py <out_dir>")
+        print("Usage: aggregator.py <out_dir>")
         sys.exit(1)
 
     out_dir = sys.argv[1]
