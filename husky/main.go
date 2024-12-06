@@ -7,11 +7,13 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"go.uber.org/zap"
@@ -37,7 +39,7 @@ const (
 	// CHECK_INTERVAL is used to check the health of mergebot periodically
 	CHECK_INTERVAL = 5 * time.Second
 
-	// LOG_LENTH_THRESH is used to limit the length of mergebot logs written to watchdog log file
+	// LOG_LENTH_THRESH is used to limit the length of mergebot logs written to husky log file
 	LOG_LENTH_THRESH = 3000
 )
 
@@ -51,7 +53,27 @@ func main() {
 	// 1. prepare logger
 	configureZapLogger()
 	defer zap.L().Sync()
-	zap.L().Info("Start watchdog")
+	zap.L().Info("Start husky")
+
+	// Setting up signal handling
+	signals := make(chan os.Signal, 1)
+	// Notify this channel on SIGINT or SIGTERM
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		for sig := range signals {
+			if sig == syscall.SIGINT || sig == syscall.SIGTERM {
+				// Perform your cleanup here, e.g.,
+				// flushing logs or stopping any background tasks...
+				zap.S().Info("Received signal", zap.String("signal", sig.String()), zap.String("action", "cleaning up and exitiing..."))
+				fmt.Printf("Received signal %s, cleaning up and exiting...\n", sig.String())
+				killMergebotService()
+				zap.L().Sync()
+				// After cleanup, exit
+				os.Exit(0)
+			}
+		}
+	}()
 
 	// 2. loop to check mergebot health
 	//   2.1 if mergebot is healthy, do nothing
@@ -60,7 +82,7 @@ func main() {
 	//      2.2.1 kill mergebot and clangd
 	//      2.2.2 kill all the tcp service listen on MERGEBOT_LISTEN_PORT.
 	//      2.2.3 restart mergebot and clangd, and wait for mergebot to be healthy
-        time.Sleep(3 * time.Second)
+	time.Sleep(3 * time.Second)
 	ticker := time.NewTicker(CHECK_INTERVAL)
 	defer ticker.Stop()
 	// every new run, clean all previous pending requests
@@ -122,7 +144,7 @@ func preliminaryCheck() error {
 	mergebotPath := "./mergebot"
 	info, err := os.Stat(mergebotPath)
 	if os.IsNotExist(err) {
-		return fmt.Errorf("you should put watchdog and mergebot in the same dir")
+		return fmt.Errorf("you should put husky and mergebot in the same dir")
 	}
 	if info.Mode().Perm()&0111 == 0 {
 		return fmt.Errorf("unexpected permission of mergebot binary")
@@ -134,13 +156,13 @@ func preliminaryCheck() error {
 	lsofExists, _, _ := CheckBinaryExists("lsof")
 	pgrepExists, _, _ := CheckBinaryExists("pgrep")
 	if !killExists || !pkillExists || !lsofExists || !pgrepExists {
-		return fmt.Errorf("binary executable needed by watchdog not installed, on ubuntu, you can install then by typing \n\n\nsudo apt-get install kill pkill lsof pgrep\n\n\n in the terminal")
+		return fmt.Errorf("binary executable needed by husky not installed, on ubuntu, you can install then by typing \n\n\nsudo apt-get install kill pkill lsof pgrep\n\n\n in the terminal")
 	}
 	return nil
 }
 
 func configureZapLogger() {
-	logFilePath := filepath.Join(".", "watchdog.log")
+	logFilePath := filepath.Join(".", "husky.log")
 
 	// set up a rolling log writer
 	lumberjackLogger := &lumberjack.Logger{

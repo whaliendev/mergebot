@@ -1,36 +1,34 @@
 #!/bin/bash
-
 set -euo pipefail
 
 # A function to forward the signal received by the script to the watchdog process.
 forward_signal() {
   local signal=$1
   echo "-- Forwarding signal $signal to husky..."
-  kill -s "$signal" "$husky_pid" 2>/dev/null
-  wait "$husky_pid" 2>/dev/null
+  kill -s "$signal" "$husky_pid" 2>/dev/null || true
+  wait "$husky_pid" 2>/dev/null || true
   exit 0 # Exit indicating signal handling was graceful
 }
 
+# Function to handle unexpected errors.
+handle_error() {
+  echo "-- Error: mergebot failed to start. Terminating husky..."
+  kill "$husky_pid" 2>/dev/null || true
+  exit 1
+}
+
 # Setup traps for SIGINT and SIGTERM signals.
-# Pass along the signal that was caught to the forward_signal function.
 trap 'forward_signal SIGINT' SIGINT
-trap 'forward_signal SIGTERM' SIGTERM
 
-# get the directory where mergebot.run script is located
+# Trap ERR signal to handle errors.
+trap 'handle_error' ERR
+
 script_dir="$(dirname "$0")"
-
-# fix: at running phase, copying .conan2 libs is unappropriated
-# simplify call procedure
-#"$script_dir/setup.sh" &> /dev/stdout
-
-# call setup.sh in --dir-only mode to get MB_BIN_DIR
 MB_BIN_DIR=$("$script_dir/setup.sh" --dir-only 2>/dev/null)
-
 if [ -z "$MB_BIN_DIR" ]; then
-  echo "Error: mergebot binary directory not found"
+  echo "Error: mergebot binary directory not found."
   exit 1
 fi
-
 echo "-- mergebot dir: $(realpath "$MB_BIN_DIR")"
 
 # run watchdog monitor to do readiness check
@@ -38,6 +36,7 @@ echo "-- $MB_BIN_DIR/husky: starting..."
 $MB_BIN_DIR/husky &
 husky_pid=$!
 
-# run mergebot with LD_LIBRARY_PATH modified
-LD_LIBRARY_PATH="$MB_BIN_DIR:$MB_BIN_DIR/dylib" "$MB_BIN_DIR/mergebot"
-
+# Run mergebot with LD_LIBRARY_PATH modified. Use 'if' condition to check execution status.
+if ! LD_LIBRARY_PATH="$MB_BIN_DIR:$MB_BIN_DIR/dylib" "$MB_BIN_DIR/mergebot"; then
+  handle_error
+fi
