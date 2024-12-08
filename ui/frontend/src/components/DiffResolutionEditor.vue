@@ -403,7 +403,7 @@ export default {
         class="diff-resolution-controls-container overflow-hidden flex justify-between items-center w-full h-full"
       >
         <div class="status-container flex items-center space-around">
-          还剩&nbsp;&nbsp;{{ remainingCnt }}&nbsp;&nbsp;个冲突块未解决
+          There are {{ remainingCnt }} conflict blocks left to resolve.
         </div>
 
         <div class="controls-container flex items-center justify-between mr-4">
@@ -412,14 +412,14 @@ export default {
               icon="el-icon-arrow-up"
               @click="changeConflictBlock(-1)"
               size="small"
-              >上一个冲突块</el-button
+              >Previous Conflict Block</el-button
             >
             <el-button size="small">{{ index + 1 }}/{{ total }}</el-button>
             <el-button
               icon="el-icon-arrow-down"
               @click="changeConflictBlock(1)"
               size="small"
-              >下一个冲突块</el-button
+              >Next Conflict Block</el-button
             >
           </div>
 
@@ -427,7 +427,7 @@ export default {
             <el-button
               icon="el-icon-refresh-left"
               size="small"
-              title="回到上个版本"
+              title="Undo"
               class="w-[50px]"
               @click="handleUndoChanges"
               :disabled="!canUndo"
@@ -435,7 +435,7 @@ export default {
             <el-button
               icon="el-icon-refresh-right"
               size="small"
-              title="去往下个版本"
+              title="Redo"
               class="w-[50px]"
               @click="handleRedoChanges"
               :disabled="!canRedo"

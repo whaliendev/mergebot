@@ -14,7 +14,7 @@
           :class="{ visible: pending, invisible: !pending }"
         >
           <el-button plain :loading="pending" size="medium"></el-button>
-          算法运行中...
+          The algorithm is running...
         </div>
       </div>
       <!-- controls-container -->
@@ -26,7 +26,7 @@
           size="medium"
           plain
           @click="showRefactoringDrawer"
-          >展示变更信息</el-button
+          >Display refactors</el-button
         >
         <thumb-up-button
           class="ml-2 mr-2"
@@ -40,7 +40,7 @@
           plain
           type="success"
           @click="handleStageRequest"
-          >暂存</el-button
+          >Stage (Git add)</el-button
         >
         <el-button
           icon="el-icon-refresh"
@@ -48,7 +48,7 @@
           size="medium"
           plain
           type="danger"
-          >重置</el-button
+          >Reset</el-button
         >
       </div>
       <!-- commit-container -->
@@ -80,7 +80,7 @@
     </el-main>
 
     <el-drawer
-      title="变更信息"
+      title="Refactorings Mined"
       custom-class="refactoring-drawer"
       :visible="drawerVisible"
       size="32%"
@@ -96,7 +96,7 @@
         >
           {{ index + 1 }}.&nbsp;&nbsp;<el-tag>{{ item.type }}</el-tag>
           <span
-            title="点击以定位到代码段"
+            title="Click to locate the code snippet"
             class="ml-2 italic"
             style="font-family: monospace"
             >{{ item.description }}</span
@@ -246,14 +246,14 @@ export default {
       }
       return [
         {
-          title: "目标分支版本",
-          content: "未获取到目标分支版本文件内容",
+          title: "Target Branch Version",
+          content: "Failed to retrieve target branch version file content",
           lang: "java",
           disabled: true,
         },
         {
-          title: "源分支版本",
-          content: "未获取到源分支版本文件内容",
+          title: "Source Branch Version",
+          content: "Failed to retrieve source branch version file content",
           lang: "java",
           disabled: false,
         },
@@ -282,7 +282,7 @@ export default {
   watch: {
     isSATimedout(newVal) {
       if (newVal) {
-        this.$message.error("获取SA解决方案超时");
+        this.$message.error("SA resolutions retrieval timed out");
       }
     },
   },
@@ -301,7 +301,9 @@ export default {
     this.params.sourceBranch = this.$route.params.source;
 
     if (!this.isValidRouteParams) {
-      this.$message.error("路由参数无效，请返回文件树重新选择文件");
+      this.$message.error(
+        "Invalid route parameter, please return to the file tree and reselect the file",
+      );
       return;
     }
 
@@ -311,8 +313,8 @@ export default {
 
     // fix: when remainingConflictBlocksCnt is 0, the following dispatches will not be executed
     if (this.params.lang && this.remainingConflictBlocksCnt) {
-      await this.dispatchGetMLResolutions();
-      await this.dispatchGetDLResolutions();
+      // await this.dispatchGetMLResolutions();
+      // await this.dispatchGetDLResolutions();
 
       if (this.params.lang === "cpp") {
         await this.dispatchGetSAResolutions();
@@ -336,7 +338,9 @@ export default {
     async handleStageRequest() {
       this.$store.commit("diff/refreshRemainingConflictBlocks");
       if (this.remainingConflictBlocksCnt) {
-        this.$message.warning("还有未解决的冲突块，请解决完所有冲突块后再暂存");
+        this.$message.warning(
+          "There are unresolved conflict blocks. Please resolve all conflict blocks before staging.",
+        );
         return;
       }
       const payload = {
@@ -349,7 +353,7 @@ export default {
       try {
         const res = await writeResolvedToFile(payload);
         if (res) {
-          this.$message.success("暂存成功");
+          this.$message.success("stage successfully");
         }
         const saveres = await saveFileTrackingData({
           projectPath: this.params.repo,
@@ -394,20 +398,20 @@ export default {
       this.revArr.splice(0, this.revArr.length);
       this.revArr.push({
         // title: this.params.targetBranch || 'target',
-        title: "目标分支版本",
+        title: "Target Revision",
         content: this.meta.target,
         lang: this.params.lang,
         disabled: true,
       });
       this.revArr.push({
-        title: "基础版本",
+        title: "Base Revision",
         content: this.meta.base,
         lang: this.params.lang,
         disabled: false,
       });
       this.revArr.push({
         // title: this.params.sourceBranch || 'source',
-        title: "源分支版本",
+        title: "Source Revision",
         content: this.meta.source,
         lang: this.params.lang,
         disabled: false,
@@ -512,7 +516,7 @@ export default {
           sourceContent: this.meta.source,
         });
       } catch (error) {
-        this.$message.error(`获取变更信息异常: ${error.message}`);
+        this.$message.error(`Fail to get refactorings: ${error.message}`);
       }
     },
 
@@ -542,7 +546,7 @@ export default {
           if (res.code === "200") {
             this.$message({
               showClose: true,
-              message: "点赞成功",
+              message: "Like successfully",
               type: "success",
             });
             sessionStorage.setItem(this.params.filePath, true);
@@ -563,7 +567,7 @@ export default {
           if (res.code === "200") {
             this.$message({
               showClose: true,
-              message: "取消点赞成功",
+              message: "Unlike successfully",
               type: "success",
             });
             sessionStorage.setItem(this.params.filePath, false);

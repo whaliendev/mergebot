@@ -3,7 +3,7 @@
     <div class="hand">
       <div class="thumb"></div>
     </div>
-    <span class="word">赞</span>
+    <span class="word">Like</span>
   </button>
 </template>
 

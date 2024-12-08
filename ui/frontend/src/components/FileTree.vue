@@ -46,7 +46,9 @@
           />
           {{ data.fileName }}
           <span v-if="data.conflictNumber !== 0">
-            （there are {{ data.conflictNumber }} conflict sources）
+            ({{ data.conflictNumber }} conflict source{{
+              data.conflictNumber > 1 ? "s" : ""
+            }})
           </span>
         </span>
 
@@ -81,7 +83,7 @@
             type="text"
             size="mini"
             icon="el-icon-document-add"
-            title="new"
+            title="new file"
             @click.stop="() => addNode(data, 'file')"
           />
           <el-button
@@ -107,7 +109,7 @@
             type="text"
             size="mini"
             icon="el-icon-upload"
-            title="upload a file"
+            title="upload"
             @click.stop="() => uploadNode(data)"
           />
         </span>
@@ -141,7 +143,7 @@
       </span>
     </el-tree>
     <el-dialog
-      title="input a new filename"
+      title="File Rename"
       :visible.sync="renameDialogVisible"
       width="30%"
       @close="cancelRename"
@@ -149,37 +151,37 @@
       <el-input v-model="newName" placeholder="input a new filename"></el-input>
 
       <span slot="footer" class="dialog-footer">
-        <el-button @click="cancelRename">cancel</el-button>
-        <el-button type="primary" @click="confirmRename">confirm</el-button>
+        <el-button @click="cancelRename">Cancel</el-button>
+        <el-button type="primary" @click="confirmRename">Confirm</el-button>
       </span>
     </el-dialog>
     <el-dialog
-      title="confirm deletion"
+      title="Delete Confirmation"
       :visible.sync="deleteDialogVisible"
       width="30%"
       @close="cancelDelete"
     >
       <p>Are you sure you want to delete this file？</p>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="cancelDelete">cancel</el-button>
-        <el-button type="primary" @click="confirmDelete">confirm</el-button>
+        <el-button @click="cancelDelete">Cancel</el-button>
+        <el-button type="primary" @click="confirmDelete">Confirm</el-button>
       </span>
     </el-dialog>
     <el-dialog
-      title="Deletion Confirm"
+      title="Delete Confirmation"
       :visible.sync="deleteDirDialogVisible"
       width="30%"
       @close="cancelDelete"
     >
       <p>Are you sure you want to delete this directory？</p>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="cancelDelete">cancel</el-button>
-        <el-button type="primary" @click="confirmDelete">confirm</el-button>
+        <el-button @click="cancelDelete">Cancel</el-button>
+        <el-button type="primary" @click="confirmDelete">Confirm</el-button>
       </span>
     </el-dialog>
 
     <el-dialog
-      title="create a file"
+      title="Create a File"
       :visible.sync="addDialogVisible"
       width="30%"
       @close="cancelAdd"
@@ -189,12 +191,12 @@
         placeholder="please input the filename"
       ></el-input>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="cancelAdd">cancel</el-button>
-        <el-button type="primary" @click="confirmAdd">confirm</el-button>
+        <el-button @click="cancelAdd">Cancel</el-button>
+        <el-button type="primary" @click="confirmAdd">Confirm</el-button>
       </span>
     </el-dialog>
     <el-dialog
-      title="create a directory"
+      title="Create a Directory"
       :visible.sync="addDirDialogVisible"
       width="30%"
       @close="cancelAdd"
@@ -204,13 +206,13 @@
         placeholder="please input the directory name"
       ></el-input>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="cancelAdd">cancel</el-button>
-        <el-button type="primary" @click="confirmAdd">confirm</el-button>
+        <el-button @click="cancelAdd">Cancel</el-button>
+        <el-button type="primary" @click="confirmAdd">Confirm</el-button>
       </span>
     </el-dialog>
 
     <el-dialog
-      title="Deletion confirm"
+      title="Delete Confirmation"
       :visible.sync="deleteDialogVisible"
       width="30%"
       @close="cancelDelete"
@@ -222,7 +224,7 @@
       </span>
     </el-dialog>
     <el-dialog
-      title="Upload a file"
+      title="Upload a File"
       :visible.sync="uploadDialogVisible"
       width="30%"
       @close="cancelUpload"
@@ -239,7 +241,7 @@
         :limit="10"
       >
         <el-button slot="trigger" size="small" type="primary"
-          >Select a file</el-button
+          >Select from local</el-button
         >
         <el-button
           style="margin-left: 10px"
@@ -256,9 +258,7 @@
       </el-upload>
 
       <span slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="cancelUpload"
-          >Finish upload</el-button
-        >
+        <el-button type="primary" @click="cancelUpload">End upload</el-button>
       </span>
     </el-dialog>
   </div>
@@ -611,6 +611,13 @@ export default {
   .file-tree-container {
     border-radius: 4px;
   }
+}
+
+.el-upload__tip {
+  max-width: 320px;
+  word-break: keep-all;
+  color: #888;
+  margin: 16px auto;
 }
 
 /*.rename-container {*/

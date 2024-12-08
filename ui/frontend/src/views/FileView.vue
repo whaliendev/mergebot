@@ -27,7 +27,7 @@
         <el-option v-for="item in branch" :key="item" :value="item">
         </el-option>
       </el-select>
-      <div title="Note: this is the file path on the server">
+      <!-- <div title="Note: this is the file path on the server">
         Path of compile_commands.json
       </div>
       <el-input
@@ -41,8 +41,8 @@
         class="text-left text-sm text-red-400 ml-4 mt-[-6px] mb-1 font-bold"
       >
         The file does not exist on the server
-      </div>
-      <el-button @click="mergeClicked">Merge</el-button>
+      </div> -->
+      <el-button @click="mergeClicked" id="merge-button">Merge</el-button>
       <el-input
         type="textarea"
         :rows="6"
@@ -216,7 +216,7 @@ export default {
       if (res.data.isSuccessful) {
         this.$message({
           showClose: true,
-          message: "合并成功",
+          message: "Merge Successfully",
           type: "success",
         });
       } else {
@@ -245,7 +245,7 @@ export default {
       try {
         await this.$axios.post("http://127.0.0.1:18080/api/sa/ms", msPayload);
       } catch (err) {
-        let errorMsg = "未知原因";
+        let errorMsg = "Unknown reason";
         if (err.response === null || err.response === undefined) {
           errorMsg = err.message;
         } else {
@@ -254,7 +254,7 @@ export default {
 
         this.$message({
           showClose: true,
-          message: `接口（/api/sa/ms）请求失败: ${errorMsg}`,
+          message: `Request to the API (/api/sa/ms) failed: ${errorMsg}`,
           type: "warning",
         });
       }
@@ -273,7 +273,7 @@ export default {
       } catch (err) {
         this.$message({
           showClose: true,
-          message: `合并遇到问题: ${err}`,
+          message: `Merge encountered an issue: ${err}`,
           type: "error",
         });
       } finally {
@@ -312,29 +312,29 @@ export default {
       if (this.conflictNumber === 0) {
         //快速显示出gerrit提交链接（此处的提交链接无需等代码真正推送成功之后才显示在界面，执行提交时就显示在界面即可），不用管代码推送是否成功
         //一笔Gerrit提交（或变更）通常对应一个话题，而这个话题下可能存在多次push。换句话说，一个变更一般会被多次push到远程仓库中，每次push都会更新这个变更，添加新的提交或更新已有的提交。
-        let topic = "";
-        if (!this.showLink) {
-          //第一次
-          // topic = getGerritTopic(
-          //   "/mnt/mergebot/gerrit/s1234sdf56/45645/你好ASD/fghfgh/sdfgdfk",
-          // );
-          topic = getGerritTopic(this.filePath);
-          if (topic === "") {
-            this.$message({
-              showClose: true,
-              message: "仓库格式不符合规定",
-              type: "warning",
-            });
-          } else {
-            this.showLink = true;
-            this.gerritHref =
-              "http://gerrit.scm.adc.com:8080/#/q/topic:" + topic;
-            sessionStorage.setItem("showLink", true);
-            sessionStorage.setItem("topic", topic);
-          }
-        } else {
-          topic = sessionStorage.getItem("topic");
-        }
+        // let topic = "";
+        // if (!this.showLink) {
+        //   //第一次
+        //   // topic = getGerritTopic(
+        //   //   "/mnt/mergebot/gerrit/s1234sdf56/45645/你好ASD/fghfgh/sdfgdfk",
+        //   // );
+        //   topic = getGerritTopic(this.filePath);
+        //   if (topic === "") {
+        //     this.$message({
+        //       showClose: true,
+        //       message: "仓库格式不符合规定",
+        //       type: "warning",
+        //     });
+        //   } else {
+        //     this.showLink = true;
+        //     this.gerritHref =
+        //       "http://gerrit.scm.adc.com:8080/#/q/topic:" + topic;
+        //     sessionStorage.setItem("showLink", true);
+        //     sessionStorage.setItem("topic", topic);
+        //   }
+        // } else {
+        //   topic = sessionStorage.getItem("topic");
+        // }
         this.$axios
           .put(
             "/git/commit?path=" +
@@ -342,9 +342,7 @@ export default {
               "&message=" +
               encodeURIComponent(this.textarea) +
               "&target=" +
-              this.targetBranch +
-              "&topic=" +
-              topic,
+              this.targetBranch,
           )
           .then(response => {
             const data = response.data;
@@ -352,13 +350,13 @@ export default {
               if (data.repositoryState === "SAFE") {
                 this.$message({
                   showClose: true,
-                  message: "提交成功（amend，修改提交信息）",
+                  message: "Commit successfully (amend, modify commit message)",
                   type: "success",
                 });
               } else if (data.repositoryState === "MERGING_RESOLVED") {
                 this.$message({
                   showClose: true,
-                  message: "提交成功",
+                  message: "Commit successfully",
                   type: "success",
                 });
               }
@@ -373,7 +371,7 @@ export default {
       } else {
         this.$message({
           showClose: true,
-          message: "提交失败，存在未解决的冲突文件",
+          message: "Commit failed, there are unresolved conflict files.",
           type: "warning",
         });
       }
@@ -413,12 +411,12 @@ export default {
             if (resp.data.code == 200) {
               this.$message({
                 type: "success",
-                message: "选择成功",
+                message: "Select successfully",
               });
             } else if (resp.data.code == 500) {
               this.$message({
                 type: "warning",
-                message: "选择失败",
+                message: "Select failed",
               });
             }
           }
@@ -443,13 +441,13 @@ export default {
               if (resp.data.code == 200) {
                 this.$message({
                   showClose: true,
-                  message: "重置成功",
+                  message: "Reset successfully",
                   type: "success",
                 });
               } else if (resp.data.code == 500) {
                 this.$message({
                   showClose: true,
-                  message: "重置失败",
+                  message: "Reset failed",
                   type: "warning",
                 });
               }
@@ -458,7 +456,7 @@ export default {
       } else {
         this.$message({
           showClose: true,
-          message: "已取消",
+          message: "Cancel reset",
           type: "success",
         });
       }
@@ -708,7 +706,7 @@ export default {
       if (res.data.code === 200) {
         this.branch = res.data.data;
         this.$message({
-          message: "获取分支成功",
+          message: "Get Revisions of the repo successfully",
           type: "success",
           showClose: true,
         });
@@ -798,7 +796,7 @@ export default {
   background-color: #d3dce6;
   color: #333;
   text-align: center;
-  padding: 8px;
+  padding: 20px 8px;
   overflow: auto;
 }
 
@@ -815,5 +813,10 @@ export default {
 
 .link-container {
   margin-top: 20px; /* 设置上边距来调整链接和按钮的间距 */
+}
+
+#merge-button {
+  margin-top: 8px;
+  margin-bottom: 16px;
 }
 </style>
