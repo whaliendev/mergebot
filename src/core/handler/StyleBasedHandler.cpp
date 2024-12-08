@@ -97,7 +97,7 @@ void StyleBasedHandler::resolveConflictFiles(
         CB.Resolved = true;
         ResolvedBlocks.push_back({
             .index = CB.Index,
-            .desc = "格式问题引发的合并冲突",
+            .desc = "Merge conflict caused by formatting issues.",
             .code = std::move(ResultStr),
         });
       }

@@ -33,10 +33,12 @@ bool checkMSMetadata(const std::string& project, const std::string& path,
       !fs::exists(manifestPath)) {
     spdlog::error("ms metadata[{}] doesn't exist in manifest file[{}]", ms.name,
                   manifestPath.c_str());
-    throw AppBaseException("C1000",
-                           fmt::format("合并场景[{}]元数据不存在于manifest文件["
-                                       "{}]中，请先调用ms api启动冲突解决算法",
-                                       ms.name, manifestPath.c_str()));
+    throw AppBaseException(
+        "C1000",
+        fmt::format("The metadata for the merge scenario [{}] does not exist "
+                    "in the manifest file [{}]. Please call the MS API to "
+                    "initiate the conflict resolution algorithm first.",
+                    ms.name, manifestPath.c_str()));
   }
   auto [fd, lck] = mergebot::utils::lockRDFD(manifestPath.c_str());
   if (fd == -1) {
@@ -62,9 +64,9 @@ bool checkMSMetadata(const std::string& project, const std::string& path,
     mergebot::utils::unlockFD(manifestPath.c_str(), fd, lck);
     fclose(file);
     throw AppBaseException(
-        "C1000",
-        fmt::format("项目元信息不存在，请先调用ms api添加项目[{}]元信息",
-                    project));
+        "C1000", fmt::format("Project metadata does not exist. Please call the "
+                             "MS API to add the project [{}] metadata first.",
+                             project));
   }
   auto msIt = std::find_if(
       projIt->mss.begin(), projIt->mss.end(),
@@ -74,9 +76,9 @@ bool checkMSMetadata(const std::string& project, const std::string& path,
     fclose(file);
     throw AppBaseException(
         "C1000",
-        fmt::format(
-            "合并场景元信息不存在，请先调用ms api添加合并场景[{}]元信息",
-            ms.name));
+        fmt::format("The merge scenario metadata does not exist. Please call "
+                    "the MS API to add the merge scenario [{}] metadata first.",
+                    ms.name));
   }
   return true;
 }
@@ -90,7 +92,9 @@ void checkConflictFile(const std::string& project, const std::string& path,
         path);
     throw AppBaseException(
         "C1000",
-        fmt::format("待获取冲突消解结果的文件[{}]不存在于Git仓库中", file));
+        fmt::format("The file [{}], for which we are querying the resolutions, "
+                    "does not exist in the Git repository.",
+                    file));
   }
 
   const std::string cacheDirCheckSum = utils::calcProjChecksum(project, path);
@@ -127,8 +131,10 @@ void checkConflictFile(const std::string& project, const std::string& path,
       });
   if (!exists) {
     throw AppBaseException(
-        "C1000", fmt::format("文件{}不是当前项目{}当前合并场景{}下的冲突文件",
-                             file, path, ms.name));
+        "C1000",
+        fmt::format("The file {} is not a conflicting file under the current "
+                    "merge scenario {} of the current project {}.",
+                    file, ms.name, path));
   }
 }
 
@@ -140,12 +146,13 @@ void checkPath(std::string const& pathStr) {
   if (fs::exists(dirPath)) {
     if (!fs::is_directory(dirPath) || !rwPerms) {
       spdlog::warn("no permission to access path [{}]", pathStr);
-      throw AppBaseException("U1000", fmt::format("无权限访问 [{}]", pathStr));
+      throw AppBaseException(
+          "U1000", fmt::format("No permission to access [{}]", pathStr));
     }
   } else {
     spdlog::warn("project path [{}] doesn't exist", pathStr);
-    throw AppBaseException("U1000",
-                           fmt::format("项目路径[{}] 不存在", pathStr));
+    throw AppBaseException(
+        "U1000", fmt::format("project path [{}] doesn't exist", pathStr));
   }
 }
 
@@ -165,8 +172,8 @@ void checkAndNormalizeConflicts(crow::json::rvalue const& files,
       spdlog::error("file[{}] doesn't exist in ms[{}] of project[{}]", filePath,
                     ms.name, projectPath);
       throw AppBaseException("C1000",
-                             "文件[{}]不存在于项目[{}]的合并场景[{}]中",
-                             filePath, projectPath, ms.name);
+                             "file[{}] doesn't exist in ms[{}] of project[{}]",
+                             filePath, ms.name, projectPath);
     }
   }
 #endif
@@ -214,8 +221,8 @@ void checkGitRepo(std::string const& path) {
   const auto repoPtr = util::GitRepository::create(gitDirPath.c_str());
   if (!repoPtr) {
     spdlog::warn("project path[{}] is not a valid git repo", path);
-    throw AppBaseException("U1000",
-                           fmt::format("路径[{}]不是一个git仓库", path));
+    throw AppBaseException(
+        "U1000", fmt::format("project path[{}] is not a valid git repo", path));
   }
 }
 
@@ -274,8 +281,11 @@ void handleServerExecError(std::error_code err, std::string_view cmd) {
 namespace ResultEnum {
 // in C++, const vars at file scope is static linked unlike those in C.
 const server::Result NO_ROUTE_MATCH(
-    "C0001", "不存在匹配的路由记录，请检查请求路径或请求方法");
-const server::Result BAD_REQUEST("C0002", "请求格式异常或参数错误");
+    "C0001",
+    "No matching route record found. Please check the request path or request "
+    "method.");
+const server::Result BAD_REQUEST(
+    "C0002", "Request format is invalid or parameters are incorrect.");
 }  // namespace ResultEnum
 
 namespace ResultVOUtil {

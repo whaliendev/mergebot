@@ -193,8 +193,8 @@ crow::json::wvalue doGetFileResolution(const crow::request& req,
   if (!success) {
     throw AppBaseException(
         "S1000",
-        fmt::format(
-            "服务端异常：未能成功打开项目manifest文件，请查看服务端日志"));
+        fmt::format("Server side exception: failed to open the project "
+                    "manifest file. Please check the server logs."));
   }
   utils::checkConflictFile(project, path, ms, file);
 
