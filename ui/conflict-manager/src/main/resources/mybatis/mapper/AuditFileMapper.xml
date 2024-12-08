@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.filemanager.dao.AuditFileMapper">
+
+    <!-- MyBatis ResultMap -->
+    <resultMap id="AuditFileResultMap" type="com.example.filemanager.pojo.AuditFile">
+        <id property="id" column="id" />
+        <result property="projectPath" column="project_path" />
+        <result property="targetBranch" column="target_branch" />
+        <result property="sourceBranch" column="source_branch" />
+        <result property="fileName" column="file_name" />
+        <result property="liked" column="liked" />
+    </resultMap>
+
+    <!-- Insert -->
+    <insert id="insertAuditFile" parameterType="com.example.filemanager.pojo.AuditFile" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO audit_file
+            (project_path, target_branch, source_branch, file_name, liked)
+        VALUES
+            (#{projectPath}, #{targetBranch}, #{sourceBranch}, #{fileName}, #{liked})
+    </insert>
+
+    <!-- Update -->
+    <update id="updateAuditFile" parameterType="com.example.filemanager.pojo.AuditFile">
+        UPDATE audit_file
+        SET project_path = #{projectPath},
+            target_branch = #{targetBranch},
+            source_branch = #{sourceBranch},
+            file_name = #{fileName},
+            liked = #{liked}
+        WHERE id = #{id}
+    </update>
+
+    <!-- Delete -->
+    <delete id="deleteAuditFile" parameterType="com.example.filemanager.pojo.AuditFile">
+        DELETE FROM audit_file WHERE id = #{id}
+    </delete>
+
+    <!-- Select by Primary Key -->
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="AuditFileResultMap">
+        SELECT * FROM audit_file WHERE id = #{id}
+    </select>
+
+    <!-- Select by Complex Query -->
+    <select id="selectByMergeScenarioAndFileName" resultMap="AuditFileResultMap">
+        SELECT * FROM audit_file
+        WHERE project_path = #{projectPath}
+          AND target_branch = #{targetBranch}
+          AND source_branch = #{sourceBranch}
+          AND file_name = #{fileName}
+    </select>
+
+</mapper>

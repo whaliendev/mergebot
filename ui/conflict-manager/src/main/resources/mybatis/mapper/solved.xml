@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.filemanager.dao.SolveMapper">
+    <select id="searchResolved" parameterType="String" resultType="com.example.filemanager.pojo.Solved">
+        select *,
+               MATCH(chunk)AGAINST(#{tuple}) AS score
+FROM solved
+ORDER BY score DESC LIMIT 3
+    </select>
+
+    <insert id="insert" parameterType="com.example.filemanager.pojo.Solved">
+        insert into solved() values (#{chunk},#{solve},#{path});
+    </insert>
+
+    <select id="searchHistory" parameterType="String" resultType="com.example.filemanager.pojo.Solved">
+        select *
+        FROM solved
+        where path=#{path,jdbcType=VARCHAR}
+    </select>
+
+    <update id="updateByChunk" parameterType="com.example.filemanager.pojo.Solved">
+        update solved
+        set solve = #{solve,jdbcType=VARCHAR}
+        where path = #{path,jdbcType=VARCHAR} and chunk=#{chunk,jdbcType=VARCHAR}
+    </update>
+
+</mapper>
