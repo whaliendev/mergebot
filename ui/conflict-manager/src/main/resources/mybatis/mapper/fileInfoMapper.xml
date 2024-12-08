@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.filemanager.dao.fileInfoMapper">
+  <resultMap id="BaseResultMap" type="com.example.filemanager.pojo.fileInfoWithBLOBs">
+    <id column="fileName" jdbcType="VARCHAR" property="filename" />
+    <result column="path" jdbcType="VARCHAR" property="path" />
+    <result column="relPath" jdbcType="VARCHAR" property="relPath" />
+    <result column="isSolve" jdbcType="INTEGER" property="issolve" />
+    <result column="ours" jdbcType="VARBINARY" property="ours" />
+    <result column="theirs" jdbcType="VARBINARY" property="theirs" />
+    <result column="base" jdbcType="VARBINARY" property="base" />
+    <result column="repo" jdbcType="VARCHAR" property="repo" />
+  </resultMap>
+  <sql id="Example_Where_Clause">
+    <where>
+      <foreach collection="oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Update_By_Example_Where_Clause">
+    <where>
+      <foreach collection="example.oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Base_Column_List">
+    fileName, path, isSolve ,ours, theirs, base,repo,relPath
+  </sql>
+  <sql id="Blob_Column_List">
+    ours, theirs, base
+  </sql>
+
+
+  <select id="selectByPrimaryKey" parameterType="java.lang.String"  resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from file
+    where path = #{path,jdbcType=VARCHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+    delete from file
+    where path = #{path,jdbcType=VARCHAR}
+  </delete>
+
+  <insert id="insert" parameterType="com.example.filemanager.pojo.fileInfoWithBLOBs">
+    insert into file (fileName, path, relPath,isSolve,
+      ours, theirs, base,repo
+      )
+    values (#{filename,jdbcType=VARCHAR}, #{path,jdbcType=VARCHAR},#{relPath,jdbcType=VARCHAR}, #{issolve,jdbcType=INTEGER},
+      #{ours,jdbcType=VARBINARY}, #{theirs,jdbcType=VARBINARY}, #{base,jdbcType=VARBINARY}, #{repo,jdbcType=VARCHAR}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.example.filemanager.pojo.fileInfoWithBLOBs">
+    insert into file
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="filename != null">
+        fileName,
+      </if>
+      <if test="path != null">
+        path,
+      </if>
+      <if test="issolve != null">
+        isSolve,
+      </if>
+      <if test="ours != null">
+        ours,
+      </if>
+      <if test="theirs != null">
+        theirs,
+      </if>
+      <if test="base != null">
+        base,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="filename != null">
+        #{filename,jdbcType=VARCHAR},
+      </if>
+      <if test="path != null">
+        #{path,jdbcType=VARCHAR},
+      </if>
+      <if test="issolve != null">
+        #{issolve,jdbcType=INTEGER},
+      </if>
+      <if test="ours != null">
+        #{ours,jdbcType=VARBINARY},
+      </if>
+      <if test="theirs != null">
+        #{theirs,jdbcType=VARBINARY},
+      </if>
+      <if test="base != null">
+        #{base,jdbcType=VARBINARY},
+      </if>
+    </trim>
+  </insert>
+
+
+
+
+  <update id="updateByPrimaryKeySelective" parameterType="com.example.filemanager.pojo.fileInfoWithBLOBs">
+    update file
+    <set>
+      <if test="path != null">
+        path = #{path,jdbcType=VARCHAR},
+      </if>
+      <if test="issolve != null">
+        isSolve = #{issolve,jdbcType=INTEGER},
+      </if>
+      <if test="ours != null">
+        ours = #{ours,jdbcType=VARBINARY},
+      </if>
+      <if test="theirs != null">
+        theirs = #{theirs,jdbcType=VARBINARY},
+      </if>
+      <if test="base != null">
+        base = #{base,jdbcType=VARBINARY},
+      </if>
+    </set>
+    where path = #{path,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKeyWithBLOBs" parameterType="com.example.filemanager.pojo.fileInfoWithBLOBs">
+    update file
+    set path = #{path,jdbcType=VARCHAR},
+        relPath = #{relPath,jdbcType=VARCHAR},
+      isSolve = #{issolve,jdbcType=INTEGER},
+      ours = #{ours,jdbcType=VARBINARY},
+      theirs = #{theirs,jdbcType=VARBINARY},
+      base = #{base,jdbcType=VARBINARY},
+      repo = #{repo,jdbcType=VARCHAR}
+    where fileName = #{filename,jdbcType=VARCHAR}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.example.filemanager.pojo.fileInfoWithBLOBs">
+    update file
+    set path = #{path,jdbcType=VARCHAR},
+      isSolve = #{issolve,jdbcType=INTEGER}
+    where path = #{path,jdbcType=VARCHAR}
+  </update>
+
+
+  <select id="getUnsolved" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select
+    fileName,path
+    from file
+    where isSolve=1 and repo=#{repo,jdbcType=VARCHAR}
+  </select>
+
+  <select id="getSolved" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select
+      fileName,path
+    from file
+    where isSolve=0 and repo=#{repo,jdbcType=VARCHAR}
+  </select>
+
+  <select id="getAllFiles" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from file
+    where repo=#{repo,jdbcType=VARCHAR}
+  </select>
+
+  <delete id="deleteAll" parameterType="java.lang.String">
+    delete from file
+    where repo=#{repo,jdbcType=VARCHAR}
+  </delete>
+</mapper>
