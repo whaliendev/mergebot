@@ -137,8 +137,9 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
     throw AppBaseException(
         "U1000",
         fmt::format(
-            "在路径[{}]下的项目[{}]中无冲突的C/C++文件，MBSA暂时无法处理该项目",
-            path, project));
+            "The project [{}] at [{}] contains no conflicting C/C++ files, "
+            "mergebot is temporarily unable to process this project.",
+            project, path));
   }
   // clang-format off
   std::unordered_set<std::string_view> cppExtensions = {".h", ".hpp",
@@ -159,9 +160,11 @@ void goResolve(std::string project, std::string path, sa::MergeScenario& ms,
         "sources, we cannot handle them at this stage",
         project, fileNames.size());
     throw AppBaseException(
-        "U1000", fmt::format("当前项目[{}]有{}个冲突文件，但由于都不是C/"
-                             "C++相关的源文件，mergebot-sa 无法处理",
-                             project, fileNames.size()));
+        "U1000",
+        fmt::format(
+            "The current project [{}] has {} conflicting files, but since none "
+            "of them are C/C++ source files, mergebot is unable to process",
+            project, fileNames.size()));
   }
 
   spdlog::info(
@@ -332,8 +335,9 @@ bool checkAndAddMSMetadata(const std::string& project, const std::string& path,
       if (fs::exists(msCacheDir / "running")) {
         spdlog::info("the resolution algorithm is running, we'll do nothing");
         throw AppBaseException(
-            "C1000",
-            fmt::format("合并场景[{}]的冲突解决算法正在运行中...", ms.name));
+            "C1000", fmt::format("The conflict resolution algorithm for the "
+                                 "merge scenario [{}] is running...",
+                                 ms.name));
       } else {
         spdlog::info(
             "the resolution algorithm is not running, we'll start it soon");
@@ -429,8 +433,10 @@ crow::json::wvalue doPostMergeScenario(const crow::request& req,
     spdlog::error("compile db path [{}] passed in, but doesn't exist",
                   compile_db_path);
     throw AppBaseException(
-        "C1000", fmt::format("传入的 compile_commands.json 文件[{}]不存在",
-                             compile_db_path));
+        "C1000",
+        fmt::format(
+            "The provided compile_commands.json file [{}] does not exist.",
+            compile_db_path));
   }
 
   // 07/20/23: add `files` field to ms api

@@ -132,7 +132,8 @@ void InitMergebot() {
   try {
     // If directory exists, remove it recursively
     if (fs::exists(mergebotDirPath)) {
-      spdlog::warn("Directory {} exists, removing it...", mergebotDirPath.string());
+      spdlog::warn("Directory {} exists, removing it...",
+                   mergebotDirPath.string());
       fs::remove_all(mergebotDirPath);
     }
 
@@ -145,7 +146,6 @@ void InitMergebot() {
     exit(1);
   }
 }
-
 
 void ConfigBPRoutes(crow::Blueprint& bp) {
   // initially, post configuration

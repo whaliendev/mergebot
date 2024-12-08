@@ -293,7 +293,7 @@ bool TextBasedHandler::checkOneSideDelta(std::string_view Our,
       magic_enum::enum_name(ConflictMark::END));
   if (OurCode == BaseCode) {
     BRR.code = std::string(Their);
-    BRR.desc = "单边修改，接受their side";
+    BRR.desc = "De facto one-sided modification, accept their side.";
     spdlog::info(
         "one side delta detected for conflict block [{}] in conflict file [{}]",
         BRR.index, CF.Filename);
@@ -301,7 +301,7 @@ bool TextBasedHandler::checkOneSideDelta(std::string_view Our,
   }
   if (TheirCode == BaseCode) {
     BRR.code = std::string(Our);
-    BRR.desc = "单边修改，接受their side";
+    BRR.desc = "De facto one-sided modification, accept their side.";
     spdlog::info(
         "one side delta detected for conflict block [{}] in conflict file [{}]",
         BRR.index, CF.Filename);
@@ -333,7 +333,7 @@ bool TextBasedHandler::checkInclusion(std::string_view Our,
     if (OurLineVec.size() > TheirLineVec.size()) {
       if (_details::isSubSequence(OurLineVec, TheirLineVec)) {
         BRR.code = std::string(Our);
-        BRR.desc = "新增代码或方法抽取，接受our side";
+        BRR.desc = "Added code or method extraction, accept our side.";
         spdlog::info("more check or method extraction found for conflict "
                      "block[{}] in conflict file[{}]",
                      BRR.index, CF.Filename);
@@ -342,7 +342,7 @@ bool TextBasedHandler::checkInclusion(std::string_view Our,
     } else {
       if (_details::isSubSequence(TheirLineVec, OurLineVec)) {
         BRR.code = std::string(Their);
-        BRR.desc = "新增代码或方法抽取，接受their side";
+        BRR.desc = "Added code or method extraction, accept our side";
         spdlog::info("add check or method extraction found for conflict "
                      "block[{}] in conflict file[{}]",
                      BRR.index, CF.Filename);
@@ -384,7 +384,7 @@ bool TextBasedHandler::checkInclusion(std::string_view Our,
 
     if (OurContain) {
       BRR.code = std::string(Our);
-      BRR.desc = "集合包含，接受our side";
+      BRR.desc = "Our side contains all the modifications, accept our side";
       spdlog::info("inclusion merged for conflict block[{}] in file[{}]",
                    BRR.index, CF.Filename);
       return true;
@@ -392,7 +392,7 @@ bool TextBasedHandler::checkInclusion(std::string_view Our,
 
     if (TheirContain) {
       BRR.code = std::string(Their);
-      BRR.desc = "集合包含，接受their side";
+      BRR.desc = "Their side contains all the modifications, accept their side";
       spdlog::info("inclusion merged for conflict block[{}] in file[{}]",
                    BRR.index, CF.Filename);
       return true;
@@ -414,7 +414,7 @@ bool TextBasedHandler::doListMerge(std::string_view Our, std::string_view Their,
     std::vector<std::string> Merged;
     if (_details::mergeVectors(OurInclusions, TheirInclusions, Merged)) {
       BRR.code = util::string_join(Merged, "\n");
-      BRR.desc = "头文件修改, 列表合并";
+      BRR.desc = "Headers merge.";
       spdlog::info("both sides of header include modified, we do a list merge "
                    "for conflict block[{}] in file[{}]",
                    BRR.index, CF.Filename);
@@ -436,7 +436,7 @@ bool TextBasedHandler::doListMerge(std::string_view Our, std::string_view Their,
     std::vector<std::string> Merged;
     if (_details::mergeVectors(OurDecls, TheirDecls, Merged)) {
       BRR.code = util::string_join(Merged, "\n\n");
-      BRR.desc = "声明合并";
+      BRR.desc = "Declarations merge.";
       return true;
     }
     return false;
@@ -452,7 +452,7 @@ bool TextBasedHandler::doListMerge(std::string_view Our, std::string_view Their,
     //      std::vector<std::string> Merged;
     //      if (_details::mergeVectors(OurDecls, TheirDecls, Merged)) {
     //        BRR.code = util::string_join(Merged, "\n\n");
-    //        BRR.desc = "声明合并";
+    //        BRR.desc = "Declarations merge.";
     //        return true;
     //      }
     //    }
@@ -467,7 +467,7 @@ bool TextBasedHandler::doListMerge(std::string_view Our, std::string_view Their,
     std::vector<std::string> Merged;
     if (_details::mergeVectors(OurDefinitions, TheirDefinitions, Merged)) {
       BRR.code = util::string_join(Merged, "\n\n");
-      BRR.desc = "新增功能，列表合并";
+      BRR.desc = "List merge.";
       spdlog::info("new feature added, we do a list merge for conflict "
                    "block[{}] in file[{}]",
                    BRR.index, CF.Filename);
@@ -643,14 +643,14 @@ bool TextBasedHandler::checkDeletion(std::string_view Our,
       magic_enum::enum_name(ConflictMark::END));
   if (Our.empty() && TheirCode == BaseCode) {
     BRR.code = Our;
-    BRR.desc = "单边删除";
+    BRR.desc = "Single side deletion.";
     spdlog::info("deletion detected for conflict block [{}] in file [{}]",
                  BRR.index, CF.Filename);
     return true;
   }
   if (Their.empty() && OurCode == BaseCode) {
     BRR.code = Their;
-    BRR.desc = "单边删除";
+    BRR.desc = "Single side deletion.";
     spdlog::info("deletion detected for conflict block [{}] in file [{}]",
                  BRR.index, CF.Filename);
     return true;
@@ -687,7 +687,7 @@ bool TextBasedHandler::checkDeletion(std::string_view Our,
 //       File->getBufferSize());
 //   if (FoundNonEmpty) {
 //     BRR.code = "";
-//     BRR.desc = "单边删除";
+//     BRR.desc = "Single side deletion.";
 //     spdlog::info("deletion detected for conflict block[{}] in file[{}]",
 //                  BRR.index, CF.Filename);
 //     return true;
