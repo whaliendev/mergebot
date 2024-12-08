@@ -14,7 +14,7 @@
           :disabled="originalFileContent === fileContent"
           @click="write2file"
         >
-          保存编辑
+          Save Edit
         </el-button>
       </div>
     </el-header>

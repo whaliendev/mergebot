@@ -16,7 +16,7 @@ export const extractHoverContents = (
   // if (ourContent && ourContent.length) {
   contents.push({
     value: `
-**目标分支内容**：
+**Modifications of target version**：
 
 \`\`\`${lang}
 ${ourContent}
@@ -28,7 +28,7 @@ ${ourContent}
   // if (baseContent && baseContent.length) {
   contents.push({
     value: `
-**基础版本内容**：
+**Modifications of base version**：
 
 \`\`\`${lang}
 ${baseContent}
@@ -40,7 +40,7 @@ ${baseContent}
   // if (theirContent && theirContent.length) {
   contents.push({
     value: `
-**源分支内容**：
+**Modifications of source version**：
 
 \`\`\`${lang}
 ${theirContent}
@@ -55,13 +55,13 @@ ${theirContent}
       if (reso.index === blockUnderCursorIndex + 1) {
         contents.push({
           value: `
-**启发式规则**：
+**Heuristic Patch**：
 
-解决方式：${reso.desc}
+strategy: ${reso.desc}
 
-置信度：${reso.confidence}
+confidence: ${reso.confidence}
 
-解决方案：
+patch：
 \`\`\`${lang}
 ${reso.resolution}
 \`\`\`
@@ -71,52 +71,52 @@ ${reso.resolution}
     });
   }
 
-  if (mlResos) {
-    mlResos.forEach(reso => {
-      if (reso.index === blockUnderCursorIndex + 1) {
-        contents.push({
-          value: `
-**机器学习**：
+  //   if (mlResos) {
+  //     mlResos.forEach(reso => {
+  //       if (reso.index === blockUnderCursorIndex + 1) {
+  //         contents.push({
+  //           value: `
+  // **机器学习**：
 
-预测结果：${reso.label}
+  // 预测结果：${reso.label}
 
-置信度：${reso.confidence}
+  // 置信度：${reso.confidence}
 
-解决方案：
-\`\`\`${lang}
-${reso.resolution}
-\`\`\`
-    `,
-        });
-      }
-    });
-  }
+  // 解决方案：
+  // \`\`\`${lang}
+  // ${reso.resolution}
+  // \`\`\`
+  //     `,
+  //         });
+  //       }
+  //     });
+  //   }
 
   // esResolver
-  esResos
-    .filter(reso => reso.idx === blockUnderCursorIndex + 1)
-    .forEach(reso => {
-      if (reso.resolvable) {
-        contents.push({
-          value: `
-**深度学习**：
+  //   esResos
+  //     .filter(reso => reso.idx === blockUnderCursorIndex + 1)
+  //     .forEach(reso => {
+  //       if (reso.resolvable) {
+  //         contents.push({
+  //           value: `
+  // **深度学习**：
 
-解决方案：
-\`\`\`${lang}
-${reso.resolution}
-\`\`\`
-        `,
-        });
-      } else {
-        contents.push({
-          value: `
-**深度学习**：
+  // 解决方案：
+  // \`\`\`${lang}
+  // ${reso.resolution}
+  // \`\`\`
+  //         `,
+  //         });
+  //       } else {
+  //         contents.push({
+  //           value: `
+  // **深度学习**：
 
-暂无法解决该冲突，请手动解决
-        `,
-        });
-      }
-    });
+  // 暂无法解决该冲突，请手动解决
+  //         `,
+  //         });
+  //       }
+  //     });
 
   //   historyResos.forEach(reso => {
   //     if (reso.index === blockUnderCursorIndex + 1) {
@@ -151,7 +151,8 @@ const checkInConflictingArea = (editor, conflictBlocks) => {
   if (blockUnderCursorIndex < 0) {
     Vue.prototype.$message({
       type: "warning",
-      message: "当前光标不在冲突区块内，请将光标移动到冲突块上",
+      message:
+        "The cursor is not within the conflict block. Please move the cursor to the conflict block.",
     });
     return {
       status: false,
@@ -184,7 +185,7 @@ const checkAndApplyResolution = async applyPayload => {
     Vue.prototype.$message({
       type: "warning",
       message:
-        "未找到应用当前解决方案的冲突区块，请考虑重置合并后文件回上一个版本",
+        "Conflict block for applying the current solution not found. Please consider clicking the undo button to revert to previous version",
     });
   }
 };
@@ -201,7 +202,7 @@ export const useAddContextMenuItems = (conflictBlocks, menuActions) => {
 
     const ourAction = editor.addAction({
       id: "ours",
-      label: "选择目标分支的修改",
+      label: "Accept Target Modifications",
       keybindings: [
         monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Digit1,
       ],
@@ -228,7 +229,7 @@ export const useAddContextMenuItems = (conflictBlocks, menuActions) => {
 
     const baseAction = editor.addAction({
       id: "base",
-      label: "保留基础版本的修改",
+      label: "Accept Base Modifications",
       keybindings: [
         monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Digit2,
       ],
@@ -254,7 +255,7 @@ export const useAddContextMenuItems = (conflictBlocks, menuActions) => {
 
     const theirAction = editor.addAction({
       id: "theirs",
-      label: "选择源分支的修改",
+      label: "Accept Source Modifications",
       keybindings: [
         monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Digit3,
       ],
@@ -280,7 +281,7 @@ export const useAddContextMenuItems = (conflictBlocks, menuActions) => {
 
     const action1 = editor.addAction({
       id: "block-based-sa",
-      label: "应用启发式方法推荐方案",
+      label: "Apply Heuristic Patch",
       keybindings: [
         monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Digit4,
       ],
@@ -302,7 +303,7 @@ export const useAddContextMenuItems = (conflictBlocks, menuActions) => {
         if (index < 0) {
           Vue.prototype.$message({
             type: "warning",
-            message: "未找到针对当前冲突区块的启发式解决方案",
+            message: "No heuristic patch found for the current conflict block",
           });
           return;
         } else {
@@ -317,70 +318,70 @@ export const useAddContextMenuItems = (conflictBlocks, menuActions) => {
     });
     menuActions.push(action1);
 
-    const actions2 = editor.addAction({
-      id: "ml",
-      label: "应用机器学习推荐方案",
-      keybindings: [
-        monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Digit5,
-      ],
-      precondition: SHOW_ORIGINAL_RECOMMENDATION,
-      contextMenuGroupId: "1_modification",
-      contextMenuOrder: 5,
-      // eslint-disable-next-line no-unused-vars
-      async run(editor) {
-        const { status, blockUnderCursorIndex } = checkInConflictingArea(
-          editor,
-          conflictBlocks,
-        );
-        if (!status) return;
+    // const actions2 = editor.addAction({
+    //   id: "ml",
+    //   label: "应用机器学习推荐方案",
+    //   keybindings: [
+    //     monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Digit5,
+    //   ],
+    //   precondition: SHOW_ORIGINAL_RECOMMENDATION,
+    //   contextMenuGroupId: "1_modification",
+    //   contextMenuOrder: 5,
+    //   // eslint-disable-next-line no-unused-vars
+    //   async run(editor) {
+    //     const { status, blockUnderCursorIndex } = checkInConflictingArea(
+    //       editor,
+    //       conflictBlocks,
+    //     );
+    //     if (!status) return;
 
-        const index = store.state.diff.ml.resolutions.findIndex(reso => {
-          return reso.index === blockUnderCursorIndex + 1;
-        });
+    //     const index = store.state.diff.ml.resolutions.findIndex(reso => {
+    //       return reso.index === blockUnderCursorIndex + 1;
+    //     });
 
-        if (index < 0) {
-          Vue.prototype.$message({
-            type: "warning",
-            message: "未找到针对当前冲突区块的机器学习解决方案",
-          });
-          return;
-        } else {
-          const applyPayload = {
-            index, // resolution index, 0-based, index in resolutions array
-            type: "ml",
-            fingerIndex: blockUnderCursorIndex,
-          };
-          await checkAndApplyResolution(applyPayload);
-        }
-      },
-    });
-    menuActions.push(actions2);
+    //     if (index < 0) {
+    //       Vue.prototype.$message({
+    //         type: "warning",
+    //         message: "未找到针对当前冲突区块的机器学习解决方案",
+    //       });
+    //       return;
+    //     } else {
+    //       const applyPayload = {
+    //         index, // resolution index, 0-based, index in resolutions array
+    //         type: "ml",
+    //         fingerIndex: blockUnderCursorIndex,
+    //       };
+    //       await checkAndApplyResolution(applyPayload);
+    //     }
+    //   },
+    // });
+    // menuActions.push(actions2);
 
-    const action3 = editor.addAction({
-      id: "dl",
-      label: "应用深度学习推荐方案",
-      keybindings: [
-        monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Digit6,
-      ],
-      precondition: SHOW_ORIGINAL_RECOMMENDATION,
-      contextMenuGroupId: "1_modification",
-      contextMenuOrder: 6,
-      async run(editor) {
-        const { status, blockUnderCursorIndex } = checkInConflictingArea(
-          editor,
-          conflictBlocks,
-        );
-        if (!status) return;
+    // const action3 = editor.addAction({
+    //   id: "dl",
+    //   label: "应用深度学习推荐方案",
+    //   keybindings: [
+    //     monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Digit6,
+    //   ],
+    //   precondition: SHOW_ORIGINAL_RECOMMENDATION,
+    //   contextMenuGroupId: "1_modification",
+    //   contextMenuOrder: 6,
+    //   async run(editor) {
+    //     const { status, blockUnderCursorIndex } = checkInConflictingArea(
+    //       editor,
+    //       conflictBlocks,
+    //     );
+    //     if (!status) return;
 
-        const applyPayload = {
-          index: blockUnderCursorIndex, // resolution index, 0-based, block idx
-          type: "dl",
-          fingerIndex: blockUnderCursorIndex,
-        };
-        await checkAndApplyResolution(applyPayload);
-      },
-    });
-    menuActions.push(action3);
+    //     const applyPayload = {
+    //       index: blockUnderCursorIndex, // resolution index, 0-based, block idx
+    //       type: "dl",
+    //       fingerIndex: blockUnderCursorIndex,
+    //     };
+    //     await checkAndApplyResolution(applyPayload);
+    //   },
+    // });
+    // menuActions.push(action3);
 
     // const actions3 = editor.addAction({
     //   id: 'history-1',
@@ -501,7 +502,8 @@ const checkInPatchableZone = (editor, patches) => {
   if (patchUnderCursorIndex === -1) {
     Vue.prototype.$message({
       type: "warning",
-      message: "当前光标不在可应用补丁区域，请将光标移动到可应用补丁区域",
+      message:
+        "The cursor is not in an applicable patch area. Please move the cursor to the applicable patch area.",
     });
     return {
       status: false,
@@ -521,7 +523,7 @@ export const useAddContextMenuItemsToModified = (patches, menuActions) => {
 
     const ourAction = editor.addAction({
       id: "semantic",
-      label: "应用语义补丁",
+      label: "Apply Semantic Patch",
       keybindings: [
         monaco.KeyMod.CtrlCmd | monaco.KeyMod.Alt | monaco.KeyCode.Digit1,
       ],
@@ -595,7 +597,7 @@ export const addPatchInteractions = (
         const contents = [
           {
             value: `
-**语义补丁：**
+**Semantic Patch：**
 \`\`\`${lang}
 ${patch.newContent}
 \`\`\`
