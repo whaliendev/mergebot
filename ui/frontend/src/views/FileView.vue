@@ -135,6 +135,7 @@ import {
 } from "@/api/files";
 import git from "@/api/git";
 import path from "path";
+import { SA_BASE_URL } from "@/api/config";
 
 const recursiveAdd = (childTree, conflictFiles) => {
   for (const file of childTree) {
@@ -243,7 +244,7 @@ export default {
       }
 
       try {
-        await this.$axios.post("http://127.0.0.1:18080/api/sa/ms", msPayload);
+        await this.$axios.post(`${SA_BASE_URL}/ms`, msPayload);
       } catch (err) {
         let errorMsg = "Unknown reason";
         if (err.response === null || err.response === undefined) {
@@ -342,7 +343,8 @@ export default {
               "&message=" +
               encodeURIComponent(this.textarea) +
               "&target=" +
-              this.targetBranch,
+              this.targetBranch +
+              "&topic=",
           )
           .then(response => {
             const data = response.data;
