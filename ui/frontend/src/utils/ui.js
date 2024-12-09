@@ -669,6 +669,7 @@ export const hackModifiedContextMenu = (
       return patch.start <= line && line <= patch.start + patch.offset - 1;
     });
 
+    console.log(`show condition is ${!(patchUnderCursorIndex < 0)}`);
     showCondition.set(!(patchUnderCursorIndex < 0));
     modifiedRealMethod.call(modifiedContextMenu, ...args);
   };
