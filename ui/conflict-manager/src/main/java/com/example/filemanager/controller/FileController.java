@@ -19,7 +19,7 @@ import java.util.Map;
 
 @CrossOrigin
 @RestController
-public class fileController {
+public class FileController {
     @Autowired
     fileServices fileService;
 
