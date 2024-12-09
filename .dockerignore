@@ -1,0 +1,37 @@
+# Exclude logs
+*.log
+
+# Exclude OS-specific files
+.DS_Store
+Thumbs.db
+
+# Exclude version control
+.git
+.gitignore
+
+# Exclude editor-specific files
+.vscode/
+.idea/
+
+# for frontend
+# Exclude node_modules
+ui/frontend/node_modules
+
+# Exclude build outputs (dist or build directories)
+ui/frontend/dist
+ui/frontend/build
+
+# for backend
+
+# for algorithm
+mock
+api-mergebot-sa.md
+clangd.gz
+libgmock*
+libgtest*
+mergebot.run
+mergebot.shutdown
+README.zh-CN.md
+runUnitTests
+setup.sh
+

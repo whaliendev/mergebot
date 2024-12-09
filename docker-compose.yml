@@ -1,0 +1,93 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mergebot-mysql
+    restart: always
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"  # Generate a random root password
+      MYSQL_DATABASE: conflict                   # The database to be created
+      MYSQL_USER: backend                     # Non-root user
+      MYSQL_PASSWORD: 123456             # Password for the non-root user
+    ports:
+      - "3306:3306"                                 # Expose MySQL on host port 3306
+    volumes:
+      - mysql_data:/var/lib/mysql                   # Persistent storage for MySQL data
+      - ./ui/conflict-manager/conflict.sql:/docker-entrypoint-initdb.d/conflict.sql  # Initialize DB with conflict.sql
+    networks:
+      - mergebot-network
+
+  redis:
+    image: redis:latest
+    container_name: mergebot-redis
+    restart: always
+    ports:
+      - "6379:6379"                                 # Expose Redis on host port 6379
+    networks:
+      - mergebot-network
+
+  mergebot-backend:
+    build:
+      context: .
+      dockerfile: ./docker/backend/Dockerfile
+    container_name: mergebot-backend
+    restart: always
+    ports:
+      - "8080:8080"                                 # Expose backend on host port 8080
+    volumes:
+      - "${MERGEBOT_REPOS_DIR}:${MERGEBOT_REPOS_DIR}"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/conflict   # Update with your DB URL
+      SPRING_DATASOURCE_USERNAME: backend                    # DB username
+      SPRING_DATASOURCE_PASSWORD: 123456                # DB password
+      SPRING_REDIS_HOST: redis                                       # Redis host
+      # Add other environment variables as needed
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - mergebot-network
+  
+  mergebot-sa:
+    image: whalien52/mergebot-sa:v1.5.0-rc3
+    container_name: mergebot-sa
+    restart: always
+    ports:
+      - "18080:18080"                       # Expose mergebot-sa on host port 18080
+    volumes:
+      - "${MERGEBOT_REPOS_DIR}:${MERGEBOT_REPOS_DIR}"  # Mount the host directory to the container
+    networks:
+      - mergebot-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18080/api/sa/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./docker/frontend/Dockerfile
+    container_name: mergebot-frontend
+    restart: always
+    ports:
+      - "3000:80"                           # 将宿主机的 3000 端口映射到容器的 80 端口（Nginx 默认监听端口）
+    networks:
+      - mergebot-network
+    depends_on:
+      - mergebot-backend
+      - mergebot-sa
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  mergebot-network:
+    driver: bridge
