@@ -1,7 +1,7 @@
-export const SA_BASE_URL = "http://localhost:18080";
+export const SA_BASE_URL = "http://localhost:18080/api/sa";
 export const REFACTORING_BASE_URL = "http://localhost:18088";
 
-export const BACKEND_BASE_URL = "http://localhost:8080";
+export const BACKEND_BASE_URL = "http://localhost:8080/api/manager";
 
 export const CLASSIFIER_BASE_URL = "http://localhost:5001";
 

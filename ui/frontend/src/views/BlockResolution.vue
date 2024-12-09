@@ -256,6 +256,7 @@ import qs from "qs";
 import { getSourceLanguage } from "@/utils/index";
 import { FileTreeView } from "@/router";
 import { DiffResolutionView } from "@/router";
+import { SA_BASE_URL } from "@/api/config";
 
 const monaco = require("monaco-editor/esm/vs/editor/editor.api");
 const MergeAlgorithmStatusType = {
@@ -493,7 +494,7 @@ export default {
         return;
       }
       this.$axios
-        .post("http://127.0.0.1:18080/api/sa/resolve", {
+        .post(`${SA_BASE_URL}/resolve`, {
           path: this.repo,
           ms: {
             ours: this.targetBranch,

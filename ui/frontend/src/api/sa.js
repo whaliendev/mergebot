@@ -47,7 +47,7 @@ import { SA_BASE_URL } from "./config";
  * @returns {Promise<SAResolutionResp>} the SA resolution result
  */
 export const getSAResolutionResult = async payload => {
-  const endpoint = `${SA_BASE_URL}/api/sa/resolve`;
+  const endpoint = `${SA_BASE_URL}/resolve`;
   const res = await axios.post(endpoint, payload, {
     headers: {
       "Content-Type": "application/json",
