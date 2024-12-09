@@ -50,7 +50,7 @@ public class ConflictImpl implements ConflictServices {
 
     @Override
     public byte[] getFileByCommitAndPath(String path, RevCommit commit, Repository repository) throws IOException {
-            if (commit == null) {
+        if (commit == null) {
             // 如果 commit 为 null，则直接返回 null，表示无法获取文件内容。 一个初始提交（root commit），这种情况通常发生在仓库中没有任何历史记录的情况下。
             // 以及可能存在于远程仓库和当前仓库无base的merge中
             return null;
@@ -463,6 +463,7 @@ public class ConflictImpl implements ConflictServices {
         // List<Ref> call = git.branchList().call();
         ProcessBuilder processBuilder = new ProcessBuilder("git", "branch");
         processBuilder.directory(new File(path));
+        logger.info("run git branch in direcotry {}", path);
         try {
             // 执行Git命令
             Process process = processBuilder.start();
