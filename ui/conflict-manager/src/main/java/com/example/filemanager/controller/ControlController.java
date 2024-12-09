@@ -2,19 +2,15 @@ package com.example.filemanager.controller;
 
 import com.example.filemanager.dao.fileInfoMapper;
 import com.example.filemanager.dao.SolveMapper;
-import org.springframework.web.bind.annotation.RestController;
 import com.example.filemanager.pojo.Solved;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @CrossOrigin
 @RestController
-public class RestController {
+public class ControlController {
     @Autowired
     private fileInfoMapper fileInfoMapper;
     @Autowired
@@ -30,5 +26,10 @@ public class RestController {
     @GetMapping(value = "/search")
     public List<Solved> search(){
         return mapper.searchResolved("public static class RejectAllFilter extends Filter");
+    }
+
+    @GetMapping("/health")
+    public String health(){
+        return "OK";
     }
 }
