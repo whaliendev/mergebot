@@ -10,12 +10,13 @@ import router from "./router";
 import store from "./store";
 // import EventEmitter from "eventemitter3";
 import axios from "axios";
+import { BACKEND_BASE_URL } from "./api/config";
 
 // 关闭dialog滚动条
 ElementUI.Dialog.props.lockScroll.default = false;
 Vue.prototype.$axios = axios;
 // Vue.prototype.$eventBus = new EventEmitter();
-axios.defaults.baseURL = "http://localhost:8080/";
+axios.defaults.baseURL = `${BACKEND_BASE_URL}/`;
 
 Vue.config.productionTip = false;
 
