@@ -5,10 +5,13 @@ import com.example.filemanager.pojo.MergeScenario;
 import com.example.filemanager.pojo.MergeTuple;
 import com.example.filemanager.pojo.fileInfoWithBLOBs;
 import com.example.filemanager.services.ConflictServices;
+import com.example.filemanager.services.impl.ConflictImpl;
+
 import org.apache.ibatis.jdbc.Null;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.ArrayList;
@@ -23,6 +26,8 @@ public class ConflictController {
     ConflictServices conflictServices;
     @Autowired
     private fileInfoMapper fileInfoMapper;
+
+    private static final Logger logger = LoggerFactory.getLogger(ConflictController.class);
 
 /**
  * 2022-11-12
@@ -157,6 +162,7 @@ public class ConflictController {
 
     @GetMapping(value = "/branch")
     public Object getBranch(@RequestParam("path") String path){
+        logger.info("get branch of repo {}", path);
         Map<String, Object> dataMap = new HashMap<>();
         try {
             List<String> branches=conflictServices.getBranch(path);
