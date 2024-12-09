@@ -96,7 +96,7 @@ export default {
     });
 
     watch(patches, (newVal, oldVal) => {
-      // console.log(`patch update at ${new Date()}`);
+      console.log(`patch update at ${new Date()}`);
       addPatchInteractions(
         newVal,
         editor,
