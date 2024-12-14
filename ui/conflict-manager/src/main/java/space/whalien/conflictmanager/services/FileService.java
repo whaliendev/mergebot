@@ -1,20 +1,20 @@
 package com.example.filemanager.services;
 
-import com.example.filemanager.pojo.fileInfoWithBLOBs;
+import com.example.filemanager.pojo.FileInfoWithBlobs;
 import com.example.filemanager.pojo.vo.FileTree;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
 
-public interface fileServices {
+public interface FileService {
     public List<Object> getAllDirection(String filePath);
 
 
     public  List<Object> getAll(String directoryPath);
 
 
-    public  List<FileTree> getAllFiles(String directoryPath, String repoPath, List<fileInfoWithBLOBs> conflictFiles, List<fileInfoWithBLOBs> allFiles);
+    public  List<FileTree> getAllFiles(String directoryPath, String repoPath, List<FileInfoWithBlobs> conflictFiles, List<FileInfoWithBlobs> allFiles);
 
     public void write2ConflictFile(String content,String path,String fileName,String repo,String tempPath);
 

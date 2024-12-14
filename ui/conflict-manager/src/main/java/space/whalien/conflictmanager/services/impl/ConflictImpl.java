@@ -2,12 +2,12 @@ package com.example.filemanager.services.impl;
 
 import com.example.filemanager.utils.ScoreUtils;
 import com.example.filemanager.dao.SolveMapper;
-import com.example.filemanager.dao.fileInfoMapper;
+import com.example.filemanager.dao.FileInfoMapper;
 import com.example.filemanager.pojo.MergeScenario;
 import com.example.filemanager.pojo.MergeTuple;
-import com.example.filemanager.pojo.fileInfoWithBLOBs;
+import com.example.filemanager.pojo.FileInfoWithBlobs;
 import com.example.filemanager.pojo.Solved;
-import com.example.filemanager.services.ConflictServices;
+import com.example.filemanager.services.ConflictService;
 import com.example.filemanager.utils.FileUtils;
 import com.example.filemanager.utils.GitUtils;
 import com.example.filemanager.utils.PathUtils;
@@ -37,10 +37,10 @@ import java.util.List;
 import java.util.Set;
 
 @Service
-public class ConflictImpl implements ConflictServices {
+public class ConflictImpl implements ConflictService {
 
     @Autowired
-    fileInfoMapper fileInfoMapper;
+    FileInfoMapper fileInfoMapper;
     @Autowired
     SolveMapper solveMapper;
 
@@ -194,7 +194,7 @@ public class ConflictImpl implements ConflictServices {
             PathUtils pathUtils = new PathUtils();
             Status status = git.status().call();
             Set<String> conflictSet = status.getConflicting();
-            List<fileInfoWithBLOBs> info = fileInfoMapper.getAllFiles(path);
+            List<FileInfoWithBlobs> info = fileInfoMapper.getAllFiles(path);
             // 判断是否存在合并冲突
             if (!conflictSet.isEmpty() && info.isEmpty()) {
                 if (commit2 != null) {
@@ -208,7 +208,7 @@ public class ConflictImpl implements ConflictServices {
                 for (String file : conflictSet) {
                     List<String> filepath = Arrays.asList(file.split("/"));
                     String fileName = filepath.get(filepath.size() - 1);
-                    fileInfoWithBLOBs fileInfo = new fileInfoWithBLOBs(fileName, 1);
+                    FileInfoWithBlobs fileInfo = new FileInfoWithBlobs(fileName, 1);
                     try {
                         fileInfo.setOurs(b1.getName());
                         if (commit2 != null) {
@@ -259,7 +259,7 @@ public class ConflictImpl implements ConflictServices {
             MergeScenario mergeScenario = new MergeScenario(filePath);
             FileUtils fileUtils = new FileUtils();
             PathUtils pathUtils = new PathUtils();
-            fileInfoWithBLOBs fileInfo = fileInfoMapper.selectByPrimaryKey(pathUtils.getSystemCompatiblePath(filePath));
+            FileInfoWithBlobs fileInfo = fileInfoMapper.selectByPrimaryKey(pathUtils.getSystemCompatiblePath(filePath));
             byte[] binaryOurs = null;
             byte[] binaryTheirs = null;
             byte[] binaryBase = null;
@@ -496,7 +496,7 @@ public class ConflictImpl implements ConflictServices {
 
     @Override
     public int checkFinish(String repo) throws Exception {
-        List<fileInfoWithBLOBs> files = fileInfoMapper.getUnsolved(repo);
+        List<FileInfoWithBlobs> files = fileInfoMapper.getUnsolved(repo);
         return files.size();
     }
 }
