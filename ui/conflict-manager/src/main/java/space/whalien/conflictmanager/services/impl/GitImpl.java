@@ -1,10 +1,4 @@
-package com.example.filemanager.services.impl;
-
-import com.example.filemanager.dao.FileInfoMapper;
-import com.example.filemanager.pojo.FileInfoWithBlobs;
-import com.example.filemanager.services.GitService;
-import com.example.filemanager.utils.GitUtils;
-import com.example.filemanager.utils.PathUtils;
+package space.whalien.conflictmanager.services.impl;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.Repository;
@@ -13,6 +7,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import space.whalien.conflictmanager.dao.FileInfoMapper;
+import space.whalien.conflictmanager.pojo.FileInfoWithBlobs;
+import space.whalien.conflictmanager.services.GitService;
+import space.whalien.conflictmanager.utils.GitUtils;
+import space.whalien.conflictmanager.utils.PathUtils;
 
 import java.io.BufferedReader;
 import java.io.File;

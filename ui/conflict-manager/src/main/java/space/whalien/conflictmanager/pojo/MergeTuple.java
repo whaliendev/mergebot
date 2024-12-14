@@ -1,4 +1,4 @@
-package com.example.filemanager.pojo;
+package space.whalien.conflictmanager.pojo;
 
 import java.util.ArrayList;
 import java.util.List;

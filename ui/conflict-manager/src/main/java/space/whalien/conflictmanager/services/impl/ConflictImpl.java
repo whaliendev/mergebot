@@ -1,16 +1,5 @@
-package com.example.filemanager.services.impl;
+package space.whalien.conflictmanager.services.impl;
 
-import com.example.filemanager.utils.ScoreUtils;
-import com.example.filemanager.dao.SolveMapper;
-import com.example.filemanager.dao.FileInfoMapper;
-import com.example.filemanager.pojo.MergeScenario;
-import com.example.filemanager.pojo.MergeTuple;
-import com.example.filemanager.pojo.FileInfoWithBlobs;
-import com.example.filemanager.pojo.Solved;
-import com.example.filemanager.services.ConflictService;
-import com.example.filemanager.utils.FileUtils;
-import com.example.filemanager.utils.GitUtils;
-import com.example.filemanager.utils.PathUtils;
 import difflib.DiffUtils;
 import difflib.Patch;
 import org.eclipse.jgit.api.Git;
@@ -18,15 +7,26 @@ import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectLoader;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.merge.MergeStrategy;
 import org.eclipse.jgit.merge.RecursiveMerger;
 import org.eclipse.jgit.merge.ThreeWayMerger;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.treewalk.TreeWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import space.whalien.conflictmanager.dao.FileInfoMapper;
+import space.whalien.conflictmanager.dao.SolveMapper;
+import space.whalien.conflictmanager.pojo.FileInfoWithBlobs;
+import space.whalien.conflictmanager.pojo.MergeScenario;
+import space.whalien.conflictmanager.pojo.MergeTuple;
+import space.whalien.conflictmanager.pojo.Solved;
+import space.whalien.conflictmanager.services.ConflictService;
+import space.whalien.conflictmanager.utils.FileUtils;
+import space.whalien.conflictmanager.utils.GitUtils;
+import space.whalien.conflictmanager.utils.PathUtils;
+import space.whalien.conflictmanager.utils.ScoreUtils;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -74,7 +74,6 @@ public class ConflictImpl implements ConflictService {
             try {
                 scenarios.addAll(getMergeInfoByCommit(commit, repository));
             } catch (Exception e) {
-                e.printStackTrace();
                 throw new RuntimeException(e);
             }
         }
@@ -123,8 +122,8 @@ public class ConflictImpl implements ConflictService {
         Git git = new Git(repository);
         ObjectId b1 = git.getRepository().resolve(branch1);
         ObjectId b2 = git.getRepository().resolve(branch2);
-        RevCommit commit1 = gitUtils.getSpecificCommits(repository, b1);
-        RevCommit commit2 = gitUtils.getSpecificCommits(repository, b2);
+        RevCommit commit1 = gitUtils.getSpecificCommit(repository, b1);
+        RevCommit commit2 = gitUtils.getSpecificCommit(repository, b2);
 
         List<MergeScenario> scenarios1 = getMergeInfo(commit1, commit2, repository, path);
         git.close();
@@ -173,36 +172,31 @@ public class ConflictImpl implements ConflictService {
         GitUtils gitUtils = new GitUtils();
         Repository repository = gitUtils.getRepository(path);
         try (Git git = new Git(repository)) {
-            // ObjectId b1 = git.getRepository().resolve(branch1);
-            // ObjectId b2 = git.getRepository().resolve(branch2);
-            ProcessBuilder processBuilder = new ProcessBuilder("git", "rev-parse", branch1 + "^{commit}");
-            processBuilder.directory(new File(path));
-            Process process = processBuilder.start();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line = reader.readLine();
-            ObjectId b1 = ObjectId.fromString(line);
-            // 寻找提交节点
-            processBuilder = new ProcessBuilder("git", "rev-parse", branch2 + "^{commit}");
-            processBuilder.directory(new File(path));
-            process = processBuilder.start();
-            reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            line = reader.readLine();
-            ObjectId b2 = ObjectId.fromString(line);
-            RevCommit commit1 = gitUtils.getSpecificCommits(repository, b1);
-            RevCommit commit2 = gitUtils.getSpecificCommits(repository, b2);
+            String revision1 = GitUtils.getFullHash(branch1, path);
+            ObjectId b1 = ObjectId.fromString(revision1);
+
+            String revision2 = GitUtils.getFullHash(branch2, path);
+            ObjectId b2 = ObjectId.fromString(revision2);
+
+            RevCommit commit1 = gitUtils.getSpecificCommit(repository, b1);
+            if (commit1 == null) {
+                logger.error("invalid reference {}", branch1);
+                throw new IllegalArgumentException(String.format("invalid reference %s", branch1));
+            }
+            RevCommit commit2 = gitUtils.getSpecificCommit(repository, b2);
+            if (commit2 == null) {
+                logger.error("invalid reference {}", branch2);
+                throw new IllegalArgumentException(String.format("invalid reference %s", branch2));
+            }
             ThreeWayMerger merger = MergeStrategy.RECURSIVE.newMerger(repository, true);
+
             PathUtils pathUtils = new PathUtils();
             Status status = git.status().call();
             Set<String> conflictSet = status.getConflicting();
             List<FileInfoWithBlobs> info = fileInfoMapper.getAllFiles(path);
             // 判断是否存在合并冲突
             if (!conflictSet.isEmpty() && info.isEmpty()) {
-                if (commit2 != null) {
-                    merger.merge(commit1, commit2);
-                    logger.info("commit {} exists-----", commit2.getName());
-                } else {
-                    logger.info("commit {} does not exists-----", branch2);
-                }
+                merger.merge(commit1, commit2);
                 logger.info("the number of conflicts are {}-----", conflictSet.size());
                 RecursiveMerger rMerger = (RecursiveMerger) merger;
                 for (String file : conflictSet) {
@@ -211,12 +205,10 @@ public class ConflictImpl implements ConflictService {
                     FileInfoWithBlobs fileInfo = new FileInfoWithBlobs(fileName, 1);
                     try {
                         fileInfo.setOurs(b1.getName());
-                        if (commit2 != null) {
-                            fileInfo.setTheirs(b2.getName());
-                            // 2024-02-26(hwa) 修复冲突时，baseCommitId为空的问题
-                            fileInfo.setBase(rMerger.getBaseCommitId() == null ? NO_BASE_STR
-                                    : rMerger.getBaseCommitId().getName());
-                        }
+                        fileInfo.setTheirs(b2.getName());
+                        // 2024-02-26(hwa) 修复冲突时，baseCommitId为空的问题
+                        fileInfo.setBase(rMerger.getBaseCommitId() == null ? NO_BASE_STR
+                                : rMerger.getBaseCommitId().getName());
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -240,15 +232,14 @@ public class ConflictImpl implements ConflictService {
                         }
                     } catch (IllegalArgumentException | IOException e) {
                         logger.error("failed to stage file {}, reason: {}", file, e.getMessage());
+                        throw new RuntimeException(e);
                     }
                 }
-                // git.add().addFilepattern(".").call();
             }
             git.close();
             repository.close();
         }
         return 1;
-
     }
 
     @Override
@@ -270,7 +261,7 @@ public class ConflictImpl implements ConflictService {
                 // logger.info("the rel path of the file is {}-----",fileInfo.getRelPath());
                 if (fileInfo.getOurs() != null) {
                     ObjectId oursId = git.getRepository().resolve(fileInfo.getOurs());
-                    RevCommit oursCommit = gitUtils.getSpecificCommits(repository, oursId);
+                    RevCommit oursCommit = gitUtils.getSpecificCommit(repository, oursId);
                     binaryOurs = getFileByCommitAndPath(fileInfo.getRelPath(), oursCommit, repository);
                     if (binaryOurs != null) {
                         mergeScenario.ours = new String(binaryOurs);
@@ -279,7 +270,7 @@ public class ConflictImpl implements ConflictService {
 
                 if (fileInfo.getTheirs() != null) {
                     ObjectId theirsId = git.getRepository().resolve(fileInfo.getTheirs());
-                    RevCommit theirsCommit = gitUtils.getSpecificCommits(repository, theirsId);
+                    RevCommit theirsCommit = gitUtils.getSpecificCommit(repository, theirsId);
                     binaryTheirs = getFileByCommitAndPath(fileInfo.getRelPath(), theirsCommit, repository);
                     if (binaryTheirs != null) {
                         mergeScenario.theirs = new String(binaryTheirs);
@@ -287,7 +278,7 @@ public class ConflictImpl implements ConflictService {
                 }
                 if (fileInfo.getBase() != null) {
                     ObjectId baseId = git.getRepository().resolve(fileInfo.getBase());
-                    RevCommit baseCommit = gitUtils.getSpecificCommits(repository, baseId);
+                    RevCommit baseCommit = gitUtils.getSpecificCommit(repository, baseId);
                     binaryBase = getFileByCommitAndPath(fileInfo.getRelPath(), baseCommit, repository);
                     if (binaryBase != null) {
                         mergeScenario.base = new String(binaryBase);
@@ -496,7 +487,7 @@ public class ConflictImpl implements ConflictService {
 
     @Override
     public int checkFinish(String repo) throws Exception {
-        List<FileInfoWithBlobs> files = fileInfoMapper.getUnsolved(repo);
+        List<FileInfoWithBlobs> files = fileInfoMapper.getUnresolved(repo);
         return files.size();
     }
 }

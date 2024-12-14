@@ -1,4 +1,4 @@
-package com.example.filemanager.services;
+package space.whalien.conflictmanager.services;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.example.filemanager.dao.AuditFileMapper">
+<mapper namespace="space.whalien.conflictmanager.dao.AuditFileMapper">
 
     <!-- MyBatis ResultMap -->
-    <resultMap id="AuditFileResultMap" type="com.example.filemanager.pojo.AuditFile">
+    <resultMap id="AuditFileResultMap" type="space.whalien.conflictmanager.pojo.AuditFile">
         <id property="id" column="id" />
         <result property="projectPath" column="project_path" />
         <result property="targetBranch" column="target_branch" />
@@ -13,7 +13,7 @@
     </resultMap>
 
     <!-- Insert -->
-    <insert id="insertAuditFile" parameterType="com.example.filemanager.pojo.AuditFile" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insertAuditFile" parameterType="space.whalien.conflictmanager.pojo.AuditFile" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO audit_file
             (project_path, target_branch, source_branch, file_name, liked)
         VALUES
@@ -21,7 +21,7 @@
     </insert>
 
     <!-- Update -->
-    <update id="updateAuditFile" parameterType="com.example.filemanager.pojo.AuditFile">
+    <update id="updateAuditFile" parameterType="space.whalien.conflictmanager.pojo.AuditFile">
         UPDATE audit_file
         SET project_path = #{projectPath},
             target_branch = #{targetBranch},
@@ -32,7 +32,7 @@
     </update>
 
     <!-- Delete -->
-    <delete id="deleteAuditFile" parameterType="com.example.filemanager.pojo.AuditFile">
+    <delete id="deleteAuditFile" parameterType="space.whalien.conflictmanager.pojo.AuditFile">
         DELETE FROM audit_file WHERE id = #{id}
     </delete>
 

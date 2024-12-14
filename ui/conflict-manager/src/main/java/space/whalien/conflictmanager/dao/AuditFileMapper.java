@@ -1,8 +1,8 @@
-package com.example.filemanager.dao;
+package space.whalien.conflictmanager.dao;
 
-import com.example.filemanager.pojo.AuditFile;
 import org.apache.ibatis.annotations.Mapper;
 import org.springframework.stereotype.Repository;
+import space.whalien.conflictmanager.pojo.AuditFile;
 
 @Mapper
 @Repository

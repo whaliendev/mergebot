@@ -1,5 +1,4 @@
-package com.example.filemanager.pojo;
-import com.example.filemanager.utils.PathUtils;
+package space.whalien.conflictmanager.pojo;
 
 import java.util.List;
 

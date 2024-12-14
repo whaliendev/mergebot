@@ -1,4 +1,4 @@
-package com.example.filemanager.utils;
+package space.whalien.conflictmanager.utils;
 
 
 import org.eclipse.jgit.lib.ObjectId;
@@ -16,19 +16,19 @@ import java.util.List;
 
 public class GitUtils {
 
-    public Repository getRepository(String path) throws Exception{
-            File gitDirectory = new File(path);
-            Repository repository;
-            FileRepositoryBuilder builder = new FileRepositoryBuilder();
-            repository = builder.setGitDir(new File(gitDirectory, ".git"))
-                    .readEnvironment()
-                    .findGitDir()
-                    .build();
-            return repository;
+    public Repository getRepository(String path) throws Exception {
+        File gitDirectory = new File(path);
+        Repository repository;
+        FileRepositoryBuilder builder = new FileRepositoryBuilder();
+        repository = builder.setGitDir(new File(gitDirectory, ".git"))
+                .readEnvironment()
+                .findGitDir()
+                .build();
+        return repository;
     }
 
-    public List<RevCommit> getMergeCommits(Repository repository) throws Exception{
-        List<RevCommit> commits=new ArrayList<>();
+    public List<RevCommit> getMergeCommits(Repository repository) throws Exception {
+        List<RevCommit> commits = new ArrayList<>();
         try (RevWalk revWalk = new RevWalk(repository)) {
             for (Ref ref : repository.getRefDatabase().getRefs()) {
                 revWalk.markStart(revWalk.parseCommit(ref.getObjectId()));
@@ -41,19 +41,16 @@ public class GitUtils {
         }
         return commits;
     }
+
     //根据id获取指定的commit
-    public RevCommit getSpecificCommits(Repository repository, ObjectId id) throws Exception{
+    public RevCommit getSpecificCommit(Repository repository, ObjectId id) throws Exception {
         try (RevWalk revWalk = new RevWalk(repository)) {
-            for (Ref ref : repository.getRefDatabase().getRefs()) {
-                revWalk.markStart(revWalk.parseCommit(ref.getObjectId()));
-            }
-            for (RevCommit commit : revWalk) {
-                if (commit.getId().equals(id)) {
-                    return commit;
-                }
-            }
+            return revWalk.parseCommit(id);
+        } catch (IllegalArgumentException e) {
+            // Thrown if the ObjectId does not correspond to a commit
+            System.err.println("The provided ObjectId does not correspond to a commit: " + id);
+            return null;
         }
-        return null;
     }
 
     public static String getFullHash(String revision, String projectPath) throws IOException {

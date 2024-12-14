@@ -1,13 +1,13 @@
-package com.example.filemanager.controller;
+package space.whalien.conflictmanager.controller;
 
-import com.example.filemanager.services.AuditService;
-import com.example.filemanager.services.GitService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import space.whalien.conflictmanager.services.AuditService;
+import space.whalien.conflictmanager.services.GitService;
 
 import java.util.HashMap;
 import java.util.Map;

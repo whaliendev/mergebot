@@ -1,18 +1,18 @@
-package com.example.filemanager.services;
+package space.whalien.conflictmanager.services;
 
 import com.alibaba.fastjson.JSON;
-import com.example.filemanager.dao.AuditFileMapper;
-import com.example.filemanager.dao.ResolutionChoiceMapper;
-import com.example.filemanager.dao.FileInfoMapper;
-import com.example.filemanager.pojo.AuditFile;
-import com.example.filemanager.pojo.ResolutionChoice;
-import com.example.filemanager.pojo.FileInfoWithBlobs;
-import com.example.filemanager.utils.GitUtils;
-import com.example.filemanager.utils.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
+import space.whalien.conflictmanager.dao.AuditFileMapper;
+import space.whalien.conflictmanager.dao.FileInfoMapper;
+import space.whalien.conflictmanager.dao.ResolutionChoiceMapper;
+import space.whalien.conflictmanager.pojo.AuditFile;
+import space.whalien.conflictmanager.pojo.FileInfoWithBlobs;
+import space.whalien.conflictmanager.pojo.ResolutionChoice;
+import space.whalien.conflictmanager.utils.GitUtils;
+import space.whalien.conflictmanager.utils.PathUtils;
 
 import java.io.IOException;
 import java.nio.file.Paths;

@@ -1,4 +1,4 @@
-package com.example.filemanager.utils;
+package space.whalien.conflictmanager.utils;
 
 import java.io.File;
 import java.nio.file.Path;

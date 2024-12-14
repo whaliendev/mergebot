@@ -1,15 +1,14 @@
-package com.example.filemanager.controller;
-
-import com.example.filemanager.dao.FileInfoMapper;
-import com.example.filemanager.pojo.MergeScenario;
-import com.example.filemanager.pojo.MergeTuple;
-import com.example.filemanager.pojo.FileInfoWithBlobs;
-import com.example.filemanager.services.ConflictService;
+package space.whalien.conflictmanager.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import space.whalien.conflictmanager.dao.FileInfoMapper;
+import space.whalien.conflictmanager.pojo.FileInfoWithBlobs;
+import space.whalien.conflictmanager.pojo.MergeScenario;
+import space.whalien.conflictmanager.pojo.MergeTuple;
+import space.whalien.conflictmanager.services.ConflictService;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,11 +46,11 @@ public class ConflictController {
             dataMap.put("code", 200);
             dataMap.put("msg", "query conflicts successfully");
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Failed to get conflicts: {}", e.getMessage());
             dataMap.put("data", "");
             dataMap.put("code", 500);
             dataMap.put("root", "");
-            dataMap.put("msg", "query conflicts failed");
+            dataMap.put("msg", e.getMessage());
         }
         return dataMap;
     }
@@ -73,9 +72,9 @@ public class ConflictController {
             dataMap.put("code", 200);
             dataMap.put("msg", "collect conflicts and save to db successfully");
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Failed to collect conflicts: {}", e.getMessage());
             dataMap.put("code", 500);
-            dataMap.put("msg", "collect conflicts and save to db failed");
+            dataMap.put("msg", e.getMessage());
         }
         return dataMap;
     }
@@ -105,11 +104,10 @@ public class ConflictController {
             dataMap.put("code", 200);
             dataMap.put("msg", "read the conflicting file successfully");
         } catch (Exception e) {
-            e.printStackTrace();
             dataMap.put("data", "");
             dataMap.put("code", 500);
             dataMap.put("root", "");
-            dataMap.put("msg", "fail to read the conflicting file");
+            dataMap.put("msg", e.getMessage());
         }
         return dataMap;
     }
@@ -118,14 +116,13 @@ public class ConflictController {
     public Object getAll(@RequestParam("repo") String repo){
         Map<String, Object> dataMap = new HashMap<>();
         try {
-            List<FileInfoWithBlobs> fileInfos=fileInfoMapper.getUnsolved(repo);
+            List<FileInfoWithBlobs> fileInfos=fileInfoMapper.getUnresolved(repo);
             dataMap.put("data",fileInfos);
             dataMap.put("code", 200);
             dataMap.put("msg", "query conflicts info successfully");
         } catch (Exception e) {
-            e.printStackTrace();
             dataMap.put("code", 500);
-            dataMap.put("msg", "query conflicts info failed");
+            dataMap.put("msg", e.getMessage());
         }
         return dataMap;
     }
@@ -140,9 +137,8 @@ public class ConflictController {
             dataMap.put("code", 200);
             dataMap.put("msg", "query branches successfully");
         } catch (Exception e) {
-            e.printStackTrace();
             dataMap.put("code", 500);
-            dataMap.put("msg", "query branches failed");
+            dataMap.put("msg", e.getMessage());
         }
         return dataMap;
 
@@ -157,9 +153,8 @@ public class ConflictController {
             dataMap.put("code", 200);
             dataMap.put("msg", "query conflict number successfully");
         } catch (Exception e) {
-            e.printStackTrace();
             dataMap.put("code", 500);
-            dataMap.put("msg", "query failed");
+            dataMap.put("msg", e.getMessage());
         }
         return dataMap;
     }

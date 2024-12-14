@@ -8,11 +8,11 @@
 		<version>2.7.5</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.example</groupId>
-	<artifactId>filemanager</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>filemanager</name>
-	<description>filemanager</description>
+	<groupId>space.whalien</groupId>
+	<artifactId>conflictmanager</artifactId>
+	<version>2.0-SNAPSHOT</version>
+	<name>conflictmanager</name>
+	<description>backend for mergebot platform</description>
 	<properties>
 		<java.version>1.8</java.version>
 	</properties>
@@ -132,6 +132,17 @@
 			<artifactId>java-string-similarity</artifactId>
 			<version>2.0.0</version>
 		</dependency>
+
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger2</artifactId>
+            <version>2.9.2</version>
+        </dependency>
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger-ui</artifactId>
+            <version>2.9.2</version>
+        </dependency>
 	</dependencies>
 
 	<build>

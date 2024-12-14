@@ -1,4 +1,4 @@
-package com.example.filemanager.utils;
+package space.whalien.conflictmanager.utils;
 
 public class ScoreUtils {
     //检查文本相似度

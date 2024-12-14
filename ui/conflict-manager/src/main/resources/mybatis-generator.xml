@@ -23,7 +23,7 @@
         </javaTypeResolver>
 
         <!-- 生成模型的包名和位置 -->
-        <javaModelGenerator targetPackage="com.example.filemanager.pojo" targetProject="src/main/java">
+        <javaModelGenerator targetPackage="space.whalien.conflictmanager.pojo" targetProject="src/main/java">
             <property name="enableSubPackages" value="true" />
             <!--从数据库返回的值去除前后空格-->
             <property name="trimStrings" value="true" />
@@ -35,7 +35,7 @@
         </sqlMapGenerator>
 
         <!-- 生成DAO的包名和位置 -->
-        <javaClientGenerator type="XMLMAPPER" targetPackage="com.example.filemanager.dao" targetProject="src/main/java">
+        <javaClientGenerator type="XMLMAPPER" targetPackage="space.whalien.conflictmanager.dao" targetProject="src/main/java">
             <property name="enableSubPackages" value="true" />
         </javaClientGenerator>
 

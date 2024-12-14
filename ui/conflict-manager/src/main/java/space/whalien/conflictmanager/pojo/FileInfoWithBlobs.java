@@ -1,4 +1,4 @@
-package com.example.filemanager.pojo;
+package space.whalien.conflictmanager.pojo;
 
 public class FileInfoWithBlobs {
     private String filename;

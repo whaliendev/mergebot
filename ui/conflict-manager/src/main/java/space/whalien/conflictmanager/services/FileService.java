@@ -1,7 +1,7 @@
-package com.example.filemanager.services;
+package space.whalien.conflictmanager.services;
 
-import com.example.filemanager.pojo.FileInfoWithBlobs;
-import com.example.filemanager.pojo.vo.FileTree;
+import space.whalien.conflictmanager.pojo.FileInfoWithBlobs;
+import space.whalien.conflictmanager.pojo.vo.FileTree;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

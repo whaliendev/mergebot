@@ -1,9 +1,9 @@
-package com.example.filemanager.utils;
+package space.whalien.conflictmanager.utils;
 
-import com.example.filemanager.exception.IllegalBranchNameException;
-import com.example.filemanager.pojo.vo.BlockResolutionChoiceVO;
 import info.debatty.java.stringsimilarity.Cosine;
 import org.springframework.data.util.Pair;
+import space.whalien.conflictmanager.exception.IllegalBranchNameException;
+import space.whalien.conflictmanager.pojo.vo.BlockResolutionChoiceVO;
 
 import java.io.IOException;
 import java.nio.file.Files;

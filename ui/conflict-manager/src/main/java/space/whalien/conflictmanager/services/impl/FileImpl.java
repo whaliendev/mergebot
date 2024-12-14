@@ -1,17 +1,5 @@
-package com.example.filemanager.services.impl;
+package space.whalien.conflictmanager.services.impl;
 
-import com.example.filemanager.dao.SolveMapper;
-import com.example.filemanager.dao.FileInfoMapper;
-import com.example.filemanager.pojo.MergeTuple;
-import com.example.filemanager.pojo.FileInfoWithBlobs;
-import com.example.filemanager.pojo.Solved;
-import com.example.filemanager.pojo.vo.FileTree;
-import com.example.filemanager.services.ConflictService;
-import com.example.filemanager.services.FileService;
-import com.example.filemanager.utils.FileUtils;
-import com.example.filemanager.utils.GitUtils;
-import com.example.filemanager.utils.PathUtils;
-import com.example.filemanager.utils.ScoreUtils;
 import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.Repository;
@@ -19,6 +7,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import space.whalien.conflictmanager.dao.FileInfoMapper;
+import space.whalien.conflictmanager.dao.SolveMapper;
+import space.whalien.conflictmanager.pojo.FileInfoWithBlobs;
+import space.whalien.conflictmanager.pojo.MergeTuple;
+import space.whalien.conflictmanager.pojo.Solved;
+import space.whalien.conflictmanager.pojo.vo.FileTree;
+import space.whalien.conflictmanager.services.ConflictService;
+import space.whalien.conflictmanager.services.FileService;
+import space.whalien.conflictmanager.utils.FileUtils;
+import space.whalien.conflictmanager.utils.GitUtils;
+import space.whalien.conflictmanager.utils.PathUtils;
+import space.whalien.conflictmanager.utils.ScoreUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -27,7 +27,10 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class FileImpl implements FileService {
@@ -98,7 +101,7 @@ public class FileImpl implements FileService {
             return list;
         }
         if(conflictFiles==null&&allFiles==null) {
-            conflictFiles = infoMapper.getUnsolved(repoPath);
+            conflictFiles = infoMapper.getUnresolved(repoPath);
             allFiles = infoMapper.getAllFiles(repoPath);
         }
         File[] files = baseFile.listFiles();
