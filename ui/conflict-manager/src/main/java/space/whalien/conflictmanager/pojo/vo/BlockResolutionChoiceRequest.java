@@ -1,4 +1,4 @@
-package com.example.filemanager.pojo.vo;
+package space.whalien.conflictmanager.pojo.vo;
 
 public class BlockResolutionChoiceRequest {
     private String projectPath;

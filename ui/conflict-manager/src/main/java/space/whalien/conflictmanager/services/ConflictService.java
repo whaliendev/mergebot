@@ -1,10 +1,10 @@
-package com.example.filemanager.services;
+package space.whalien.conflictmanager.services;
 
-import com.example.filemanager.pojo.MergeScenario;
-import com.example.filemanager.pojo.MergeTuple;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.springframework.stereotype.Service;
+import space.whalien.conflictmanager.pojo.MergeScenario;
+import space.whalien.conflictmanager.pojo.MergeTuple;
 
 import java.io.IOException;
 import java.util.List;

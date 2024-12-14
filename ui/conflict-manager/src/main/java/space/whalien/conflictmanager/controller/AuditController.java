@@ -1,16 +1,15 @@
-package com.example.filemanager.controller;
+package space.whalien.conflictmanager.controller;
 
-import com.example.filemanager.common.response.Result;
-import com.example.filemanager.pojo.ResolutionChoice;
-import com.example.filemanager.pojo.vo.BlockResolutionChoiceRequest;
-import com.example.filemanager.pojo.vo.BlockResolutionChoiceVO;
-import com.example.filemanager.services.AuditService;
-import com.example.filemanager.utils.AuditUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.util.Pair;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.*;
+import space.whalien.conflictmanager.common.response.Result;
+import space.whalien.conflictmanager.pojo.ResolutionChoice;
+import space.whalien.conflictmanager.pojo.vo.BlockResolutionChoiceRequest;
+import space.whalien.conflictmanager.pojo.vo.BlockResolutionChoiceVO;
+import space.whalien.conflictmanager.services.AuditService;
+import space.whalien.conflictmanager.utils.AuditUtils;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -32,7 +31,7 @@ public class AuditController {
     }
 
     @PostMapping("/like")
-    Result<?> thumbUpFile(@RequestParam("projectPath") String projectPath, @RequestParam("targetBranch") String targetBranch,
+    Result thumbUpFile(@RequestParam("projectPath") String projectPath, @RequestParam("targetBranch") String targetBranch,
                           @RequestParam("sourceBranch") String sourceBranch, @RequestParam("fileName") String fileName) {
         String fileMD5;
         try {
@@ -57,7 +56,7 @@ public class AuditController {
     }
 
     @PostMapping("/dislike")
-    Result<?> thumbDownFile(@RequestParam("projectPath") String projectPath, @RequestParam("targetBranch") String targetBranch,
+    Result thumbDownFile(@RequestParam("projectPath") String projectPath, @RequestParam("targetBranch") String targetBranch,
                             @RequestParam("sourceBranch") String sourceBranch, @RequestParam("fileName") String fileName) {
         String fileMD5;
         try {
@@ -82,7 +81,7 @@ public class AuditController {
     }
 
     @PostMapping("/choice/save")
-    Result<?> saveBlockResolutionChoice(@RequestBody BlockResolutionChoiceRequest request) {
+    Result saveBlockResolutionChoice(@RequestBody BlockResolutionChoiceRequest request) {
         // filemanager:track:fileMD5, set blockIdx to ResolutionChoice
         String projectPath = request.getProjectPath();
         String targetBranch = request.getTargetBranch();
@@ -129,7 +128,7 @@ public class AuditController {
     }
 
     @PostMapping("/tracking/save")
-    Result<?> saveFileTrackingData(@RequestParam("projectPath") String projectPath, @RequestParam("targetBranch") String targetBranch,
+    Result saveFileTrackingData(@RequestParam("projectPath") String projectPath, @RequestParam("targetBranch") String targetBranch,
                                    @RequestParam("sourceBranch") String sourceBranch, @RequestParam("fileName") String fileName,
                                    @RequestParam("blockCnt") Integer blockCnt) {
         String fileMD5;

@@ -1,4 +1,4 @@
-package com.example.filemanager.utils;
+package space.whalien.conflictmanager.utils;
 
 import difflib.DiffUtils;
 import difflib.Patch;

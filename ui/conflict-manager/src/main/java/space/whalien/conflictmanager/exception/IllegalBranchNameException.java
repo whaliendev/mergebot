@@ -1,4 +1,4 @@
-package com.example.filemanager.exception;
+package space.whalien.conflictmanager.exception;
 
 public class IllegalBranchNameException extends FileManagerBaseException{
     private static final String message = "分支名非法";

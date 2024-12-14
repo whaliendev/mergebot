@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.example.filemanager.dao.ResolutionChoiceMapper">
+<mapper namespace="space.whalien.conflictmanager.dao.ResolutionChoiceMapper">
     <!-- ResultMap -->
-    <resultMap id="ResolutionChoiceMap" type="com.example.filemanager.pojo.ResolutionChoice">
+    <resultMap id="ResolutionChoiceMap" type="space.whalien.conflictmanager.pojo.ResolutionChoice">
         <id column="id" property="id"/>
         <result column="file_id" property="fileId"/>
         <result column="block_idx" property="blockIdx"/>

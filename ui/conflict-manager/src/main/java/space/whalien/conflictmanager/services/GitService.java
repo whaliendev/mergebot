@@ -1,4 +1,4 @@
-package com.example.filemanager.services;
+package space.whalien.conflictmanager.services;
 
 public interface GitService {
     public void mergeBranch(String path,String b1,String b2) throws Exception;

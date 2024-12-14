@@ -1,4 +1,4 @@
-package com.example.filemanager.common.error;
+package space.whalien.conflictmanager.common.error;
 
 /**
  * 预定义的错误码，C端异常用C开头，S端异常用S开头

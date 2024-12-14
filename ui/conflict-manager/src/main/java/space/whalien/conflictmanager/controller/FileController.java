@@ -1,13 +1,11 @@
-package com.example.filemanager.controller;
-
-import com.example.filemanager.pojo.vo.FileTree;
-import com.example.filemanager.services.FileService;
-import com.example.filemanager.utils.FileUtils;
+package space.whalien.conflictmanager.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import space.whalien.conflictmanager.pojo.vo.FileTree;
+import space.whalien.conflictmanager.services.FileService;
+import space.whalien.conflictmanager.utils.FileUtils;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
