@@ -1,9 +1,10 @@
 package com.example.filemanager.pojo;
 
-public class fileInfoWithBLOBs {
+public class FileInfoWithBlobs {
     private String filename;
 
     private String path;
+
     private String relPath;
 
     private Integer issolve;
@@ -16,11 +17,11 @@ public class fileInfoWithBLOBs {
 
     private String repo;
 
-    public fileInfoWithBLOBs(String file,int issolve) {
+    public FileInfoWithBlobs(String file, int issolve) {
         this.filename=file;
         this.issolve=issolve;
     }
-    public fileInfoWithBLOBs() {}
+    public FileInfoWithBlobs() {}
 
     public void setFilename(String filename) {
         this.filename = filename == null ? null : filename.trim();

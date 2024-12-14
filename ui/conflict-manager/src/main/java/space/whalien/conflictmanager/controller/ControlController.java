@@ -1,6 +1,6 @@
 package com.example.filemanager.controller;
 
-import com.example.filemanager.dao.fileInfoMapper;
+import com.example.filemanager.dao.FileInfoMapper;
 import com.example.filemanager.dao.SolveMapper;
 import com.example.filemanager.pojo.Solved;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +12,7 @@ import java.util.List;
 @RestController
 public class ControlController {
     @Autowired
-    private fileInfoMapper fileInfoMapper;
+    private FileInfoMapper fileInfoMapper;
     @Autowired
     private SolveMapper mapper;
 

@@ -1,31 +1,23 @@
 package com.example.filemanager.services.impl;
 
 import com.example.filemanager.dao.SolveMapper;
-import com.example.filemanager.dao.fileInfoMapper;
-import com.example.filemanager.pojo.MergeScenario;
+import com.example.filemanager.dao.FileInfoMapper;
 import com.example.filemanager.pojo.MergeTuple;
-import com.example.filemanager.pojo.fileInfoWithBLOBs;
+import com.example.filemanager.pojo.FileInfoWithBlobs;
 import com.example.filemanager.pojo.Solved;
 import com.example.filemanager.pojo.vo.FileTree;
-import com.example.filemanager.services.ConflictServices;
-import com.example.filemanager.services.fileServices;
+import com.example.filemanager.services.ConflictService;
+import com.example.filemanager.services.FileService;
 import com.example.filemanager.utils.FileUtils;
 import com.example.filemanager.utils.GitUtils;
 import com.example.filemanager.utils.PathUtils;
 import com.example.filemanager.utils.ScoreUtils;
-import org.apache.ibatis.jdbc.Null;
-import org.checkerframework.checker.units.qual.A;
 import org.eclipse.jgit.api.CheckoutCommand;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ResetCommand;
-import org.eclipse.jgit.api.Status;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.lib.RepositoryState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.expression.spel.ast.NullLiteral;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -38,14 +30,14 @@ import java.nio.file.Paths;
 import java.util.*;
 
 @Service
-public class fileImpl implements fileServices {
+public class FileImpl implements FileService {
 
     @Autowired
-    ConflictServices conflictServices;
+    ConflictService conflictService;
     @Autowired
     SolveMapper solveMapper;
     @Autowired
-    fileInfoMapper infoMapper;
+    FileInfoMapper infoMapper;
     private static final Logger logger = LoggerFactory.getLogger(ConflictImpl.class);
 /**
  * 遍历路径下的所有文件夹
@@ -97,7 +89,7 @@ public class fileImpl implements fileServices {
 
 
     @Override
-    public List<FileTree> getAllFiles(String directoryPath,String repoPath,List<fileInfoWithBLOBs> conflictFiles,List<fileInfoWithBLOBs> allFiles) {
+    public List<FileTree> getAllFiles(String directoryPath, String repoPath, List<FileInfoWithBlobs> conflictFiles, List<FileInfoWithBlobs> allFiles) {
         List<FileTree> list = new ArrayList<>();
         PathUtils pathUtils=new PathUtils();
         FileUtils fileUtils=new FileUtils();
@@ -120,7 +112,7 @@ public class fileImpl implements fileServices {
                         0,
                         null,
                         1);
-                for (fileInfoWithBLOBs eachFile:allFiles) {
+                for (FileInfoWithBlobs eachFile:allFiles) {
                     if(eachFile.getPath().equals(file.getAbsolutePath())) {
                         if(eachFile.getIssolve()==1) {
                             fileTree.isConflictFile = 1;
@@ -203,7 +195,7 @@ public class fileImpl implements fileServices {
             stream=new PrintStream(path);//写入的文件path
             stream.print(content);//写入的字符串
             stream.close();
-            fileInfoWithBLOBs infoWithBLOBs=infoMapper.selectByPrimaryKey(pathUtils.getSystemCompatiblePath(path));
+            FileInfoWithBlobs infoWithBLOBs=infoMapper.selectByPrimaryKey(pathUtils.getSystemCompatiblePath(path));
             if(infoWithBLOBs!=null&&!tempPath.equals("-1")) {
                 infoWithBLOBs.setIssolve(0);
                 infoMapper.updateByPrimaryKeySelective(infoWithBLOBs);
@@ -212,7 +204,7 @@ public class fileImpl implements fileServices {
                 org.apache.commons.io.FileUtils.deleteDirectory(new File(tempPath));
                 File res = new File(path);
                 List<String> resolve = fileUtils.readFile(res);
-                List<MergeTuple> tuples = conflictServices.extractTuple(conflict, resolve, 1);
+                List<MergeTuple> tuples = conflictService.extractTuple(conflict, resolve, 1);
                 for (MergeTuple tuple : tuples) {
                     StringBuilder r = new StringBuilder();
                     StringBuilder c = new StringBuilder();
@@ -345,7 +337,7 @@ public class fileImpl implements fileServices {
             }
             checkoutCommand.call();
             File file = new File(fileName);
-            fileInfoWithBLOBs infoWithBLOBs = infoMapper.selectByPrimaryKey(pathUtils.getFileWithPathSegment(repoPath,pathUtils.replaceSep(fileName)));
+            FileInfoWithBlobs infoWithBLOBs = infoMapper.selectByPrimaryKey(pathUtils.getFileWithPathSegment(repoPath,pathUtils.replaceSep(fileName)));
             infoWithBLOBs.setIssolve(0);
             infoMapper.updateByPrimaryKeySelective(infoWithBLOBs);
         }
@@ -377,7 +369,7 @@ public class fileImpl implements fileServices {
         }
         //2.文件
         if (file.isFile()) {
-            fileInfoWithBLOBs info=infoMapper.selectByPrimaryKey(filePath);
+            FileInfoWithBlobs info=infoMapper.selectByPrimaryKey(filePath);
             String newPath = file.getParent() + File.separator + newFileName;
             if (file.renameTo(new File(newPath))) {
                 if(info!=null){
@@ -392,9 +384,9 @@ public class fileImpl implements fileServices {
         //3.文件夹
         if (file.isDirectory()) {
             String newPath = file.getParent() + File.separator + newFileName;
-            List<fileInfoWithBLOBs> infos=infoMapper.getAllFiles(pathUtils.getSystemCompatiblePath(repoPath));
+            List<FileInfoWithBlobs> infos=infoMapper.getAllFiles(pathUtils.getSystemCompatiblePath(repoPath));
             if (file.renameTo(new File(newPath))) {
-                for(fileInfoWithBLOBs fileInfo:infos){
+                for(FileInfoWithBlobs fileInfo:infos){
 //                    logger.info("ours"+ fileInfo.getOurs());
 //                    logger.info("theirs"+ fileInfo.getTheirs());
                     String oldPath=fileInfo.getPath();
@@ -451,15 +443,15 @@ public class fileImpl implements fileServices {
         File newFile=new File(filePath);
         if(newFile.exists()){
             if(newFile.isFile()){
-                fileInfoWithBLOBs info=infoMapper.selectByPrimaryKey(filePath);
+                FileInfoWithBlobs info=infoMapper.selectByPrimaryKey(filePath);
                 if(info!=null){
                     infoMapper.deleteByPrimaryKey(filePath);
                 }
                 newFile.delete();
             }
             if(newFile.isDirectory()){
-                List<fileInfoWithBLOBs> infos=infoMapper.getAllFiles(repoPath);
-                for (fileInfoWithBLOBs info:infos) {
+                List<FileInfoWithBlobs> infos=infoMapper.getAllFiles(repoPath);
+                for (FileInfoWithBlobs info:infos) {
                     String oldPath=info.getPath();
                     if(oldPath.startsWith(filePath)){
                         infoMapper.deleteByPrimaryKey(oldPath);

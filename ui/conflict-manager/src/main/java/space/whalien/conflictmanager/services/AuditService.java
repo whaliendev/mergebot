@@ -3,15 +3,14 @@ package com.example.filemanager.services;
 import com.alibaba.fastjson.JSON;
 import com.example.filemanager.dao.AuditFileMapper;
 import com.example.filemanager.dao.ResolutionChoiceMapper;
-import com.example.filemanager.dao.fileInfoMapper;
+import com.example.filemanager.dao.FileInfoMapper;
 import com.example.filemanager.pojo.AuditFile;
 import com.example.filemanager.pojo.ResolutionChoice;
-import com.example.filemanager.pojo.fileInfoWithBLOBs;
+import com.example.filemanager.pojo.FileInfoWithBlobs;
 import com.example.filemanager.utils.GitUtils;
 import com.example.filemanager.utils.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
@@ -28,13 +27,13 @@ public class AuditService {
     private final RedisService redisService;
     private final AuditFileMapper auditFileMapper;
     private final ResolutionChoiceMapper resolutionChoiceMapper;
-    private final fileInfoMapper infoMapper;
+    private final FileInfoMapper infoMapper;
 
 
     private static final String FILE_LIKE_PREFIX = "filemanager:like:";
     private static final String FILE_TRACK_PREFIX = "filemanager:track:";
 
-    public AuditService(RedisService redisService, AuditFileMapper auditFileMapper, ResolutionChoiceMapper resolutionChoiceMapper, fileInfoMapper infoMapper) {
+    public AuditService(RedisService redisService, AuditFileMapper auditFileMapper, ResolutionChoiceMapper resolutionChoiceMapper, FileInfoMapper infoMapper) {
         this.redisService = redisService;
         this.auditFileMapper = auditFileMapper;
         this.resolutionChoiceMapper = resolutionChoiceMapper;
@@ -125,7 +124,7 @@ public class AuditService {
 
     public String getRelPath(String path) {
         PathUtils pathUtils=new PathUtils();
-        fileInfoWithBLOBs infoWithBLOBs=infoMapper.selectByPrimaryKey(pathUtils.getSystemCompatiblePath(path));
+        FileInfoWithBlobs infoWithBLOBs=infoMapper.selectByPrimaryKey(pathUtils.getSystemCompatiblePath(path));
         return infoWithBLOBs.getRelPath();
     }
 }

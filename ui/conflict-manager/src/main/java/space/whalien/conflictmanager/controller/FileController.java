@@ -1,7 +1,7 @@
 package com.example.filemanager.controller;
 
 import com.example.filemanager.pojo.vo.FileTree;
-import com.example.filemanager.services.fileServices;
+import com.example.filemanager.services.FileService;
 import com.example.filemanager.utils.FileUtils;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +21,7 @@ import java.util.Map;
 @RestController
 public class FileController {
     @Autowired
-    fileServices fileService;
+    FileService fileService;
 
     @GetMapping(value = "/file/checkExistence")
     public Object checkFileExistence(@RequestParam("path") String path) {

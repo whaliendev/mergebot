@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.example.filemanager.dao.fileInfoMapper">
-  <resultMap id="BaseResultMap" type="com.example.filemanager.pojo.fileInfoWithBLOBs">
+<mapper namespace="com.example.filemanager.dao.FileInfoMapper">
+  <resultMap id="BaseResultMap" type="com.example.filemanager.pojo.FileInfoWithBlobs">
     <id column="fileName" jdbcType="VARCHAR" property="filename" />
     <result column="path" jdbcType="VARCHAR" property="path" />
     <result column="relPath" jdbcType="VARCHAR" property="relPath" />
@@ -88,7 +88,7 @@
     where path = #{path,jdbcType=VARCHAR}
   </delete>
 
-  <insert id="insert" parameterType="com.example.filemanager.pojo.fileInfoWithBLOBs">
+  <insert id="insert" parameterType="com.example.filemanager.pojo.FileInfoWithBlobs">
     insert into file (fileName, path, relPath,isSolve,
       ours, theirs, base,repo
       )
@@ -96,7 +96,7 @@
       #{ours,jdbcType=VARBINARY}, #{theirs,jdbcType=VARBINARY}, #{base,jdbcType=VARBINARY}, #{repo,jdbcType=VARCHAR}
       )
   </insert>
-  <insert id="insertSelective" parameterType="com.example.filemanager.pojo.fileInfoWithBLOBs">
+  <insert id="insertSelective" parameterType="com.example.filemanager.pojo.FileInfoWithBlobs">
     insert into file
     <trim prefix="(" suffix=")" suffixOverrides=",">
       <if test="filename != null">
@@ -143,7 +143,7 @@
 
 
 
-  <update id="updateByPrimaryKeySelective" parameterType="com.example.filemanager.pojo.fileInfoWithBLOBs">
+  <update id="updateByPrimaryKeySelective" parameterType="com.example.filemanager.pojo.FileInfoWithBlobs">
     update file
     <set>
       <if test="path != null">
@@ -164,7 +164,7 @@
     </set>
     where path = #{path,jdbcType=VARCHAR}
   </update>
-  <update id="updateByPrimaryKeyWithBLOBs" parameterType="com.example.filemanager.pojo.fileInfoWithBLOBs">
+  <update id="updateByPrimaryKeyWithBLOBs" parameterType="com.example.filemanager.pojo.FileInfoWithBlobs">
     update file
     set path = #{path,jdbcType=VARCHAR},
         relPath = #{relPath,jdbcType=VARCHAR},
@@ -175,7 +175,7 @@
       repo = #{repo,jdbcType=VARCHAR}
     where fileName = #{filename,jdbcType=VARCHAR}
   </update>
-  <update id="updateByPrimaryKey" parameterType="com.example.filemanager.pojo.fileInfoWithBLOBs">
+  <update id="updateByPrimaryKey" parameterType="com.example.filemanager.pojo.FileInfoWithBlobs">
     update file
     set path = #{path,jdbcType=VARCHAR},
       isSolve = #{issolve,jdbcType=INTEGER}

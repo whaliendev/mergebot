@@ -1,7 +1,6 @@
 package com.example.filemanager.dao;
 
 import com.example.filemanager.pojo.Solved;
-import com.example.filemanager.pojo.fileInfoWithBLOBs;
 import org.apache.ibatis.annotations.Mapper;
 import org.springframework.stereotype.Repository;
 

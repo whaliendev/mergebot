@@ -1,41 +1,29 @@
 package com.example.filemanager.services.impl;
 
-import com.example.filemanager.dao.fileInfoMapper;
-import com.example.filemanager.pojo.fileInfoWithBLOBs;
-import com.example.filemanager.services.GitServices;
+import com.example.filemanager.dao.FileInfoMapper;
+import com.example.filemanager.pojo.FileInfoWithBlobs;
+import com.example.filemanager.services.GitService;
 import com.example.filemanager.utils.GitUtils;
 import com.example.filemanager.utils.PathUtils;
-import com.github.javaparser.utils.Log;
 
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.MergeCommand;
-import org.eclipse.jgit.api.Status;
-import org.eclipse.jgit.diff.DiffAlgorithm;
-import org.eclipse.jgit.diff.DiffConfig;
-import org.eclipse.jgit.lib.Config;
-import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.RepositoryState;
-import org.eclipse.jgit.merge.MergeStrategy;
-import org.eclipse.jgit.merge.StrategyResolve;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.example.filemanager.dao.fileInfoMapper;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.List;
-import java.util.Set;
 
 
 @Service
-public class GitImpl implements GitServices {
+public class GitImpl implements GitService {
     @Autowired
-    fileInfoMapper fileInfoMapper;
+    FileInfoMapper fileInfoMapper;
     private static final Logger logger = LoggerFactory.getLogger(GitImpl.class);
     @Override
     public void mergeBranch(String path, String b1, String b2) throws Exception {
@@ -181,7 +169,7 @@ public class GitImpl implements GitServices {
             git.checkout().addPath(fileName).call();
         }
         File file=new File(fileName);
-        fileInfoWithBLOBs infoWithBLOBs=fileInfoMapper.selectByPrimaryKey(pathUtils.getFileWithPathSegment(repoPath,fileName));
+        FileInfoWithBlobs infoWithBLOBs=fileInfoMapper.selectByPrimaryKey(pathUtils.getFileWithPathSegment(repoPath,fileName));
         infoWithBLOBs.setIssolve(1);
         fileInfoMapper.updateByPrimaryKeySelective(infoWithBLOBs);
 

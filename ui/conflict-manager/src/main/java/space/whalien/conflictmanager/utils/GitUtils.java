@@ -25,7 +25,6 @@ public class GitUtils {
                     .findGitDir()
                     .build();
             return repository;
-
     }
 
     public List<RevCommit> getMergeCommits(Repository repository) throws Exception{
