@@ -9,6 +9,8 @@ public class BlockResolutionChoiceVO {
     private String mlCode;
     private String dlCode;
 
+    public BlockResolutionChoiceVO(){}
+
     public BlockResolutionChoiceVO(String choice, String choiceCode, String saCode, String mlCode, String dlCode) {
         this.choice = choice;
         this.choiceCode = choiceCode;

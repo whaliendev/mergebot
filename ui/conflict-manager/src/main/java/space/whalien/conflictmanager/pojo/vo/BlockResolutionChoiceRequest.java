@@ -8,6 +8,8 @@ public class BlockResolutionChoiceRequest {
     private Integer blockIdx;
     private BlockResolutionChoiceVO blockResolutionChoice;
 
+    public BlockResolutionChoiceRequest() {}
+
     public BlockResolutionChoiceRequest(String projectPath, String targetBranch, String sourceBranch, String fileName, Integer blockIdx, BlockResolutionChoiceVO blockResolutionChoice) {
         this.projectPath = projectPath;
         this.targetBranch = targetBranch;
