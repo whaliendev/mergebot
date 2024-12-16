@@ -303,44 +303,69 @@ export default {
       this.$router.push({ name: FileTreeView, query: this.$route.query });
     },
     async handleResetClicked() {
-      await this.$axios
-        .put(
-          "/git/reset",
-          qs.stringify({
-            repoPath: this.params.repo,
-            filePath: this.params.filePath, //
-          }),
-        )
-        .then(resp => {
-          if (resp && resp.status === 200) {
-            if (resp.data.code == 200) {
-              this.$message({
-                showClose: true,
-                message: "重置成功",
-                type: "success",
-              });
-              //to the DiffResolution
-              const routeParam = {
-                fileName: this.params.fileName,
-                filePath: this.params.filePath,
-                repo: this.params.repo,
-                target: this.params.targetBranch,
-                source: this.params.sourceBranch,
-              };
-              this.$router.push({
-                name: DiffResolutionView,
-                query: this.$route.query,
-                params: routeParam,
-              });
-            } else if (resp.data.code == 500) {
-              this.$message({
-                showClose: true,
-                message: "重置失败",
-                type: "warning",
-              });
-            }
+      try {
+        const formData = new FormData();
+        formData.append("repoPath", this.params.repo);
+        formData.append("filePath", this.params.filePath);
+
+        const response = await this.$axios.put("/git/reset", formData);
+
+        if (response.status === 200) {
+          const { code, msg } = response.data;
+
+          if (code === 200) {
+            this.$message({
+              showClose: true,
+              message: "Reset successfully",
+              type: "success",
+            });
+
+            // Prepare route parameters
+            const routeParam = {
+              fileName: this.params.fileName,
+              filePath: this.params.filePath,
+              repo: this.params.repo,
+              target: this.params.targetBranch,
+              source: this.params.sourceBranch,
+            };
+
+            // Navigate to DiffResolution view
+            this.$router.push({
+              name: FileTreeView,
+              query: this.$route.query,
+              params: routeParam,
+            });
+          } else if (code === 500) {
+            this.$message({
+              showClose: true,
+              message: "Failed to reset",
+              type: "warning",
+            });
+          } else {
+            // Handle other response codes if necessary
+            this.$message({
+              showClose: true,
+              message: msg || "Unexpected response from the server.",
+              type: "warning",
+            });
           }
+        } else {
+          // Handle non-200 HTTP status codes
+          this.$message({
+            showClose: true,
+            message: `Failed to reset, status code: ${response.status}`,
+            type: "error",
+          });
+        }
+      } catch (error) {
+        // Handle network or unexpected errors
+        console.error("Error during reset:", error);
+        this.$message({
+          showClose: true,
+          message: `An error occurred: ${error.message}`,
+          type: "error",
         });
+      }
     },
     handleModifiedUpdate(payload) {
       // this.$store.commit("diff/saveModifiedContent", payload);

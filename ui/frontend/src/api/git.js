@@ -74,9 +74,21 @@ export const writeResolvedToFile = async payload => {
   if (payload.content instanceof Array) {
     payload.content = payload.content.join("\n"); // whether or not to add a newline at the end of the file?
   }
+
   const endpoint = `${GIT_BASE_URL}/write2file`;
-  const encodedPayload = new URLSearchParams(payload).toString();
-  const res = await axios.put(endpoint, encodedPayload);
+
+  const formData = new FormData();
+  formData.append("path", payload.path);
+  formData.append("fileName", payload.fileName);
+  formData.append("content", payload.content);
+  formData.append("repo", payload.repo);
+  formData.append("tempPath", payload.tempPath);
+
+  const res = await axios.put(endpoint, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   if (res && res.status === 200 && res.data.code === 200) {
     return true;
   } else {

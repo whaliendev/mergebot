@@ -1,30 +1,18 @@
 import axios from "axios";
-import qs from "qs";
-
 import { BACKEND_BASE_URL } from "./config.js";
 
 const axios_instance = axios.create({
   baseURL: BACKEND_BASE_URL,
   timeout: 10000,
-  headers: {
-    "Content-Type": "application/x-www-form-urlencoded",
-  },
 });
 
-/**
- * @param {string} filePath - path of the added file
- * @param {string} fileType - "file" | "direction" // backend typo for "directory"
- */
 export const addFileReq = async (filePath, fileType) => {
   const endpoint = `/files/add`;
-  // 后端接口要求使用 application/x-www-form-urlencoded
-  const res = await axios_instance.put(
-    endpoint,
-    qs.stringify({
-      filePath,
-      fileType,
-    }),
-  );
+  const formData = new FormData();
+  formData.append("filePath", filePath);
+  formData.append("fileType", fileType);
+
+  const res = await axios_instance.put(endpoint, formData);
   if (res.status !== 200) {
     throw new Error(`Failed to add, status code: ${res.status}`);
   }
@@ -32,20 +20,13 @@ export const addFileReq = async (filePath, fileType) => {
   if (code !== 200) throw new Error(msg);
 };
 
-/**
- * @param {string} filePath - path of the deleted file
- * @param {string} repoPath - repoPath
- */
 export const deleteFileReq = async (filePath, repoPath) => {
   const endpoint = `/files/delete`;
-  // 后端接口要求使用 application/x-www-form-urlencoded
-  const res = await axios_instance.put(
-    endpoint,
-    qs.stringify({
-      filePath,
-      repoPath,
-    }),
-  );
+  const formData = new FormData();
+  formData.append("filePath", filePath);
+  formData.append("repoPath", repoPath);
+
+  const res = await axios_instance.put(endpoint, formData);
   if (res.status !== 200) {
     throw new Error(`Failed to delete, status code: ${res.status}`);
   }
@@ -53,22 +34,14 @@ export const deleteFileReq = async (filePath, repoPath) => {
   if (code !== 200) throw new Error(msg);
 };
 
-/**
- * @param {string} filePath - path of the deleted file
- * @param {string} newFileName - newFileName
- * @param {string} repoPath - repoPath
- */
 export const renameFileReq = async (filePath, newFileName, repoPath) => {
   const endpoint = `/files/rename`;
-  // 后端接口要求使用 application/x-www-form-urlencoded
-  const res = await axios_instance.put(
-    endpoint,
-    qs.stringify({
-      filePath,
-      newFileName,
-      repoPath,
-    }),
-  );
+  const formData = new FormData();
+  formData.append("filePath", filePath);
+  formData.append("newFileName", newFileName);
+  formData.append("repoPath", repoPath);
+
+  const res = await axios_instance.put(endpoint, formData);
   if (res.status !== 200) {
     throw new Error(`Failed to rename, status code: ${res.status}`);
   }
@@ -79,12 +52,13 @@ export const renameFileReq = async (filePath, newFileName, repoPath) => {
 export const uploadFileReq = async (fileList, dirPath) => {
   const endpoint = `/files/upload`;
 
-  const param = new FormData();
-  fileList.forEach((val, index) => {
-    param.append("file", val.raw);
+  const formData = new FormData();
+  fileList.forEach(val => {
+    formData.append("file", val.raw);
   });
-  param.append("dirPath", dirPath);
-  const res = await axios.post(endpoint, param);
+  formData.append("dirPath", dirPath);
+
+  const res = await axios_instance.post(endpoint, formData);
   if (res.status !== 200) {
     throw new Error(`Failed to upload, status code: ${res.status}`);
   }
