@@ -34,7 +34,6 @@
 <script>
 import MonacoEditor from "@/components/vue-monaco";
 import { getSourceLanguage } from "@/utils";
-import qs from "qs";
 
 export default {
   components: {
@@ -68,25 +67,33 @@ export default {
     // todo： 考虑抽取到 requests 中
     async write2file() {
       try {
-        const res = await this.$axios.put(
-          "/write2file",
-          qs.stringify({
-            path: this.filePath,
-            fileName: this.fileName,
-            content: this.fileContent,
-            repo: this.repo,
-            tempPath: "-1", // 接口设计问题，必需传一个 "-1"
-          }),
-        );
+        // Create a new FormData instance
+        const formData = new FormData();
+
+        // Append each field to the FormData object
+        formData.append("path", this.filePath);
+        formData.append("fileName", this.fileName);
+        formData.append("content", this.fileContent);
+        formData.append("repo", this.repo);
+        formData.append("tempPath", "-1"); // Required by the API
+
+        // Configure Axios to send the FormData
+        const res = await this.$axios.put("/write2file", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        // Handle the response based on the status code
         if (res.data.code === 200) {
-          // 接口这么能这么写？错误代码不能在响应里这么指定
-          this.$message.success("文件保存成功");
+          this.$message.success("Save modifications successfully");
           this.originalFileContent = this.fileContent;
         } else {
-          this.$message.error("文件保存失败");
+          this.$message.error("Failed to save modifications");
         }
       } catch (error) {
-        this.$message.error(error.message);
+        // Handle errors gracefully
+        this.$message.error(`Error: ${error.message}`);
       }
     },
   },
