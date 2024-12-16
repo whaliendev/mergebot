@@ -42,31 +42,35 @@ public class FileImpl implements FileService {
     @Autowired
     FileInfoMapper infoMapper;
     private static final Logger logger = LoggerFactory.getLogger(ConflictImpl.class);
-/**
- * 遍历路径下的所有文件夹
- * @Param filePath 需要遍历的文件夹路径
- * @Return
- */
+
+    /**
+     * 遍历路径下的所有文件夹
+     *
+     * @Param filePath 需要遍历的文件夹路径
+     * @Return
+     */
     @Override
     public List<Object> getAllDirection(String dirPath) {
         List<Object> directionList = new ArrayList<>();
-        File baseFile=new File(dirPath);
+        File baseFile = new File(dirPath);
         if (!baseFile.isFile()) {
             baseFile.exists();
         }
-        File[] files=baseFile.listFiles();
-        for (File file:files) {
-            if(file.isDirectory()){
+        File[] files = baseFile.listFiles();
+        for (File file : files) {
+            if (file.isDirectory()) {
                 directionList.add(file.getAbsolutePath());
             }
         }
         return directionList;
     }
-/**
- * 遍历该路径下的所有文件夹内的文件，包括子文件夹内的文件
- * @Param directoryPath 需要遍历的文件夹路径
- * @Return
- */
+
+    /**
+     * 遍历该路径下的所有文件夹内的文件，包括子文件夹内的文件
+     *
+     * @Param directoryPath 需要遍历的文件夹路径
+     * @Return
+     */
     @Override
     public List<Object> getAll(String directoryPath) {
         List<Object> list = new ArrayList<>();
@@ -79,7 +83,7 @@ public class FileImpl implements FileService {
             if (file.isDirectory()) {
                 list.addAll(getAll(file.getAbsolutePath()));
             }
-            if(file.isFile()){
+            if (file.isFile()) {
                 Map<String, String> map = new HashMap<>();
                 map.put("fileName", file.getName());
                 map.put("filePath", file.getAbsolutePath());
@@ -90,86 +94,62 @@ public class FileImpl implements FileService {
     }
 
 
-
     @Override
     public List<FileTree> getAllFiles(String directoryPath, String repoPath, List<FileInfoWithBlobs> conflictFiles, List<FileInfoWithBlobs> allFiles) {
         List<FileTree> list = new ArrayList<>();
-        PathUtils pathUtils=new PathUtils();
-        FileUtils fileUtils=new FileUtils();
+        PathUtils pathUtils = new PathUtils();
+        FileUtils fileUtils = new FileUtils();
         File baseFile = new File(directoryPath);
         if (baseFile.isFile() || !baseFile.exists()) {
             return list;
         }
-        if(conflictFiles==null&&allFiles==null) {
+        if (conflictFiles == null && allFiles == null) {
             conflictFiles = infoMapper.getUnresolved(repoPath);
             allFiles = infoMapper.getAllFiles(repoPath);
         }
         File[] files = baseFile.listFiles();
         for (File file : files) {
             if (file.isFile()) {
-                FileTree fileTree=new FileTree(file.getName(),
+                FileTree fileTree = new FileTree(file.getName(),
                         file.getAbsolutePath(),
-                        pathUtils.getRelativePath(repoPath,file.getPath()),
+                        pathUtils.getRelativePath(repoPath, file.getPath()),
                         "file",
                         0,
                         0,
                         null,
                         1);
-                for (FileInfoWithBlobs eachFile:allFiles) {
-                    if(eachFile.getPath().equals(file.getAbsolutePath())) {
-                        if(eachFile.getIssolve()==1) {
+                for (FileInfoWithBlobs eachFile : allFiles) {
+                    if (eachFile.getPath().equals(file.getAbsolutePath())) {
+                        if (eachFile.getIssolve() == 1) {
                             fileTree.isConflictFile = 1;
-                        }else{
+                        } else {
                             fileTree.isConflictFile = 2;
                         }
                         if (!fileUtils.isBinaryFile(file.getAbsolutePath())) {
-                            fileTree.isBinary=0;
+                            fileTree.isBinary = 0;
                         }
                     }
                 }
                 list.add(fileTree);
             }
             if (file.isDirectory()) {
-//                int i=0;
-//                for (fileInfoWithBLOBs eachFile:conflictFiles) {
-//                    List<String> dirName;
-//                    List<String> eachFileName;
-//                    if(File.separator.equals("\\")) {
-//                        dirName = Arrays.asList(file.getAbsolutePath().split("\\\\"));
-//                        eachFileName = Arrays.asList(eachFile.getPath().split("\\\\"));
-//                    }else {
-//                        dirName = Arrays.asList(file.getAbsolutePath().split("/"));
-//                        eachFileName = Arrays.asList(eachFile.getPath().split("/"));
-//                    }
-//                    int dirLen=dirName.size();
-//                    int fileLen=eachFileName.size()-1;
-//                    if(dirLen<=fileLen){
-//                        i++;
-//                        for(int q=0;q<dirLen;q++){
-//                            if(!dirName.get(q).equals(eachFileName.get(q))){
-//                               i--;
-//                               break;
-//                            }
-//                        }
-//                    }
-//                }
-                FileTree fileTree=new FileTree(file.getName(),
+                FileTree fileTree = new FileTree(file.getName(),
                         file.getAbsolutePath(),
-                        pathUtils.getRelativePath(repoPath,file.getPath()),
+                        pathUtils.getRelativePath(repoPath, file.getPath()),
                         "direction",
                         0,
                         0,
-                        getAllFiles(file.getAbsolutePath(), repoPath,conflictFiles,allFiles),
+                        getAllFiles(file.getAbsolutePath(), repoPath, conflictFiles, allFiles),
                         0);
-                int i=0;
+                int i = 0;
                 for (FileTree tree : fileTree.childTree) {
-                    if(tree.fileType.equals("direction")){
-                        i+=tree.conflictNumber;
-                    }else if(tree.isConflictFile==1){
+                    if (tree.fileType.equals("direction")) {
+                        i += tree.conflictNumber;
+                    } else if (tree.isConflictFile == 1) {
                         i++;
                     }
                 }
-                fileTree.conflictNumber=i;
+                fileTree.conflictNumber = i;
                 list.add(fileTree);
             }
         }
@@ -177,32 +157,19 @@ public class FileImpl implements FileService {
     }
 
     @Override
-    public void write2ConflictFile(String content, String path,String fileName,String repo,String tempPath) {
-//        GitUtils gitUtils=new GitUtils();
-//        Repository repository= null;
-//        System.out.println("path："+repo);
-//
-//        try {
-//            repository = gitUtils.getRepository(repo);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        RepositoryState repositoryState = repository.getRepositoryState();
-//        System.out.println("before write repositoryState*:"+repositoryState);
-
+    public void write2ConflictFile(String content, String path, String fileName, String repo, String tempPath) {
         PrintStream stream;
-        FileUtils fileUtils=new FileUtils();
-        PathUtils pathUtils=new PathUtils();
-        ScoreUtils scoreUtils=new ScoreUtils();
+        FileUtils fileUtils = new FileUtils();
+        PathUtils pathUtils = new PathUtils();
+        ScoreUtils scoreUtils = new ScoreUtils();
         try {
-            stream=new PrintStream(path);//写入的文件path
-            stream.print(content);//写入的字符串
+            stream = new PrintStream(path);
+            stream.print(content);
             stream.close();
-            FileInfoWithBlobs infoWithBLOBs=infoMapper.selectByPrimaryKey(pathUtils.getSystemCompatiblePath(path));
-            if(infoWithBLOBs!=null&&!tempPath.equals("-1")) {
+            FileInfoWithBlobs infoWithBLOBs = infoMapper.selectByPrimaryKey(pathUtils.getSystemCompatiblePath(path));
+            if (infoWithBLOBs != null && !tempPath.equals("-1")) {
                 infoWithBLOBs.setIssolve(0);
                 infoMapper.updateByPrimaryKeySelective(infoWithBLOBs);
-//            MergeScenario mergeScenario=conflictServices.getSpecifiedFile(path,repo,0);
                 List<String> conflict = fileUtils.readFile(new File(pathUtils.getSystemCompatiblePath(pathUtils.getFileWithPathSegment(tempPath, "conflict.java"))));
                 org.apache.commons.io.FileUtils.deleteDirectory(new File(tempPath));
                 File res = new File(path);
@@ -249,69 +216,11 @@ public class FileImpl implements FileService {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-//        repositoryState = repository.getRepositoryState();
-//        System.out.println("after write repositoryState*:"+repositoryState);
     }
 
     @Override
     public List<FileTree> filterFiles(String path) {
-//        List<FileTree> list = new ArrayList<>();
-//        File baseFile = new File(path);
-//        if (baseFile.isFile() || !baseFile.exists()) {
-//            return list;
-//        }
-//        List<fileInfoWithBLOBs> conflictFiles=infoMapper.getAllFiles(path);
-//        File[] files = baseFile.listFiles();
-//        FileUtils fileUtils=new FileUtils();
-//        for (File file : files) {
-//            if (file.isFile()) {
-//                Path path1 = Paths.get(file.getPath());
-//                String type;
-////                try {
-////                    type = fileUtils.getFileType(file.getAbsolutePath());
-////                } catch (IOException e) {
-////                    throw new RuntimeException(e);
-////                }
-//                int k1=1;
-//                if (!fileUtils.isBinaryFile(file.getAbsolutePath())) {
-//                    k1= 0;
-//                }
-//                int k=0;
-//                int isConflict=2;
-//                for (fileInfoWithBLOBs eachFile:conflictFiles) {
-//                    if(eachFile.getFilename().equals(file.getName())) {
-//                        k=1;
-//                        if(eachFile.getIssolve()==1){
-//                            isConflict=1;
-//                        }
-//                        break;
-//                    }
-//                }
-//                if(k==1) {
-//                    FileTree fileTree = new FileTree(file.getName(), file.getAbsolutePath(), file.getPath(), "file", 0, isConflict, null,k1);
-//                    list.add(fileTree);
-//                }
-//            }
-////            if (file.isDirectory()) {
-////                int i=0;
-////                for (fileInfoWithBLOBs eachFile:conflictFiles) {
-////                    if(eachFile.getPath().startsWith(file.getAbsolutePath())) {
-////                        i++;
-////                        for(int q=0;q<dirLen;q++){
-////                            if(!dirName.get(q).equals(eachFileName.get(q))){
-////                                i--;
-////                                break;
-////                            }
-////                        }
-////                    }
-////                }
-//                if(i>0) {
-//                    FileTree fileTree = new FileTree(file.getName(), file.getAbsolutePath(), file.getPath(), "direction", i, 0, filterFiles(file.getAbsolutePath()),0);
-//                    list.add(fileTree);
-//                }
-//            }
-//        }
-        return null;
+        throw new UnsupportedOperationException("method [space.whalien.conflictmanager.services.impl.FileImpl.filterFiles] is not implemented");
     }
 
 
@@ -319,14 +228,14 @@ public class FileImpl implements FileService {
     public int chooseBinaryFile(String repoPath, String fileName, int branch) throws Exception {
         //filename->f/subf/4f169cf1-ebce-4f9d-a475-4f8ba161b631.png
 
-        GitUtils gitUtils=new GitUtils();
-        PathUtils pathUtils=new PathUtils();
-        Repository repository=gitUtils.getRepository(repoPath);
+        GitUtils gitUtils = new GitUtils();
+        PathUtils pathUtils = new PathUtils();
+        Repository repository = gitUtils.getRepository(repoPath);
 //
 //        RepositoryState repositoryState = repository.getRepositoryState();
 //        System.out.println("chooseBinaryFile repositoryState 1:"+repositoryState);
 
-        try(Git git=new Git(repository)) {
+        try (Git git = new Git(repository)) {
             CheckoutCommand checkoutCommand = git.checkout();
 //            ResetCommand resetCommand = git.reset();
 //            resetCommand.addPath(pathUtils.replaceSep(fileName));
@@ -340,7 +249,7 @@ public class FileImpl implements FileService {
             }
             checkoutCommand.call();
             File file = new File(fileName);
-            FileInfoWithBlobs infoWithBLOBs = infoMapper.selectByPrimaryKey(pathUtils.getFileWithPathSegment(repoPath,pathUtils.replaceSep(fileName)));
+            FileInfoWithBlobs infoWithBLOBs = infoMapper.selectByPrimaryKey(pathUtils.getFileWithPathSegment(repoPath, pathUtils.replaceSep(fileName)));
             infoWithBLOBs.setIssolve(0);
             infoMapper.updateByPrimaryKeySelective(infoWithBLOBs);
         }
@@ -353,18 +262,18 @@ public class FileImpl implements FileService {
 
     @Override
     public List<String> getFileContent(String filePath) throws Exception {
-        FileUtils fileUtils=new FileUtils();
-        PathUtils pathUtils=new PathUtils();
-        List<String> fileContent=null;
-        if(filePath!=null){
-            fileContent=fileUtils.readFile(new File(pathUtils.getSystemCompatiblePath(filePath)));
+        FileUtils fileUtils = new FileUtils();
+        PathUtils pathUtils = new PathUtils();
+        List<String> fileContent = null;
+        if (filePath != null) {
+            fileContent = fileUtils.readFile(new File(pathUtils.getSystemCompatiblePath(filePath)));
         }
         return fileContent;
     }
 
     @Override
-    public  void renameFileAndUpdateTree(String filePath, String newFileName,String repoPath) throws FileNotFoundException {
-        PathUtils pathUtils=new PathUtils();
+    public void renameFileAndUpdateTree(String filePath, String newFileName, String repoPath) throws FileNotFoundException {
+        PathUtils pathUtils = new PathUtils();
         File file = new File(filePath);
         //1.判断文件
         if (!file.exists()) {
@@ -372,10 +281,10 @@ public class FileImpl implements FileService {
         }
         //2.文件
         if (file.isFile()) {
-            FileInfoWithBlobs info=infoMapper.selectByPrimaryKey(filePath);
+            FileInfoWithBlobs info = infoMapper.selectByPrimaryKey(filePath);
             String newPath = file.getParent() + File.separator + newFileName;
             if (file.renameTo(new File(newPath))) {
-                if(info!=null){
+                if (info != null) {
                     info.setPath(newPath);
 //                    info.setRelPath(pathUtils.getRelativePath(repoPath,newPath));
                     info.setFilename(newFileName);
@@ -387,14 +296,14 @@ public class FileImpl implements FileService {
         //3.文件夹
         if (file.isDirectory()) {
             String newPath = file.getParent() + File.separator + newFileName;
-            List<FileInfoWithBlobs> infos=infoMapper.getAllFiles(pathUtils.getSystemCompatiblePath(repoPath));
+            List<FileInfoWithBlobs> infos = infoMapper.getAllFiles(pathUtils.getSystemCompatiblePath(repoPath));
             if (file.renameTo(new File(newPath))) {
-                for(FileInfoWithBlobs fileInfo:infos){
+                for (FileInfoWithBlobs fileInfo : infos) {
 //                    logger.info("ours"+ fileInfo.getOurs());
 //                    logger.info("theirs"+ fileInfo.getTheirs());
-                    String oldPath=fileInfo.getPath();
-                    if(oldPath.startsWith(filePath)){
-                        String newSonPath=oldPath.replace(filePath,newPath);
+                    String oldPath = fileInfo.getPath();
+                    if (oldPath.startsWith(filePath)) {
+                        String newSonPath = oldPath.replace(filePath, newPath);
 //                        String newRelPath=pathUtils.getRelativePath(repoPath,newSonPath);
 //                        fileInfo.setRelPath(newRelPath);
                         fileInfo.setPath(newSonPath);
@@ -425,12 +334,12 @@ public class FileImpl implements FileService {
 //    }
 
     @Override
-    public void addFileAndUpdateTree(String filePath,String fileType) throws IOException {
+    public void addFileAndUpdateTree(String filePath, String fileType) throws IOException {
         try {
             Path path = Paths.get(filePath);
-            if(fileType.equals("file")) {
+            if (fileType.equals("file")) {
                 Files.createFile(path);
-            //            }else if(fileType.equals("direction")){     //TODO: typo of directory，需要改所有的 typo 和文档
+                //            }else if(fileType.equals("direction")){     //TODO: typo of directory，需要改所有的 typo 和文档
             } else {
                 Files.createDirectories(path);
             }
@@ -443,20 +352,20 @@ public class FileImpl implements FileService {
 
     @Override
     public void deleteFileAndUpdateTree(String filePath, String repoPath) throws IOException {
-        File newFile=new File(filePath);
-        if(newFile.exists()){
-            if(newFile.isFile()){
-                FileInfoWithBlobs info=infoMapper.selectByPrimaryKey(filePath);
-                if(info!=null){
+        File newFile = new File(filePath);
+        if (newFile.exists()) {
+            if (newFile.isFile()) {
+                FileInfoWithBlobs info = infoMapper.selectByPrimaryKey(filePath);
+                if (info != null) {
                     infoMapper.deleteByPrimaryKey(filePath);
                 }
                 newFile.delete();
             }
-            if(newFile.isDirectory()){
-                List<FileInfoWithBlobs> infos=infoMapper.getAllFiles(repoPath);
-                for (FileInfoWithBlobs info:infos) {
-                    String oldPath=info.getPath();
-                    if(oldPath.startsWith(filePath)){
+            if (newFile.isDirectory()) {
+                List<FileInfoWithBlobs> infos = infoMapper.getAllFiles(repoPath);
+                for (FileInfoWithBlobs info : infos) {
+                    String oldPath = info.getPath();
+                    if (oldPath.startsWith(filePath)) {
                         infoMapper.deleteByPrimaryKey(oldPath);
                     }
                 }
