@@ -11,19 +11,18 @@ WORKDIR /app
 COPY ui/conflict-manager/pom.xml ./
 COPY ui/conflict-manager/src ./src
 
-# If using Maven, install dependencies and build
+# install maven and gosu
 RUN apt-get update && \
-     apt-get install -y maven git && \
+     apt-get install -y maven git gosu && \
      rm -rf /var/lib/apt/lists/* && \
-     git config --global safe.directory '*' && \
-     git config --global user.name "mergebot-backend" && \
-     git config --global user.email "mergebot-backend@gmail.com" && \
-     mvn clean install
+     gosu nobody true && \
+     mvn clean install -Dmaven.repo.local=/app/.m2
+
+COPY docker/backend/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod a+x /usr/local/bin/docker-entrypoint.sh
 
 
 # Expose the port the backend runs on
 EXPOSE 8080
 
-# Define the command to run the backend
-# Adjust the jar file name as necessary
-CMD ["mvn", "spring-boot:run"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
