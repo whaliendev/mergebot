@@ -1,167 +1,187 @@
-<h2 align="center">mergebot</h2>
-<p align="center">a structured git conflicts analysis tool</p>
+## MergeBot
 
-<a href="./docs/README.zh-CN.md">简体中文</a>&nbsp;|&nbsp;<a href="./README.md">
-English</a>
+A platform of Semi-strucutred merge conflict resolution for C/C++ code. It internally uses MergeSyn (syntactic + synthesis) to recommend solutions for resolving C/C++ merge conflicts. This algorithm leverages [GLR parsing](https://tree-sitter.github.io/tree-sitter/) and the widely adopted [Language Server Protocol](https://microsoft.github.io/language-server-protocol/) to implement a semi-structured merging approach for C/C++. Additionally, it employs a method based on program synthesis and predefined rules as a more fine-grained supplement.
+
+### Features
+
+- **User-friendly Interface**: An interactive web app is designed to help users resolve large-scale merge conflicts more straightforward.
+- **Conflict Resolution Recommendations**: Integrates semi-structured merging methods and program synthesis techniques to provide resolution strategies.
+- **Proactive Error Prevention**: Utilizes character-level real-time diff display and proactive measures to minimize incorrect or forgotten conflict resolutions.
+- **Extensive File Operation Support**: Supports various file operations, including creating, deleting, modifying, querying files and folders.
+- **Seamless CI Integration**: Integrates with enterprise CI processes through Jenkins to enhance code integration efficiency.
+
+### Preview
+
+**File Tree**
+![file tree view](docs/imgs/file-tree.png)
+
+**Resolution Recommendation**
+![resolution recommendation](docs/imgs/recommendation.png)
+
+**Real-time Diff between Pre- and Post- Resolution**
+![real time diff](docs/imgs/real-time-diff.png)
+
+**Proactive Prevention**
+![proactive-prevention](docs/imgs/proactive-prevention.png)
+
+### Usage
+
+Note: MergeBot was originally designed for integration into enterprise-level CI pipelines and supports only Unix-style paths. Consequently, it is compatible for deployment and use exclusively on macOS and Linux systems. On Windows, you can experience it using the Windows Subsystem for Linux (WSL) or a virtual machine.
+
+#### Web App
+
+1. **Prerequisites**
+   Ensure that Docker and Docker Compose are installed on your system. If they are not installed, please refer to the [Docker installation guide](https://docs.docker.com/get-started/get-docker/) and the [Docker Compose installation guide](https://docs.docker.com/compose/install/).
+
+2. **Project Preparation**
+   MergeSyn, the recommended solution algorithm, relies on a compile_commands.json file for dependency and semantic analysis due to the limitations of the C/C++ static analysis toolchain. For an optimal experience, it is recommended to use a project with the following characteristics:
+
+- Primary Language: C/C++
+- Buildable Version: At least one version that can be successfully built (used to generate compile_commands.json)
+- Merge Conflict Scenario: At least one merge conflict scenario
+
+To prepare your project:
+
+```shell
+# clone a C/C++ project
+git clone <C/C++ project repository> <project_path>
+```
+
+If the project uses CMake, generate compile_commands.json with:
+
+```shell
+cmake -Bbuild -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release .
+```
+
+If the project uses Make, generate compile_commands.json with:
+
+```shell
+bear -- make
+```
+
+MergeSyn will automatically detect the compile_commands.json file. If it is not found, the performance or functionality of the MergeSyn algorithm may be adversely affected.
+
+Next, switch to a specific target version and merge another source version:
+
+```shell
+git checkout <target>
+git merge <source>
+```
+
+3. **Run the Web App**
+   After preparing the project, you can launch MergeBot using Docker Compose:
+
+```shell
+# Clone the MergeBot repository
+git clone https://github.com/whaliendev/mergebot.git
+
+# Navigate to the MergeBot project directory
+cd <mergebot_project_path>
+
+# Start Docker Compose
+REPOS_DIR=<project_path> LOCAL_USER_ID=$(id -u) sudo -E docker compose up
+```
+
+4. **Access the Web App**
+   Once the web app is running, access it via your browser at http://127.0.0.1:3000.
+
+---
+
+If the above instructions appear complex, you can use our pre-configured setup script to simplify project preparation and running the web app.
+
+**Ensure Docker and Docker Compose are installed before executing the following commands:**
+
+```shell
+# Clone the MergeBot repository
+git clone https://github.com/whaliendev/mergebot.git
+
+# Navigate to the MergeBot project directory
+cd <mergebot_project_path>
+
+# Run the setup script
+./assets/prepare-repos.sh
+# For more information, use:
+# ./assets/prepare-repos.sh --help
+
+# Start the web app
+REPOS_DIR=<project_path> LOCAL_USER_ID=$(id -u) sudo -E docker compose up
+```
+
+**Note:**
+
+- If you leave the `REPOS_DIR` variable blank when running the setup script, the <project_path> for the web app should be set to `~/example-repos`.
+- Alternatively, you can specify the `REPOS_DIR` variable with your desired directory when running the web app.
+
+#### CLI
+
+MergeSyn can also be used as a standalone command-line tool. To use MergeSyn, follow these steps:
+
+1. **Prerequisites**
+   Ensure that Docker and Docker Compose are installed on your system. If they are not installed, please refer to the [Docker installation guide](https://docs.docker.com/get-started/get-docker/) and the [Docker Compose installation guide](https://docs.docker.com/compose/install/).
+
+2. **Project Preparation**
+   Prepare your project as described in the Web App section. Either use the setup script or manually prepare your project.
+
+3. **Run MergeSyn**
+
+```shell
+REPOS_DIR=<project_path> LOCAL_USER_ID=$(id -u) \
+sudo -E \
+docker run --rm \
+  --name MergeSyn \
+  -p 18080:18080 \
+  -e LOCAL_USER_ID=${LOCAL_USER_ID} \
+  -e REPOS_DIR=${REPOS_DIR} \
+  -v ${REPOS_DIR}:${REPOS_DIR} \
+  whalien52/mergebot-sa:v1.5.0
+```
+
+you also need to specify <project_path> to the directory containing the project you want to analyze.
+
+4. **Access the CLI via REST API**
+   Refer to the [API Documentation](docs/api-mergebot-sa.md) for more information on how to interact with the MergeSyn CLI.
 
 ### Build
 
-> **Note:**
->
-> mergebot can only be built and run on Unix-like systems.
+Refer to [the Build Guide](docs/build-guide.md).
 
-#### Dependencies
+### Development
 
-Before building mergebot, you need to install some tools and libraries.
+#### Frontend
 
-mergebot has two categories of dependencies:
+Refer to [Frontend README](ui/frontend/README.md).
 
-1. Base environment, such as Python and CMake. These are essential tools and
-   environments required for building and running modern C++ projects.
+#### Backend
 
-2. External dependency packages or frameworks, such as onetbb and Boost::Graph.
-   These are additional software packages or libraries needed for mergebot to
-   perform specific tasks.
+Refer to [Backend README](ui/conflict-manager/README.md).
 
-**1. Base Environment**
+#### MergeSyn
 
-| Package | Version   | What                         | Notes                                                                                                                              |
-|---------|-----------|------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
-| GCC     | \>=9      | C/C++ compiler               | mergebot requires a C++17 compliant compiler for building                                                                          |
-| python  | \>=3.6    | scripts and package manager  | We use Python and conan2 for managing third-party dependencies                                                                     |
-| CMake   | \>=3.21.3 | Makefile/workspace generator | CMake is the de facto standard build system generator for C++ projects. We use a relatively new version to utilize modern features |
-
-**Installation**
-
-+ Install gcc >= 9 on Ubuntu 16.04
-
-> The following commands are taken
-> from: [askubuntu](http://askubuntu.com/a/581497)
->
-> ```shell
-> sudo apt-get update && \
-> sudo apt-get install build-essential software-properties-common -y && \
-> sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
-> sudo apt-get update && \
-> sudo apt-get install gcc-snapshot -y && \
-> sudo apt-get update && \
-> sudo apt-get install gcc-6 g++-6 -y && \
-> sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-6 60 --slave /usr/bin/g++ g++ /usr/bin/g++-6 && \
-> sudo apt-get install gcc-4.8 g++-4.8 -y && \
-> sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 60 --slave /usr/bin/g++ g++ /usr/bin/g++-4.8
-> ```
->
-> After completion, you must switch to the desired gcc version by entering the
-> following in the terminal:
-> `sudo update-alternatives --config gcc`
->
-> To verify if the switch was successful, simply type in the terminal:
-> `gcc -v`
-
-+ Python 3.6/3.7:
-
-Install from the [Python official website](https://www.python.org/downloads/),
-or install [Miniconda](https://docs.conda.io/en/main/miniconda.html) or
-[Anaconda](https://www.anaconda.com/download).
-
-+ CMake:
+After configuring gcc, cmake, ninja, python, and conan according to the Build Guide, in the current directory:
 
 ```shell
-pip install cmake
+# install external dependencies, such as tree-sitter, Boost::graph, LLVM etc.
+conan install . --build=missing -r=conancenter -s build_type=Debug
+
+# cmake configure
+cmake --preset conan-debug
+
+# cmake build
+cmake --build build/Debug
 ```
 
-+ Ninja:
+Change the `--preset` and `--build` options to `conan-release` and `build/Release` for release build.
 
-```shell
-pip install ninja
-```
 
-2. External Dependencies
+> **Note**: This project also provides a developer-friendly interface for integration with other resolution recommendation algorithms. For example, our funder integrates learning-based methods and LLM-based methods to give recommendations across various languages in the AOSP project integration. You can refer to the integration guide in the [Frontend README](ui/frontend/README.md).
 
-Starting from mergebot-v0.5, we introduced conan2 to manage external
-dependencies.
-Before using conan2 to manage external dependencies, we need to install and
-initialize it:
 
-+ Installation
+### LICENSE
 
-```shell
-pip install conan
-```
+[Apache 2.0](LICENSE)
 
-+ Initialization
+<center>Copyright © 2024 HuaHe</center>
 
-Generate a default conan2 profile first:
+---
 
-```shell
-conan profile detect --force
-```
-
-Then, modify the C++ compiler standard to gnu17 in the default profile of
-conan2:
-
-```shell
-sed -i 's/compiler.cppstd=[^ ]*/compiler.cppstd=gnu17/' ~/.conan2/profiles/default
-```
-
-+ Adding the WHU conan repository
-
-```shell
-conan remote add conan http://43.156.250.168:8081/artifactory/api/conan/conan
-conan remote login conan oppo
-```
-
-After running `conan remote login conan oppo`, you will be prompted to enter the
-password to continue. The password is: xxxxxxxxxxxxxxxx.
-
-Once these steps are completed, we can use conan to manage the project's
-dependencies.
-
-We can install all external libraries using the following command:
-
-```shell
-cd <mergebot's base directory>
-conan install . --build=missing -r=conan -r=conancenter -s build_type=[Release | RelWithDebInfo | Debug | MinSizeRel]
-```
-
-On a machine with a 6-core Intel i5 and 32GB RAM, this command takes
-approximately 1.5 hours to install mergebot's dependencies. Of course, you can
-use a machine with more cores and larger memory capacity to speed up this
-process. Fortunately, we only need to perform this process once, and subsequent
-builds will not take as long.
-
-#### Build
-
-```shell
-cmake --preset [conan-debug | conan-release]
-cmake --build build/[Debug | Release]
-```
-
-### Run or Package
-
-+ Run
-
-If all you want is to run the program during development:
-
-```shell
-source build/[Debug | Release]/generators/conanrun.sh
-./build/[Debug | Release]/bin/mergebot
-```
-
-+ Package
-
-After a successful build, the `{MB_BIN_DIR}` will be populated with utility
-scripts and mergebot binaries. You can directly
-package or move this directory to deploy it on any Unix system with the same
-distribution and major version by running:
-
-```shell
-cd {mergebot dir}/build/[Debug | Release]/bin
-./mergebot.run
-```
-
-> **Notes**
->
-> When you need to deploy to production, it is recommended to set
-> the `build_type` to `Release` in the `conan install ...` command mentioned
-> above.
+<p align="center"><b>If you like my project, feel free to give my repo a star~ :star: :arrow_up:. </b></p>
