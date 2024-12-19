@@ -1,32 +1,33 @@
-## MergeSyn API Documentation
+## mergebot-sa 接口文档
 
-### 1 Basics
+### 1 基础
 
-#### 1.1 Base URL
+#### 1.1 Base Url
 
-All endpoints of MergeSyn share a common base URL. The format is as follows:
+mergebot-sa 部分接口有共同的基地址（base url）。格式如下：
 
 ```shell
 http(s)://{host ip}:18080/api/sa
 ```
 
-For example, if deployed on the internal IP `10.128.140.191`, the merge scenario register endpoint URL is:
+比如，如果部署在内网的ip`10.128.140.191`下，则ms接口的地址是：
 
 ```shell
 http://10.128.140.191:18080/api/sa/ms
 ```
 
-The resolve endpoint URL is:
+resolve接口的地址是：
 
 ```shell
 http://10.128.140.191:18080/api/sa/resolve
 ```
 
-#### 1.2 Request Body Description
+#### 1.2 请求体说明
 
-For ease of development, all mergebot-sa endpoints use the `POST` method and transmit data in the request body with `Content-Type` set to `application/json`. Currently, none of the endpoints require authentication.
+为开发简便，mergebot-sa 部分接口全部采用`POST`方法，在请求体(Body)
+中传输`Content-Type`为`application/json`格式的数据。目前所有的接口均未添加鉴权。
 
-The request body follows this format:
+请求体有如下格式：
 
 ```
 {
@@ -35,27 +36,11 @@ The request body follows this format:
 }
 ```
 
-**Each request must include the necessary fields. The existence and validity of required fields are checked.** For example, for the project configuration addition endpoint, the request body will validate whether the project path exists on the host machine and is a valid Git repository.
+**对于每一个请求传输必要的字段，必要的字段的存在性，有效性均会得到检查。**比如对于上述添加项目配置接口的请求体，会校验项目路径是否存在在宿主机上且是否为有效的 git 仓库。
 
-#### 1.3 Response Body Description
+#### 1.3 响应体说明
 
-Responses from MergeSyn follow the format below:
-
-```json
-{
-  "code": "00000",
-  "msg": "",
-  "data": null
-}
-```
-
-The core fields are `code`, `msg`, and `data`.
-
-- **`code`**: Indicates the status of the request processing. For example, "00000" signifies a successful operation (**When the code is not "00000", the HTTP status code will not be 200, there must be an error and `msg` field will be populated**). Codes starting with "U" denote user operation errors, "C" denote client errors, and "S" denote server errors. Additionally, the HTTP status codes correspond accordingly, with successful requests returning `200`, client-side errors returning `4xx`, and server-side errors returning `5xx`.
-- **`msg`**: If `code` is `00000`, this field is empty. If `code` is not `00000`, it contains the corresponding error message. (**This means `msg` is an error message and is only populated when an error occurs**).
-- **`data`**: If `code` is `00000`, this field contains the relevant data. Otherwise, it is generally `null`.
-
-Example of a successful response:
+mergebot-sa 部分响应体遵循如下格式：
 
 ```json
 {
@@ -65,49 +50,65 @@ Example of a successful response:
 }
 ```
 
-Example of a failed response:
+核心为`code`, `msg`和`data`三个字段。
+
+其中 code 字段表示请求处理状态，如用"00000"表示处理成功（**非"00000"时， http status code非200，并且一定有错误，`msg`会被填充**）；使用"U"开头的状态表示用户操作错误，使用"C"开头的状态表示客户端的错误，使用"S"开头的状态码表示服务端错误。此外，http状态码也会得到对应的设置，如请求成功返回`200`，用户端和客户端错误返回`4xx`，服务端错误返回`5xx`。
+
+对应的，如果`code`为`00000`，`msg`会置空，`data`字段会填充对应的数据；如果`code`字段非'00000',则`msg`字段会提示对应的错误信息，`data`字段一般为`null`。(**也就是说，这里的msg是error msg，只有在有错误时才会填充**)
+
+如下为一个成功的响应体：
+
+```json
+{
+  "code": "00000",
+  "msg": "",
+  "data": null
+}
+```
+
+以下为一个请求失败的响应体：
 
 ```json
 {
   "code": "U1000",
-  "msg": "There are no conflicting C/C++ files in the project [frameworks_av] at path [/home/whalien/Desktop/frameworks_av]. MBSA cannot process this project at the moment.",
+  "msg": "在路径[/home/whalien/Desktop/frameworks_av]下的项目[frameworks_av]中无冲突的C/C++文件，MBSA暂时无法处理该项目",
   "data": null
 }
 ```
 
-### 2 API Documentation
+### 2 接口文档
 
-MergeSyn currently has two endpoints: Start Merge Conflict Resolution Algorithm and Get Merge Conflict Resolutions.
+mergebot-sa 目前有两个接口：启动合并冲突解决算法、获取合并冲突解决方案。
 
-#### 2.1 Start Merge Conflict Resolution Algorithm
+#### 2.1 启动合并冲突解决算法
 
-**Functinality**：Initiates the merge conflict resolution analysis algorithm.
+**接口功能**：启动合并冲突解决程序分析算法
 
-**Description：** Since the average runtime of MergeSyn is undeterministic and HTTP has a timeout, this endpoint returns success immediately after validating the parameters. The algorithm runs in detached mode on the server. The final merge conflict resolution results can be obtained by polling the Get Merge Conflict Resolutions endpoint (2.2) or by establishing a long connection.
+**说明：**由于 mergebot-sa 算法最终版的平均运行时间未知，又 http 有 timeout 时间，目前此接口在校验完参数的合理性后会直接返回成功。算法以 detach 模式运行在服务器上。通过轮询 2.2 获取合并冲突解决方案接口或建立长连接的方式拿到最后的合并冲突解决结果。
 
-**Endpoint URL：**`{baseUrl}/ms`
+**接口请求地址：**`{baseUrl}/ms`
 
-**Request Headers：**
+**请求头：**
 
-| Header Key   | Header Value     | Description                     |
-| ------------ | ---------------- | ------------------------------- |
-| Content-Type | application/json | Type of request body parameters |
+| header key   | header value     | 说明      |
+|--------------|------------------|---------|
+| Content-Type | application/json | 请求体参数类型 |
 
-**HTTP Method：**`POST`
+**请求方法：**`POST`
 
-**Request Parameters：**
+**请求参数：**
 
-| Field                                                  | Type                                                         | Description                                                  | Notes                                                        |
-| ------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| project                                                | string, optional                                             | Project name                                                 |                                                              |
-| <font color="red">*</font>path                         | string, 必选项                                               | The absolute path of the project on the host machine         |                                                              |
-| <font color="red">*</font>ms                           | object, required，format: `{"ours": "v3.0~146^2~62", "theirs": "2.8.fb~148"} | Represents the merge scenario, where `ours` and `theirs` are the revision names of the two commit nodes (can be long hashes, uniquely identifying short hashes, branch names, or tag names) |                                                              |
-| <font color="red">v1.2 New Field</font>compile_db_path | string, optional                                             | The location of `compile_commands.json` to improve the algorithm's accuracy | If provided, the existence of the file will be validated.<br />If not provided, the algorithm will automatically search the project root directory and the `build` directory under the project root. <br />If not found, the algorithm will automatically skip the graph-based analysis. |
-| files                                                  | list of string, optional                                     | If not provided, MergeSyn service will check the conflicting files in the project repository itself; if provided, it indicates all conflicting files under this merge scenario. Can be absolute paths or relative paths. | The debug build MergeSyn service will check whether the first file in the list is an absolute or relative path and whether it exists on the host machine. If invalid, it will be rejected. |
+| 字段                                               | 类型                                                                 | 说明                                                                                    |                                                                                   |
+|--------------------------------------------------|--------------------------------------------------------------------|---------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| project                                          | string, 可选项                                                        | 项目名称                                                                                  |                                                                                   |
+| <font color="red">*</font>path                   | string, 必选项                                                        | 表示项目在宿主机器上的绝对路径                                                                       |                                                                                   |
+| <font color="red">*</font>ms                     | object, 必选项，格式为`{"ours": "v3.0~146^2~62", "theirs": "2.8.fb~148"}` | 表示合并场景，其中的 ours 和 theirs 分别表示两个 commit 结点的 revision name（可以为长哈希、唯一确定提交对象的短哈希、分支名、标签名） |                                                                                   |
+| <font color="red">v1.2新增字段</font>compile_db_path | string, 可选项                                                        | 表示提高算法精确度的compile_commands.json的位置                                                    | 如果传入会校验文件的存在性。<br />如果不传入算法会自动搜索项目根目录和项目根目录的build目录下。<br />如果未找到，算法会自动跳过基于图算法的分析。 |
+| files                                            | list of string, 可选项。                                               | 如果不传，则表示有sa服务自行检查项目仓库下的冲突文件；若传值，则表示该合并场景下的所有冲突文件。可以为绝对路径，也可以为相对路径。                    | Debug构建的sa服务会检查列表中的第一个文件是绝对路径还是相对路径，以及是否存在于宿主机上。如果不合法会拒绝。                         |
 
-All these options are validated for existence and validity on the server side.
+以上选项在服务端均会校验其存在性与有效性。
 
-**Request Example：**
+**请求示例：**
 
 ```json
 {
@@ -127,9 +128,9 @@ All these options are validated for existence and validity on the server side.
 }
 ```
 
-**Response Example：**
+**响应示例：**
 
-Success：
+成功：
 
 ```json
 {
@@ -139,46 +140,50 @@ Success：
 }
 ```
 
-Failure：
+失败：
 
 ```json
 {
   "code": "C1000",
-  "msg": "Invalid or non-unique merge scenario hash value.",
+  "msg": "合并场景哈希值不合法或不唯一",
   "data": null
 }
 ```
 
-#### 2.2 Get Merge Conflict Resolutions
+#### 2.2 获取合并冲突解决方案
 
-**Functionality**：Retrieves the merge conflict resolution solution.
+**接口功能**：获取合并冲突解决方案
 
-**Endpoint URL：**`{baseUrl}/resolve`
+**接口请求地址：**`{baseUrl}/resolve`
 
-**Request Headers**:
+**请求头：**
 
-| Header Key   | Header Value     | Description                     |
-| ------------ | ---------------- | ------------------------------- |
-| Content-Type | application/json | Type of request body parameters |
+| header key   | header value     | 说明      |
+|--------------|------------------|---------|
+| Content-Type | application/json | 请求体参数类型 |
 
-**HTTP Method：**`POST`
+**请求方法：**`POST`
 
-**Request Parameters：**
+**请求参数：**
 
-| Field                          | Type                                                         | Description                                                  |
-| ------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| project                        | string, optional                                             | project name                                                 |
-| <font color="red">*</font>path | string, required                                             | The absolute path of the project on the host machine         |
-| <font color="red">*</font>file | string, required                                             | The relative path of the file in the project, such as "db/db_impl.cc" (absolute paths are also accepted and will be properly handled) |
-| <font color="red">*</font>ms   | object, required, format: `{"ours": "v3.0~146^2~62", "theirs": "2.8.fb~148"}` | Represents the merge scenario, where `ours` and `theirs` are the revision names of the two commit nodes (can be long hashes, uniquely identifying short hashes, branch names, or tag names) |
+| 字段                             | 类型                                                                 | 说明                                                                                    |
+|--------------------------------|--------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| project                        | string, 可选项                                                        | 项目名称                                                                                  |
+| <font color="red">*</font>path | string, 必选项                                                        | 表示项目在宿主机器上的绝对路径                                                                       |
+| <font color="red">*</font>file | string, 必选项                                                        | 项目中的文件相对路径，如"db/db_impl.cc"（绝对路径也行，会得到合适的处理）                                          |
+| <font color="red">*</font>ms   | object, 必选项，格式为`{"ours": "v3.0~146^2~62", "theirs": "2.8.fb~148"}` | 表示合并场景，其中的 ours 和 theirs 分别表示两个 commit 结点的 revision name（可以为长哈希、唯一确定提交对象的短哈希、分支名、标签名） |
 
-All these options are validated for existence and validity on the server side.
+以上选项在服务端均会校验其存在性与有效性。
 
-<font color="red">~~v1.2 New: The resolve API will return a `patches` array in the `data` field, representing a more precise solution patch for the file. Each patch includes `start`, `offset`, and `content`, indicating that starting from `start` (1-based), replace `offset` lines in the conflict file with `content`~~</font>
+<font color="red">~~v1.2新增：resolve api会在"data"
+字段中多返回一个patches数组，表示更准确的，针对文件的解决方案patch。其中start,
+offset, content分别表示需要把冲突文件中的从start (1-based)
+开始的offset行，替换为content的内容~~</font>
 
-<font color="red">v1.3 Update: The resolve API will return a `merged` array in the `data` field, representing a more accurate merged solution for the file, allowing the frontend to perform diffs and display them to the user.</font>
+<font color="red">v1.3变更：resolve api 会在 "data"
+字段中返回一个merged数组，表示更准确的，针对文件的合并后的解决方案，交由前端进行diff并显示给用户。</font>
 
-**Request Example：**
+**请求示例：**
 
 ```json
 {
@@ -191,9 +196,9 @@ All these options are validated for existence and validity on the server side.
 }
 ```
 
-**Response Example：**
+**响应示例：**
 
-Success：
+成功：
 
 ```json
 {
@@ -767,9 +772,9 @@ Success：
 }
 ```
 
-**Note**: The response includes a `pending` field. When `pending` is `true`, it indicates that the algorithm is still processing, and a timer should be added to poll for results. When `pending` is `false`, it means the algorithm has finished processing, even if the `resolutions` and `merged` lists are empty, indicating that the algorithm has completed (typically, after calling the ms endpoint, the resolve API will terminate all analyses after 15 seconds).
+**注意：响应中有个`pending`字段，为`true`时表示算法依然在处理，也就是需要加一个定时器来轮询结果。当pending为`false`时，表示算法已处理完，即使resolutions，merged列表为空，算法也已处理结束。**（一般在ms endpoint调用完15s后resolve api会结束所有分析）
 
-A more detailed successful example:：
+一个更详细的成功示例：
 
 ```json
 {
@@ -791,7 +796,7 @@ A more detailed successful example:：
                 "label": "",
                 "index": 1,
                 "confidence": 0.7,
-                "desc": "Declarations Merge"
+                "desc": "声明合并"
             }
         ],
         "merged": [
@@ -921,12 +926,12 @@ A more detailed successful example:：
 }
 ```
 
-Failure：
+失败：
 
 ```json
 {
   "code": "C1000",
-  "msg": "The file [./db_k/db_impl.cc] for which conflict resolution results are to be retrieved does not exist in the Git repository.",
+  "msg": "待获取冲突消解结果的文件[./db_k/db_impl.cc]不存在于Git仓库中",
   "data": null
 }
 ```
