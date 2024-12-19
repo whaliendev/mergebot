@@ -129,7 +129,7 @@ All these options are validated for existence and validity on the server side.
 
 **Response Example：**
 
-Success：
+**Success：**
 
 ```json
 {
@@ -139,7 +139,7 @@ Success：
 }
 ```
 
-Failure：
+**Failure：**
 
 ```json
 {
@@ -193,7 +193,7 @@ All these options are validated for existence and validity on the server side.
 
 **Response Example：**
 
-Success：
+**Success：**
 
 ```json
 {
@@ -921,7 +921,7 @@ A more detailed successful example:：
 }
 ```
 
-Failure：
+**Failure：**
 
 ```json
 {
