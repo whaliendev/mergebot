@@ -34,7 +34,7 @@ Note: MergeBot was originally designed for integration into enterprise-level CI 
    Ensure that Docker and Docker Compose are installed on your system. If they are not installed, please refer to the [Docker installation guide](https://docs.docker.com/get-started/get-docker/) and the [Docker Compose installation guide](https://docs.docker.com/compose/install/).
 
 2. **Project Preparation**
-   MergeSyn, the recommended solution algorithm, relies on a compile_commands.json file for dependency and semantic analysis due to the limitations of the C/C++ static analysis toolchain. For an optimal experience, it is recommended to use a project with the following characteristics:
+   MergeSyn, the resolution recommendation algorithm, relies on a [compile_commands.json](https://clang.llvm.org/docs/JSONCompilationDatabase.html) file for dependency analysis and semantic analysis due to the limitations of the C/C++ static analysis toolchain. For an optimal experience, it is recommended to use a project with the following characteristics:
 
     - Primary Language: C/C++
     - Buildable Version: At least one version that can be successfully built (used to generate compile_commands.json)
@@ -87,7 +87,7 @@ REPOS_DIR=<project_path> LOCAL_USER_ID=$(id -u) sudo -E docker compose up
 
 ---
 
-If the above instructions appear complex, you can use our pre-configured setup script to simplify project preparation and running the web app.
+If the above instructions appear complex, you can use our pre-configured [setup script](./assets/prepare-repos.sh) to simplify project preparation and running the web app.
 
 **Ensure Docker and Docker Compose are installed before executing the following commands:**
 
@@ -120,7 +120,7 @@ MergeSyn can also be used as a standalone command-line tool. To use MergeSyn, fo
    Ensure that Docker and Docker Compose are installed on your system. If they are not installed, please refer to the [Docker installation guide](https://docs.docker.com/get-started/get-docker/) and the [Docker Compose installation guide](https://docs.docker.com/compose/install/).
 
 2. **Project Preparation**
-   Prepare your project as described in the Web App section. Either use the setup script or manually prepare your project.
+   Prepare your project as described in the Web App section. Either use the [setup script](./assets/prepare-repos.sh) or manually prepare your project.
 
 3. **Run MergeSyn**
 
