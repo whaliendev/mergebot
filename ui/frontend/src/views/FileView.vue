@@ -355,7 +355,7 @@ export default {
                   message: "Commit successfully (amend, modify commit message)",
                   type: "success",
                 });
-              } else if (data.repositoryState === "MERGING_RESOLVED") {
+              } else {
                 this.$message({
                   showClose: true,
                   message: "Commit successfully",
