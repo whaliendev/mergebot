@@ -36,9 +36,9 @@ Note: MergeBot was originally designed for integration into enterprise-level CI 
 2. **Project Preparation**
    MergeSyn, the recommended solution algorithm, relies on a compile_commands.json file for dependency and semantic analysis due to the limitations of the C/C++ static analysis toolchain. For an optimal experience, it is recommended to use a project with the following characteristics:
 
-- Primary Language: C/C++
-- Buildable Version: At least one version that can be successfully built (used to generate compile_commands.json)
-- Merge Conflict Scenario: At least one merge conflict scenario
+    - Primary Language: C/C++
+    - Buildable Version: At least one version that can be successfully built (used to generate compile_commands.json)
+    - Merge Conflict Scenario: At least one merge conflict scenario
 
 To prepare your project:
 
