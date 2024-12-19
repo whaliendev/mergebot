@@ -1,6 +1,6 @@
 ## MergeBot
 
-A platform of Semi-strucutred merge conflict resolution for C/C++ code. It internally uses MergeSyn (syntactic + synthesis) to recommend solutions for resolving C/C++ merge conflicts. This algorithm leverages [GLR parsing](https://tree-sitter.github.io/tree-sitter/) and the widely adopted [Language Server Protocol](https://microsoft.github.io/language-server-protocol/) to implement a semi-structured merging approach for C/C++. Additionally, it employs a method based on program synthesis and predefined rules as a more fine-grained supplement.
+A platform of semi-strucutred merge conflict resolution for C/C++ code. It internally uses MergeSyn (syntactic + synthesis) to recommend solutions for resolving C/C++ merge conflicts. This algorithm leverages [GLR parsing](https://tree-sitter.github.io/tree-sitter/) and the widely adopted [Language Server Protocol](https://microsoft.github.io/language-server-protocol/) to implement a semi-structured merging approach for C/C++. Additionally, it employs a method based on program synthesis and predefined rules as a more fine-grained supplement.
 
 ### Features
 
