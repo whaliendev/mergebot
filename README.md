@@ -24,6 +24,8 @@ A platform of semi-strucutred merge conflict resolution for C/C++ code. It inter
 **Proactive Prevention**
 ![proactive-prevention](docs/imgs/proactive-prevention.png)
 
+
+
 ### Usage
 
 Note: MergeBot was originally designed for integration into enterprise-level CI pipelines and supports only Unix-style paths. Consequently, it is compatible for deployment and use exclusively on macOS and Linux systems. On Windows, you can experience it using the Windows Subsystem for Linux (WSL) or a virtual machine.
@@ -141,9 +143,13 @@ you also need to specify <project_path> to the directory containing the project 
 4. **Access the CLI via REST API**
    Refer to the [API Documentation](docs/api-mergebot-sa.md) for more information on how to interact with the MergeSyn CLI.
 
+
+
 ### Build
 
 Refer to [the Build Guide](docs/build-guide.md).
+
+
 
 ### Development
 
@@ -174,6 +180,7 @@ Change the `--preset` and `--build` options to `conan-release` and `build/Releas
 
 
 > **Note**: This project also provides a developer-friendly interface for integration with other resolution recommendation algorithms. For example, our funder integrates learning-based methods and LLM-based methods to give recommendations across various languages in the AOSP project integration. You can refer to the integration guide in the [Frontend README](ui/frontend/README.md).
+
 
 
 ### LICENSE
