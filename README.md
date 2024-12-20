@@ -163,7 +163,7 @@ Refer to [Backend README](ui/conflict-manager/README.md).
 
 #### MergeSyn
 
-After configuring gcc, cmake, ninja, python, and conan according to the Build Guide, in the current directory:
+After configuring gcc, cmake, ninja, python, and conan according to [the Build Guide](docs/build-guide.md), in the current directory:
 
 ```shell
 # install external dependencies, such as tree-sitter, Boost::graph, LLVM etc.
