@@ -28,7 +28,7 @@ A platform of semi-strucutred merge conflict resolution for C/C++ code. It inter
 
 ### Usage
 
-Note: MergeBot was originally designed for integration into enterprise-level CI pipelines and supports only Unix-style paths. Consequently, it is compatible for deployment and use exclusively on macOS and Linux systems. On Windows, you can experience it using the Windows Subsystem for Linux (WSL) or a virtual machine.
+> **Note**: MergeBot was originally designed for integration into enterprise-level CI pipelines and supports only Unix-style paths. Consequently, it is compatible for deployment and use exclusively on macOS and Linux systems. On Windows, you can experience it using the Windows Subsystem for Linux (WSL) or a virtual machine.
 
 #### Web App
 
