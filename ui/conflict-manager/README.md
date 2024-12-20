@@ -11,7 +11,7 @@ This subproject is designed to manage metadata related to conflict merge scenari
 
 You can run MySQL and Redis locally or via Docker containers.
 
-> **Note**: All following commands need to run from the `conflict-manager` directory.
+> **Note**: All of the following commands must be run from the conflict-manager directory.
 
 ### Development
 
