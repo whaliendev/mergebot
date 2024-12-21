@@ -46,7 +46,7 @@ To prepare your project:
 
 ```shell
 # clone a C/C++ project
-git clone <C/C++ project repository> <project_path>
+git clone <url of the test C/C++ project repository> <local_project_path>
 ```
 
 If the project uses CMake, generate compile_commands.json with:
@@ -81,7 +81,7 @@ git clone https://github.com/whaliendev/mergebot.git
 cd <mergebot_project_path>
 
 # Start Docker Compose
-REPOS_DIR=<project_path> LOCAL_USER_ID=$(id -u) sudo -E docker compose up
+REPOS_DIR=<local_project_path> LOCAL_USER_ID=$(id -u) sudo -E docker compose up
 ```
 
 4. **Access the Web App**
@@ -101,17 +101,17 @@ git clone https://github.com/whaliendev/mergebot.git
 cd <mergebot_project_path>
 
 # Run the setup script
-./assets/prepare-repos.sh
+./assets/prepare-repos.sh rocksdb
 # For more information, use:
 # ./assets/prepare-repos.sh --help
 
 # Start the web app
-REPOS_DIR=<project_path> LOCAL_USER_ID=$(id -u) sudo -E docker compose up
+REPOS_DIR=<local_project_path> LOCAL_USER_ID=$(id -u) sudo -E docker compose up
 ```
 
 **Note:**
 
-- If you leave the `REPOS_DIR` variable blank when running the setup script, the <project_path> for the web app should be set to `~/example-repos`.
+- If you leave the `REPOS_DIR` variable blank when running the setup script, the <local_project_path> for the docker compose command should be set to `~/example-repos`.
 - Alternatively, you can specify the `REPOS_DIR` variable with your desired directory when running the web app.
 
 #### CLI
@@ -127,7 +127,7 @@ MergeSyn can also be used as a standalone command-line tool. To use MergeSyn, fo
 3. **Run MergeSyn**
 
 ```shell
-REPOS_DIR=<project_path> LOCAL_USER_ID=$(id -u) \
+REPOS_DIR=<local_project_path> LOCAL_USER_ID=$(id -u) \
 sudo -E \
 docker run --rm \
   --name MergeSyn \
@@ -138,7 +138,7 @@ docker run --rm \
   whalien52/mergebot-sa:v1.5.0
 ```
 
-you also need to specify <project_path> to the directory containing the project you want to analyze.
+you also need to specify <local_project_path> to the directory containing the project you want to analyze.
 
 4. **Access the CLI via REST API**
    Refer to the [API Documentation](docs/api-mergebot-sa.md) for more information on how to interact with the MergeSyn CLI.
