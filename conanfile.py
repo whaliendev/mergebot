@@ -157,7 +157,7 @@ class MergebotConan(ConanFile):
     ]
 
     _mergebot_docs = [
-        'README.zh-CN.md',
+        # 'README.zh-CN.md',
         'api-mergebot-sa.md'
     ]
 
