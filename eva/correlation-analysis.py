@@ -58,3 +58,15 @@ print(test_result)
 df = df.sort_values(by="Accuracy", ascending=False)
 df.to_csv("block-level-complete.csv", index=False)
 print("\nDataFrame exported to block-level-complete.csv")
+
+#              Project  Correct  Attempt  Total  Precision  Accuracy  Intervention
+# 7  frameworks/native      121      155    179     0.7806    0.6760        0.8659
+# 0          flameshot       14       19     26     0.7368    0.5385        0.7308
+# 1        system/core       83      117    160     0.7094    0.5188        0.7312
+# 8            rocksdb      118      203    245     0.5813    0.4816        0.8286
+# 5               tmux       39       69     93     0.5652    0.4194        0.7419
+# 2      frameworks/av      105      164    264     0.6402    0.3977        0.6212
+# 4           aosp/art       43       67    128     0.6418    0.3359        0.5234
+# 6             duckdb       47       83    143     0.5663    0.3287        0.5804
+# 9              redis       19       28     68     0.6786    0.2794        0.4118
+# 3               grpc       42      108    152     0.3889    0.2763        0.7105
