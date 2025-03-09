@@ -32,5 +32,6 @@ exec /usr/sbin/gosu appuser bash -c "
   git config --global safe.directory '*' 
   git config --global user.name 'mergebot-backend'
   git config --global user.email 'mergebot-backend@gmail.com'
+  git config --global merge.conflictstyle 'diff3'
   mvn spring-boot:run -Dmaven.repo.local=/app/.m2"
 
