@@ -74,10 +74,13 @@ void StyleBasedHandler::resolveConflictFiles(
       assert((!OurCode.empty() || !TheirCode.empty()) &&
              "at least one side of code should not be empty");
 
-      std::string DeflatedOurs =
-          util::removeCommentsAndSpaces(std::string(OurCode));
-      std::string DeflatedTheirs =
-          util::removeCommentsAndSpaces(std::string(TheirCode));
+      // 先进行宏展开，再移除注释和空格
+      std::string ExpandedOurs = util::doMacroExpansion(OurCode);
+      std::string ExpandedTheirs = util::doMacroExpansion(TheirCode);
+      
+      std::string DeflatedOurs = util::removeCommentsAndSpaces(std::move(ExpandedOurs));
+      std::string DeflatedTheirs = util::removeCommentsAndSpaces(std::move(ExpandedTheirs));
+      
       if (DeflatedOurs == DeflatedTheirs) { // style related conflicts
         spdlog::debug("deflated ours  : {}", DeflatedOurs);
         spdlog::debug("deflated theirs: {}", DeflatedTheirs);
