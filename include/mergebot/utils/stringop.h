@@ -162,14 +162,72 @@ string_join(const Container& cont, const std::string_view separator) {
 }
 
 static std::string removeCommentsAndSpaces(std::string&& code) {
-  // remove line comments, m means make ^, $ match line begin/end in addition to
-  // text begin/end
-  re2::RE2::GlobalReplace(&code, "(?m)//.*", "");
-  // remove block comments, s means make dot match newline
-  re2::RE2::GlobalReplace(&code, "(?s)/\\*.*?\\*/", "");
-  // remove spaces, tabs, newlines, and other whitespace characters
-  re2::RE2::GlobalReplace(&code, "\\s+", "");
-  return code;
+  std::string result;
+  result.reserve(code.size());
+  
+  bool inSingleLineComment = false;
+  bool inMultiLineComment = false;
+  bool inString = false;
+  char stringDelimiter = 0;
+  
+  for (size_t i = 0; i < code.size(); ++i) {
+    char c = code[i];
+    char next = (i + 1 < code.size()) ? code[i + 1] : '\0';
+    
+    if (inString) {
+      if (c == stringDelimiter && code[i - 1] != '\\') {
+        inString = false;
+      }
+      result.push_back(c);
+      continue;
+    }
+    
+    if (c == '"' || c == '\'') {
+      inString = true;
+      stringDelimiter = c;
+      result.push_back(c);
+      continue;
+    }
+    
+    if (inMultiLineComment) {
+      if (c == '*' && next == '/') {
+        inMultiLineComment = false;
+        ++i;
+      }
+      continue;
+    }
+    
+    if (inSingleLineComment) {
+      if (c == '\n') {
+        inSingleLineComment = false;
+      }
+      continue;
+    }
+    
+    if (c == '/' && next == '/') {
+      {
+        inSingleLineComment = true;
+        ++i;
+        continue;
+      }
+    }
+    
+    if (c == '/' && next == '*') {
+      {
+        inMultiLineComment = true;
+        ++i;
+        continue;
+      }
+    }
+    
+    if (!std::isspace(static_cast<unsigned char>(c))) {
+      {
+        result.push_back(c);
+      }
+    }
+  }
+  
+  return result;
 }
 
 static bool starts_with(std::string_view str, std::string_view prefix) {
@@ -225,6 +283,49 @@ inline bool diff_only_in_spaces(std::string_view old_str,
   }
 
   return true;
+}
+
+static std::string doMacroExpansion(std::string_view code) {
+  // define macro replacements
+  static const std::vector<std::pair<std::string_view, std::string_view>> macroReplacements = {
+    {"AT_LEAST_V_OR_202404", "API_LEVEL_AT_LEAST(__ANDROID_API_V__, 202404)"},
+    {"AT_LEAST_U_OR_202304", "API_LEVEL_AT_LEAST(__ANDROID_API_U__, 202304)"},
+    {"AT_LEAST_T_OR_202204", "API_LEVEL_AT_LEAST(__ANDROID_API_T__, 202204)"},
+    {"AT_LEAST_S_OR_202104", "API_LEVEL_AT_LEAST(__ANDROID_API_S__, 202104)"},
+    {"AT_LEAST_R_OR_202004", "API_LEVEL_AT_LEAST(__ANDROID_API_R__, 202004)"},
+    {"AT_LEAST_Q_OR_201904", "API_LEVEL_AT_LEAST(__ANDROID_API_Q__, 201904)"},
+    {"ANDROID_VERSION_V", "__ANDROID_API_V__"},
+    {"ANDROID_VERSION_U", "__ANDROID_API_U__"},
+    {"ANDROID_VERSION_T", "__ANDROID_API_T__"},
+    {"ANDROID_VERSION_S", "__ANDROID_API_S__"},
+    {"ANDROID_VERSION_R", "__ANDROID_API_R__"},
+    {"ANDROID_VERSION_Q", "__ANDROID_API_Q__"},
+    {"API_CHECK_V", "(__ANDROID_API__ >= __ANDROID_API_V__)"},
+    {"API_CHECK_U", "(__ANDROID_API__ >= __ANDROID_API_U__)"},
+    {"API_CHECK_T", "(__ANDROID_API__ >= __ANDROID_API_T__)"},
+    {"API_CHECK_S", "(__ANDROID_API__ >= __ANDROID_API_S__)"},
+    {"API_CHECK_R", "(__ANDROID_API__ >= __ANDROID_API_R__)"},
+    {"API_CHECK_Q", "(__ANDROID_API__ >= __ANDROID_API_Q__)"}
+  };
+
+  std::string result{code};
+  for (const auto& [macro, expansion] : macroReplacements) {
+    size_t pos = 0;
+    while ((pos = result.find(macro, pos)) != std::string::npos) {
+      // make sure the macro is a whole word, in case of partial match
+      bool isValidStart = (pos == 0 || !std::isalnum(result[pos - 1]));
+      bool isValidEnd = (pos + macro.length() == result.length() || 
+                        !std::isalnum(result[pos + macro.length()]));
+      
+      if (isValidStart && isValidEnd) {
+        result.replace(pos, macro.length(), expansion);
+        pos += expansion.length();
+      } else {
+        pos += 1;
+      }
+    }
+  }
+  return result;
 }
 
 }  // namespace util
