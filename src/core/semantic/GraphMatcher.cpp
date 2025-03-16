@@ -11,6 +11,7 @@
 #include "mergebot/core/model/matcher/NamespaceMatcher.h"
 #include "mergebot/core/model/matcher/TranslationUnitMatcher.h"
 #include "mergebot/core/model/matcher/TypeSpecifierMatcher.h"
+#include "mergebot/core/model/matcher/TextualMatcher.h"
 #include "mergebot/core/sa_utility.h"
 
 // #define MB_DEBUG
@@ -154,7 +155,17 @@ void GraphMatcher::bottomUpMatch() {
                      RevisionUnmatchedFSMembers);
   }
 
-  // no need to do this for orphan comment, textual, access specifier
+  // textual node
+  std::vector<std::shared_ptr<SemanticNode>> &BaseUnmatchedTextualNode = Matching.PossiblyDeleted[NodeKind::TEXTUAL];
+  std::vector<std::shared_ptr<SemanticNode>> &RevisionUnmatchedTextualNode = Matching.PossiblyAdded[NodeKind::TEXTUAL];
+  if (BaseUnmatchedTextualNode.size() && RevisionUnmatchedTextualNode.size()) {
+    spdlog::info("bottom-up match Textual Node for Side {}", magic_enum::enum_name(S));
+    TextualMatcher TTMatcher;
+    TTMatcher.match(Matching, BaseUnmatchedTextualNode, RevisionUnmatchedTextualNode);
+  }
+
+  // no need to do this for access specifier, orphan comment
+
 }
 
 TwoWayMatching GraphMatcher::match() {

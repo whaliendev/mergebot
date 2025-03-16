@@ -16,22 +16,24 @@ public:
               const std::string &OriginalSignature, std::string &&Comment,
               const std::optional<ts::Point> &Point, std::string &&USR,
               std::string &&Body, size_t ParentSignatureHash,
-              size_t FollowingEOL, bool IsSynthetic = false)
+              size_t FollowingEOL, const std::string &TUPath, bool IsSynthetic = false)
       : TerminalNode(NodeId, NeedToMerge, Kind, DisplayName, QualifiedName,
                      OriginalSignature, std::move(Comment), Point,
                      std::move(USR), std::move(Body), ParentSignatureHash,
-                     FollowingEOL, IsSynthetic) {}
+                     FollowingEOL, IsSynthetic), TUPath(TUPath) {}
 
-  //  size_t hashSignature() const override {
-  //    size_t H = 1;
-  ////    mergebot::hash_combine(H, this->ParentSignatureHash);
-  //    mergebot::hash_combine(H, this->Body);
-  //    return H;
-  //  }
+    size_t hashSignature() const override {
+      size_t H = 1;
+      //    mergebot::hash_combine(H, this->ParentSignatureHash);
+      mergebot::hash_combine(H, this->Body);
+      return H;
+    }
 
   static bool classof(const SemanticNode *N) {
     return N->getKind() == NodeKind::TEXTUAL;
   }
+
+  std::string TUPath;
 };
 } // namespace sa
 } // namespace mergebot
