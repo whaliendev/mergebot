@@ -47,18 +47,26 @@ private:
       std::vector<std::shared_ptr<SemanticNode>> &BaseChildren,
       const std::vector<std::shared_ptr<SemanticNode>> &TheirChildren);
 
+  /// Merge children nodes from three versions (base, ours, theirs),
+  /// the order is determined by OrderInFavour
   std::vector<std::shared_ptr<SemanticNode>>
   directMergeChildren(const std::shared_ptr<SemanticNode> &OurNode,
                       const std::shared_ptr<SemanticNode> &BaseNode,
                       const std::shared_ptr<SemanticNode> &TheirNode);
 
+  /// Merge children nodes from three versions (base, ours, theirs),
+  /// prioritizing the order from their version
+  /// @param OurNode The node from our version
+  /// @param BaseNode The node from base version
+  /// @param TheirNode The node from their version
+  /// @return A vector of merged children nodes
   std::vector<std::shared_ptr<SemanticNode>>
   directMergeChildrenInOurOrder(const std::shared_ptr<SemanticNode> &OurNode,
                                 const std::shared_ptr<SemanticNode> &BaseNode,
                                 const std::shared_ptr<SemanticNode> &TheirNode);
 
   /// Merge children nodes from three versions (base, ours, theirs),
-  /// prioritizing the order from our version
+  /// prioritizing the order from their version
   /// @param OurNode The node from our version
   /// @param BaseNode The node from base version
   /// @param TheirNode The node from their version
