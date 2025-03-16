@@ -6,7 +6,7 @@
       files</el-button
     >
     <el-button @click="toggleFileButtons" class="file-op-btn"
-      >{{ showFileButtons ? "Show" : "Hide" }}&nbsp;file operations / Shift +
+      >{{ showFileButtons ? "Hide" : "Show" }}&nbsp;file operations / Shift +
       F</el-button
     >
 
@@ -266,7 +266,7 @@
 
 <script>
 const path = require("path");
-
+import Vue from "vue";
 export default {
   name: "FileTree",
   props: {
@@ -336,6 +336,14 @@ export default {
         this.rootFile.childTree = newFiles;
         let norPath = this.rootFile.childTree[0].filePath.replace(/\\/g, "/"); // for win
         this.rootFile.filePath = path.dirname(norPath);
+
+        if (sessionStorage.getItem("eva-mode") && this.$refs.tree) {
+          this.$emit("toggle-conflict-buttons", true);
+          this.$nextTick(() => {
+            this.$refs.tree.filter(true);
+            this.fileTreeIfExpanded(true);
+          });
+        }
       },
       immediate: true, // 使得在组件创建时立即调用 handler
     },
@@ -358,19 +366,23 @@ export default {
       this.$emit("toggle-file-buttons", !this.showFileButtons);
     },
     toggleConflictButtons() {
-      this.$emit("toggle-conflict-buttons", !this.showConflictButtons);
-      this.$refs.tree.filter(this.showConflictButtons);
-      this.fileTreeIfExpanded(!this.showConflictButtons);
+      const newValue = !this.showConflictButtons;
+      this.$emit("toggle-conflict-buttons", newValue);
+      this.$refs.tree.filter(newValue);
+      this.fileTreeIfExpanded(newValue);
     },
     filterNode(value, data) {
-      if (
+      // console.log(value, data);
+      if (!value) {
+        // 当 showConflictButtons 为 false 时显示所有文件
+        return true;
+      }
+      // 当 showConflictButtons 为 true 时只显示冲突文件
+      return (
         data.isConflictFile === 1 ||
         data.isConflictFile === 2 ||
-        data.conflictNumber !== 0 ||
-        this.showConflictButtons
-      )
-        return true;
-      return false;
+        data.conflictNumber !== 0
+      );
     },
     fileTreeIfExpanded(ifExpanded) {
       var nodes = this.$refs.tree.store.nodesMap;
@@ -582,6 +594,13 @@ export default {
       }
       return false;
     },
+  },
+  mounted() {
+    if (this.$route.query.eva) {
+      sessionStorage.setItem("eva-mode", true);
+    } else {
+      sessionStorage.removeItem("eva-mode");
+    }
   },
 };
 </script>
