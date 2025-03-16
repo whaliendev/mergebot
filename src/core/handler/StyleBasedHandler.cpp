@@ -77,10 +77,12 @@ void StyleBasedHandler::resolveConflictFiles(
       // 先进行宏展开，再移除注释和空格
       std::string ExpandedOurs = util::doMacroExpansion(OurCode);
       std::string ExpandedTheirs = util::doMacroExpansion(TheirCode);
-      
-      std::string DeflatedOurs = util::removeCommentsAndSpaces(std::move(ExpandedOurs));
-      std::string DeflatedTheirs = util::removeCommentsAndSpaces(std::move(ExpandedTheirs));
-      
+
+      std::string DeflatedOurs =
+          util::removeCommentsAndSpaces(std::move(ExpandedOurs));
+      std::string DeflatedTheirs =
+          util::removeCommentsAndSpaces(std::move(ExpandedTheirs));
+
       if (DeflatedOurs == DeflatedTheirs) { // style related conflicts
         spdlog::debug("deflated ours  : {}", DeflatedOurs);
         spdlog::debug("deflated theirs: {}", DeflatedTheirs);

@@ -17,6 +17,8 @@
 #include "mergebot/server/vo/ResolutionResultVO.h"
 #include "mergebot/utils/fileio.h"
 #include "mergebot/utils/stringop.h"
+#include <algorithm>
+#include <cctype>
 #include <llvm/Support/ErrorOr.h>
 #include <llvm/Support/MemoryBuffer.h>
 #include <magic_enum.hpp>
@@ -235,28 +237,68 @@ bool topologicalSort(
 bool mergeVectors(std::vector<std::string> const &Vec1,
                   std::vector<std::string> const &Vec2,
                   std::vector<std::string> &result) {
-  std::unordered_map<std::string, std::unordered_set<std::string>> graph;
-  // add vertex
-  for (const auto &Line : Vec1) {
-    if (graph.count(Line) == 0) {
-      graph[Line] = std::unordered_set<std::string>();
-    }
+  if (Vec1.empty() && Vec2.empty()) {
+    result.clear();
+    return true;
   }
-  for (const auto &Line : Vec2) {
-    if (graph.count(Line) == 0) {
-      graph[Line] = std::unordered_set<std::string>();
+
+  // First, deduplicate the input vectors while preserving order
+  std::vector<std::string> uniqueVec1, uniqueVec2;
+  {
+    std::unordered_set<std::string> seen;
+    for (const auto &item : Vec1) {
+      if (seen.insert(item).second) {
+        uniqueVec1.push_back(item);
+      }
+    }
+    seen.clear();
+    for (const auto &item : Vec2) {
+      if (seen.insert(item).second) {
+        uniqueVec2.push_back(item);
+      }
     }
   }
 
-  // add edge
-  for (auto it = Vec1.begin(); it != Vec1.end() - 1; ++it) {
-    graph[*it].insert(*(it + 1));
+  util::DependencyGraph graph;
+
+  // Add all nodes from both vectors
+  for (const auto &line : uniqueVec1) {
+    graph.addNode(line);
   }
-  for (auto it = Vec2.begin(); it != Vec2.end() - 1; ++it) {
-    graph[*it].insert(*(it + 1));
+  for (const auto &line : uniqueVec2) {
+    graph.addNode(line);
   }
 
-  return topologicalSort(graph, result);
+  // Add dependencies from Vec1
+  if (!uniqueVec1.empty()) {
+    for (size_t i = 0; i < uniqueVec1.size() - 1; ++i) {
+      if (!graph.addEdge(uniqueVec1[i], uniqueVec1[i + 1])) {
+        spdlog::error("Failed to add edge between {} and {}", uniqueVec1[i],
+                      uniqueVec1[i + 1]);
+        return false;
+      }
+    }
+  }
+
+  // Add dependencies from Vec2
+  if (!uniqueVec2.empty()) {
+    for (size_t i = 0; i < uniqueVec2.size() - 1; ++i) {
+      if (!graph.addEdge(uniqueVec2[i], uniqueVec2[i + 1])) {
+        spdlog::error("Failed to add edge between {} and {}", uniqueVec2[i],
+                      uniqueVec2[i + 1]);
+        return false;
+      }
+    }
+  }
+
+  // Perform topological sort
+  bool success = graph.topologicalSort(result);
+  if (!success) {
+    spdlog::error("Failed to perform topological sort - cycle detected");
+    result.clear();
+  }
+
+  return success;
 }
 } // namespace _details
 
@@ -291,7 +333,13 @@ bool TextBasedHandler::checkOneSideDelta(std::string_view Our,
   std::string_view TheirCode = extractCodeFromConflictRange(
       CodeRange, magic_enum::enum_name(ConflictMark::THEIRS),
       magic_enum::enum_name(ConflictMark::END));
-  if (OurCode == BaseCode) {
+  std::string OurDeflated =
+      util::removeCommentsAndSpaces(util::doMacroExpansion(OurCode));
+  std::string BaseDeflated =
+      util::removeCommentsAndSpaces(util::doMacroExpansion(BaseCode));
+  std::string TheirDeflated =
+      util::removeCommentsAndSpaces(util::doMacroExpansion(TheirCode));
+  if (OurDeflated == BaseDeflated) {
     BRR.code = std::string(Their);
     BRR.desc = "De facto one-sided modification, accept their side.";
     spdlog::info(
@@ -299,7 +347,7 @@ bool TextBasedHandler::checkOneSideDelta(std::string_view Our,
         BRR.index, CF.Filename);
     return true;
   }
-  if (TheirCode == BaseCode) {
+  if (TheirDeflated == BaseDeflated) {
     BRR.code = std::string(Our);
     BRR.desc = "De facto one-sided modification, accept their side.";
     spdlog::info(
@@ -413,7 +461,7 @@ bool TextBasedHandler::doListMerge(std::string_view Our, std::string_view Their,
   if (OurAllInclusions && TheirAllInclusions) {
     std::vector<std::string> Merged;
     if (_details::mergeVectors(OurInclusions, TheirInclusions, Merged)) {
-      BRR.code = util::string_join(Merged, "\n");
+      BRR.code = util::string_join(Merged, "");
       BRR.desc = "Headers merge.";
       spdlog::info("both sides of header include modified, we do a list merge "
                    "for conflict block[{}] in file[{}]",
@@ -435,7 +483,7 @@ bool TextBasedHandler::doListMerge(std::string_view Our, std::string_view Their,
     }
     std::vector<std::string> Merged;
     if (_details::mergeVectors(OurDecls, TheirDecls, Merged)) {
-      BRR.code = util::string_join(Merged, "\n\n");
+      BRR.code = util::string_join(Merged, "\n");
       BRR.desc = "Declarations merge.";
       return true;
     }
@@ -444,18 +492,6 @@ bool TextBasedHandler::doListMerge(std::string_view Our, std::string_view Their,
 
   // cpp source, check function and merge function
   if (_details::isCppSource(CF.Filename)) {
-    //    std::vector<std::string> OurDecls;
-    //    bool OurAllDecls = _details::parseDeclarations(std::string(Our),
-    //    OurDecls); std::vector<std::string> TheirDecls; bool TheirAllDecls =
-    //        _details::parseDeclarations(std::string(Their), TheirDecls);
-    //    if (OurAllDecls && TheirAllDecls) {
-    //      std::vector<std::string> Merged;
-    //      if (_details::mergeVectors(OurDecls, TheirDecls, Merged)) {
-    //        BRR.code = util::string_join(Merged, "\n\n");
-    //        BRR.desc = "Declarations merge.";
-    //        return true;
-    //      }
-    //    }
     std::vector<std::string> OurDefinitions;
     if (!_details::parseDefinitions(std::string(Our), OurDefinitions)) {
       return false;
@@ -466,7 +502,7 @@ bool TextBasedHandler::doListMerge(std::string_view Our, std::string_view Their,
     }
     std::vector<std::string> Merged;
     if (_details::mergeVectors(OurDefinitions, TheirDefinitions, Merged)) {
-      BRR.code = util::string_join(Merged, "\n\n");
+      BRR.code = util::string_join(Merged, "\n");
       BRR.desc = "List merge.";
       spdlog::info("new feature added, we do a list merge for conflict "
                    "block[{}] in file[{}]",
@@ -641,21 +677,50 @@ bool TextBasedHandler::checkDeletion(std::string_view Our,
   std::string_view TheirCode = extractCodeFromConflictRange(
       CodeRange, magic_enum::enum_name(ConflictMark::THEIRS),
       magic_enum::enum_name(ConflictMark::END));
-  if (Our.empty() && TheirCode == BaseCode) {
-    BRR.code = Our;
+  if (Our.empty()) {
+    BRR.code = deletionOrModification(Their);
     BRR.desc = "Single side deletion.";
     spdlog::info("deletion detected for conflict block [{}] in file [{}]",
                  BRR.index, CF.Filename);
     return true;
   }
-  if (Their.empty() && OurCode == BaseCode) {
-    BRR.code = Their;
+  if (Their.empty()) {
+    BRR.code = deletionOrModification(Our);
     BRR.desc = "Single side deletion.";
     spdlog::info("deletion detected for conflict block [{}] in file [{}]",
                  BRR.index, CF.Filename);
     return true;
   }
   return false;
+}
+
+void TextBasedHandler::initDeletionInfavor() {
+  const char *env = std::getenv("MERGEBOT_DELETION_INFAVOR");
+  if (env == nullptr) {
+    DeletionInfavor = DeletionInfavor::DELETION;
+    return;
+  }
+
+  std::string env_str = std::string(env);
+  std::transform(env_str.begin(), env_str.end(), env_str.begin(), ::tolower);
+  if (env_str == "modification") {
+    DeletionInfavor = DeletionInfavor::MODIFICATION;
+  } else {
+    DeletionInfavor = DeletionInfavor::DELETION;
+  }
+}
+
+std::string TextBasedHandler::deletionOrModification(std::string_view code) {
+  if (code.empty()) {
+    return "";
+  }
+
+  switch (DeletionInfavor) {
+  case DeletionInfavor::DELETION:
+    return "";
+  case DeletionInfavor::MODIFICATION:
+    return std::string(code);
+  }
 }
 
 // bool TextBasedHandler::checkDeletion(std::string_view Our,
