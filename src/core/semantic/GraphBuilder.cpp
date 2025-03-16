@@ -279,7 +279,7 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
     } else if (TerminalTypes.count(ChildType)) { // plain terminal
       if (details::IsTextualNode(ChildType)) {
         std::shared_ptr<SemanticNode> TextualPtr =
-            parseTextualNode(Child, IsConflicting, SRoot->hashSignature());
+            parseTextualNode(Child, IsConflicting, SRoot->hashSignature(), FilePath);
         insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
       } else if (ChildType == symbols::sym_comment.name) {
         size_t CommentCnt = 0;
@@ -386,7 +386,7 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
             insertToGraphAndParent(SRoot, SRootVDesc, FuncDefNodePtr);
           } else {
             std::shared_ptr<TextualNode> TextualPtr =
-                parseTextualNode(Child, IsConflicting, SRoot->hashSignature());
+                parseTextualNode(Child, IsConflicting, SRoot->hashSignature(), FilePath);
             insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
           }
         } else if (Kind == CLASS_TEMPLATE) {
@@ -406,7 +406,7 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
             TypeDeclNodePtr->setMemberAccessSpecifier();
           } else {
             std::shared_ptr<TextualNode> TextualPtr =
-                parseTextualNode(Child, IsConflicting, SRoot->hashSignature());
+                parseTextualNode(Child, IsConflicting, SRoot->hashSignature(), FilePath);
             insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
           }
         } else {
@@ -440,7 +440,7 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
             fields::field_body.name); // class, struct, union body
         if (!TypeBodyOpt.has_value()) {
           std::shared_ptr<TextualNode> TextualPtr =
-              parseTextualNode(Child, IsConflicting, SRoot->hashSignature());
+              parseTextualNode(Child, IsConflicting, SRoot->hashSignature(), FilePath);
           insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
         } else {
           auto [TypeDeclNodePtr, Kind] =
@@ -466,7 +466,7 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
         if (LinkageBody.type() == symbols::sym_declaration.name ||
             LinkageBody.type() == symbols::sym_function_definition.name) {
           std::shared_ptr<SemanticNode> TextualPtr =
-              parseTextualNode(Child, IsConflicting, SRoot->hashSignature());
+              parseTextualNode(Child, IsConflicting, SRoot->hashSignature(), FilePath);
           insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
         } else {
           std::shared_ptr<SemanticNode> LinkagePtr = parseLinkageSpecNode(
@@ -486,7 +486,7 @@ void GraphBuilder::parseCompositeNode(std::shared_ptr<SemanticNode> &SRoot,
             Child.getChildByFieldName(fields::field_body.name);
         if (!EnumBodyOpt.has_value()) { // empty enum specifier
           std::shared_ptr<TextualNode> TextualPtr =
-              parseTextualNode(Child, IsConflicting, SRoot->hashSignature());
+              parseTextualNode(Child, IsConflicting, SRoot->hashSignature(), FilePath);
           insertToGraphAndParent(SRoot, SRootVDesc, TextualPtr);
         } else {
           std::shared_ptr<SemanticNode> EnumNodePtr =
@@ -619,7 +619,7 @@ GraphBuilder::parseNamespaceNode(const ts::Node &Node, bool IsConflicting,
 
 std::shared_ptr<TextualNode>
 GraphBuilder::parseTextualNode(const ts::Node &Node, bool IsConflicting,
-                               size_t ParentSignatureHash) {
+                               size_t ParentSignatureHash, const std::string &Path) {
   std::string TextContent = Node.text();
   if (Node.type() == ts::cpp::symbols::sym_enumerator.name) {
     if (Node.nextSibling().has_value()) {
@@ -633,10 +633,12 @@ GraphBuilder::parseTextualNode(const ts::Node &Node, bool IsConflicting,
       Node.type() == ts::cpp::symbols::sym_enum_specifier.name) {
     TextContent += ";";
   }
+
+  const std::string TUPath = fs::relative(Path, SourceDir).string();
   return std::make_shared<TextualNode>(
       NodeCount++, IsConflicting, NodeKind::TEXTUAL, TextContent, TextContent,
       TextContent, ts::getNodeComment(Node), Node.startPoint(), "",
-      std::move(TextContent), ParentSignatureHash, ts::getFollowingEOLs(Node));
+      std::move(TextContent), ParentSignatureHash, ts::getFollowingEOLs(Node), TUPath);
 }
 
 std::shared_ptr<FieldDeclarationNode> GraphBuilder::parseFieldDeclarationNode(
