@@ -9,6 +9,7 @@
 #include "mergebot/core/model/mapping/ThreeWayMapping.h"
 #include "mergebot/core/model/mapping/TwoWayMatching.h"
 #include "mergebot/core/semantic/GraphBuilder.h"
+#include <cstdint>
 #include <git2/global.h>
 
 namespace mergebot {
@@ -24,6 +25,7 @@ public:
         OurGraph(OurGraph), BaseGraph(BaseGraph), TheirGraph(TheirGraph),
         OurSideId(OurSideId), BaseSideId(BaseSideId), TheirSideId(TheirSideId) {
     git_libgit2_init();
+    initOrderInFavour();
   }
 
   ~GraphMerger() { git_libgit2_shutdown(); }
@@ -50,6 +52,22 @@ private:
                       const std::shared_ptr<SemanticNode> &BaseNode,
                       const std::shared_ptr<SemanticNode> &TheirNode);
 
+  std::vector<std::shared_ptr<SemanticNode>>
+  directMergeChildrenInOurOrder(const std::shared_ptr<SemanticNode> &OurNode,
+                                const std::shared_ptr<SemanticNode> &BaseNode,
+                                const std::shared_ptr<SemanticNode> &TheirNode);
+
+  /// Merge children nodes from three versions (base, ours, theirs),
+  /// prioritizing the order from our version
+  /// @param OurNode The node from our version
+  /// @param BaseNode The node from base version
+  /// @param TheirNode The node from their version
+  /// @return A vector of merged children nodes
+  std::vector<std::shared_ptr<SemanticNode>> directMergeChildrenInTheirOrder(
+      const std::shared_ptr<SemanticNode> &OurNode,
+      const std::shared_ptr<SemanticNode> &BaseNode,
+      const std::shared_ptr<SemanticNode> &TheirNode);
+
   std::vector<std::string>
   mergeStrVecByUnion(const std::vector<std::string> &V1,
                      const std::vector<std::string> &V2,
@@ -72,6 +90,8 @@ private:
 
   std::optional<NeighborTuple> getNeighbors(const RCSemanticNode &Node) const;
 
+  void initOrderInFavour();
+
   const ProjectMeta &Meta;
   std::string MergedDir;
   SemanticGraph &OurGraph;
@@ -85,6 +105,9 @@ private:
   TwoWayMatching OurMatching;
   TwoWayMatching TheirMatching;
   std::vector<ThreeWayMapping> Mappings;
+
+  enum class OrderInfavour : uint8_t { Ours, Theirs };
+  OrderInfavour OrderInFavour;
 };
 
 } // namespace sa

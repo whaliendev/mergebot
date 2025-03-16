@@ -112,7 +112,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
         BasePtr->Body = mergeText(OurPtr->Body, BasePtr->Body, TheirPtr->Body);
       }
 
-      BaseNode->FollowingEOL = TheirNode->FollowingEOL;
+      BaseNode->FollowingEOL = OurNode->FollowingEOL;
       BaseNode->Comment =
           mergeText(OurNode->Comment, BaseNode->Comment, TheirNode->Comment);
       // original signature, do not merge it initially
@@ -120,7 +120,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
           mergeText(OurNode->QualifiedName, BaseNode->QualifiedName,
                     TheirNode->QualifiedName);
       // in favor of theirs
-      BaseNode->AccessSpecifier = TheirNode->AccessSpecifier;
+      BaseNode->AccessSpecifier = OurNode->AccessSpecifier;
       if (llvm::isa<FuncDefNode>(BaseNode.get()) ||
           llvm::isa<FuncSpecialMemberNode>(BaseNode.get()) ||
           llvm::isa<FuncOperatorCastNode>(BaseNode.get())) {
@@ -146,7 +146,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
             BaseFuncPtr->BeforeFuncName = mergeText(
                 OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
                 TheirFuncPtr->BeforeFuncName);
-            BaseFuncPtr->ParameterList = mergeStrVecByUnion(
+            BaseFuncPtr->ParameterList = mergeListTextually(
                 OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
                 TheirFuncPtr->ParameterList);
             BaseFuncPtr->AfterParameterList = mergeText(
@@ -178,11 +178,11 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
             BaseFuncPtr->BeforeFuncName = mergeText(
                 OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
                 TheirFuncPtr->BeforeFuncName);
-            BaseFuncPtr->ParameterList = mergeStrVecByUnion(
+            BaseFuncPtr->ParameterList = mergeListTextually(
                 OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
                 TheirFuncPtr->ParameterList);
             BaseFuncPtr->InitList =
-                mergeStrVecByUnion(OurFuncPtr->InitList, BaseFuncPtr->InitList,
+                mergeListTextually(OurFuncPtr->InitList, BaseFuncPtr->InitList,
                                    TheirFuncPtr->InitList);
           } else if (llvm::isa<FuncOperatorCastNode>(BaseNode.get())) {
             // 3. func operator cast, the same as func def node
@@ -199,7 +199,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
             BaseFuncPtr->BeforeFuncName = mergeText(
                 OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
                 TheirFuncPtr->BeforeFuncName);
-            BaseFuncPtr->ParameterList = mergeStrVecByUnion(
+            BaseFuncPtr->ParameterList = mergeListTextually(
                 OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
                 TheirFuncPtr->ParameterList);
             BaseFuncPtr->AfterParameterList = mergeText(
@@ -214,8 +214,8 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
                     TheirNode->OriginalSignature);
     } else { // composite node
       assert(llvm::isa<CompositeNode>(BaseNode.get()));
-      BaseNode->FollowingEOL = TheirNode->FollowingEOL;
-      BaseNode->AccessSpecifier = TheirNode->AccessSpecifier;
+      BaseNode->FollowingEOL = OurNode->FollowingEOL;
+      BaseNode->AccessSpecifier = OurNode->AccessSpecifier;
 
       // translation unit
       if (llvm::isa<TranslationUnitNode>(BaseNode.get())) [[unlikely]] {
@@ -226,10 +226,10 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
           assert(BaseTU->IsHeader == OurTU->IsHeader &&
                  BaseTU->IsHeader == TheirTU->IsHeader &&
                  "only files of the same type can be merged");
-          BaseTU->TraditionGuard = TheirTU->TraditionGuard;
-          BaseTU->HeaderGuard = TheirTU->HeaderGuard;
+          BaseTU->TraditionGuard = OurTU->TraditionGuard;
+          BaseTU->HeaderGuard = OurTU->HeaderGuard;
           // merge front decls
-          BaseTU->FrontDecls = mergeStrVecByUnion(
+          BaseTU->FrontDecls = mergeListTextually(
               OurTU->FrontDecls, BaseTU->FrontDecls, TheirTU->FrontDecls);
         }
       }
@@ -279,6 +279,7 @@ std::string GraphMerger::mergeText(const std::string &OurText,
   return MergedText;
 }
 
+/// not used
 void GraphMerger::threeWayMergeChildren(
     const std::vector<std::shared_ptr<SemanticNode>> &OurChildren,
     std::vector<std::shared_ptr<SemanticNode>> &BaseChildren,
@@ -391,6 +392,21 @@ std::vector<std::shared_ptr<SemanticNode>> GraphMerger::directMergeChildren(
     const std::shared_ptr<SemanticNode> &OurNode,
     const std::shared_ptr<SemanticNode> &BaseNode,
     const std::shared_ptr<SemanticNode> &TheirNode) {
+  switch (OrderInFavour) {
+  case OrderInfavour::Ours:
+    return directMergeChildrenInOurOrder(OurNode, BaseNode, TheirNode);
+  case OrderInfavour::Theirs:
+    return directMergeChildrenInTheirOrder(OurNode, BaseNode, TheirNode);
+  default:
+    assert(false && "Invalid order in favour");
+  }
+}
+
+std::vector<std::shared_ptr<SemanticNode>>
+GraphMerger::directMergeChildrenInOurOrder(
+    const std::shared_ptr<SemanticNode> &OurNode,
+    const std::shared_ptr<SemanticNode> &BaseNode,
+    const std::shared_ptr<SemanticNode> &TheirNode) {
   assert(OurNode && BaseNode && TheirNode);
   std::vector<std::shared_ptr<SemanticNode>> MergedChildren;
   MergedChildren.reserve(OurNode->Children.size() + BaseNode->Children.size());
@@ -457,6 +473,96 @@ std::vector<std::shared_ptr<SemanticNode>> GraphMerger::directMergeChildren(
       }
     }
 
+    MergedChildren.push_back(CurNode);
+  }
+
+  return MergedChildren;
+}
+
+/// Merge children nodes from three versions (base, ours, theirs), prioritizing
+/// the order from our version
+/// @param OurNode The node from our version
+/// @param BaseNode The node from base version
+/// @param TheirNode The node from their version
+/// @return A vector of merged children nodes
+std::vector<std::shared_ptr<SemanticNode>>
+GraphMerger::directMergeChildrenInTheirOrder(
+    const std::shared_ptr<SemanticNode> &OurNode,
+    const std::shared_ptr<SemanticNode> &BaseNode,
+    const std::shared_ptr<SemanticNode> &TheirNode) {
+  assert(OurNode && BaseNode && TheirNode);
+  std::vector<std::shared_ptr<SemanticNode>> MergedChildren;
+  MergedChildren.reserve(OurNode->Children.size() + BaseNode->Children.size());
+
+  std::vector<std::shared_ptr<SemanticNode>> &OurChildren = OurNode->Children;
+
+  // First phase: merge base and our side, following our order
+  for (auto &Child : OurChildren) {
+    if (OurMatching.OneOneMatching.right.find(Child) !=
+        OurMatching.OneOneMatching.right.end()) {
+      // Child exists in base version
+      std::shared_ptr<SemanticNode> BaseChild =
+          OurMatching.OneOneMatching.right.at(Child);
+      mergeSemanticNode(BaseChild);
+      if (BaseChild) {
+        BaseChild->FollowingEOL = Child->FollowingEOL;
+      }
+      MergedChildren.push_back(BaseChild);
+    } else {
+      // Child is newly added in our version
+      MergedChildren.push_back(Child);
+    }
+  }
+
+  // Remove deleted/null nodes
+  MergedChildren.erase(std::remove_if(MergedChildren.begin(),
+                                      MergedChildren.end(),
+                                      [&](const auto &Item) { return !Item; }),
+                       MergedChildren.end());
+
+  // Get nodes added in their version but not in our version
+  std::vector<std::shared_ptr<SemanticNode>> TheirsAdded =
+      removeDuplicates(filterAddedNodes(BaseNode, TheirMatching),
+                       filterAddedNodes(BaseNode, OurMatching));
+
+  // Second phase: merge their added nodes while preserving relative positions
+  for (const auto &TheirAdd : TheirsAdded) {
+    std::optional<NeighborTuple> NeighborsOpt = getNeighbors(TheirAdd);
+    if (!NeighborsOpt.has_value()) {
+      // No neighbor information available, append to the end
+      MergedChildren.push_back(TheirAdd);
+      continue;
+    }
+
+    // Get neighbor information
+    NeighborTuple Neighbors = NeighborsOpt.value();
+    auto PrevSibling = std::move(std::get<0>(Neighbors));
+    auto CurNode = std::move(std::get<1>(Neighbors));
+    auto NextSibling = std::move(std::get<2>(Neighbors));
+
+    // Try to insert after previous sibling
+    if (PrevSibling) {
+      auto It =
+          std::find_if(MergedChildren.begin(), MergedChildren.end(),
+                       [&](const auto &Item) { return *Item == *PrevSibling; });
+      if (It != MergedChildren.end()) {
+        MergedChildren.insert(It + 1, CurNode);
+        continue;
+      }
+    }
+
+    // If no previous sibling found, try to insert before next sibling
+    if (NextSibling) {
+      auto It =
+          std::find_if(MergedChildren.begin(), MergedChildren.end(),
+                       [&](const auto &Item) { return *Item == *NextSibling; });
+      if (It != MergedChildren.end()) {
+        MergedChildren.insert(It, CurNode);
+        continue;
+      }
+    }
+
+    // If no suitable position found, append to the end
     MergedChildren.push_back(CurNode);
   }
 
@@ -543,6 +649,7 @@ GraphMerger::getNeighbors(const RCSemanticNode &Node) const {
   }
 }
 
+/// not used, too aggressive
 std::vector<std::string>
 GraphMerger::mergeStrVecByUnion(const std::vector<std::string> &V1,
                                 const std::vector<std::string> &V2,
@@ -613,6 +720,23 @@ std::vector<std::string> GraphMerger::mergeListTextually(
     out.emplace_back(std::string(sv));
   }
   return out;
+}
+
+void GraphMerger::initOrderInFavour() {
+  const char *order_in_favour = std::getenv("MERGEBOT_MERGE_ORDER_IN_FAVOUR");
+  if (!order_in_favour) {
+    OrderInFavour = OrderInfavour::Ours;
+    return;
+  }
+
+  std::string order_in_favour_str(order_in_favour);
+  std::transform(order_in_favour_str.begin(), order_in_favour_str.end(),
+                 order_in_favour_str.begin(), ::tolower);
+  if (order_in_favour_str == "ours") {
+    OrderInFavour = OrderInfavour::Ours;
+  } else if (order_in_favour_str == "theirs") {
+    OrderInFavour = OrderInfavour::Theirs;
+  }
 }
 
 } // namespace sa
