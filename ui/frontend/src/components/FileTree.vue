@@ -1,11 +1,14 @@
 <template>
   <div class="file-tree-wrapper">
     <!-- 在el-tree外部添加一个控制开关的按钮 -->
-    <el-button @click="toggleConflictButtons" class="file-op-btn"
+    <el-button
+      @click="toggleConflictButtons"
+      v-if="!evaMode"
+      class="file-op-btn"
       >{{ showConflictButtons ? "Show" : "Hide" }}&nbsp;non-conflicting
       files</el-button
     >
-    <el-button @click="toggleFileButtons" class="file-op-btn"
+    <el-button @click="toggleFileButtons" v-if="!evaMode" class="file-op-btn"
       >{{ showFileButtons ? "Hide" : "Show" }}&nbsp;file operations / Shift +
       F</el-button
     >
@@ -324,6 +327,7 @@ export default {
         modifiedType: "", // unchanged,add,delete,rename(preName)
       },
       localModifiedFiles: [],
+      evaMode: false,
     };
   },
   watch: {
@@ -337,10 +341,9 @@ export default {
         let norPath = this.rootFile.childTree[0].filePath.replace(/\\/g, "/"); // for win
         this.rootFile.filePath = path.dirname(norPath);
 
+        // 在eva-mode下，确保树始终展开
         if (sessionStorage.getItem("eva-mode") && this.$refs.tree) {
-          this.$emit("toggle-conflict-buttons", true);
           this.$nextTick(() => {
-            this.$refs.tree.filter(true);
             this.fileTreeIfExpanded(true);
           });
         }
@@ -596,11 +599,13 @@ export default {
     },
   },
   mounted() {
-    if (this.$route.query.eva) {
-      sessionStorage.setItem("eva-mode", true);
-    } else {
-      sessionStorage.removeItem("eva-mode");
-    }
+    // 检查eva-mode并设置evaMode属性
+    this.evaMode = !!sessionStorage.getItem("eva-mode");
+
+    // 在eva-mode下，确保树始终展开
+    // if (this.evaMode && this.$refs.tree) {
+    //   this.fileTreeIfExpanded(true);
+    // }
   },
 };
 </script>
@@ -643,6 +648,5 @@ export default {
 /*  position: absolute;*/
 /*  right: 15px;*/
 /*  padding: 5px; !* Add padding as needed *!*/
-/*  background-color: #fff; !* Optional: Add background color *!*/
 /*}*/
 </style>
