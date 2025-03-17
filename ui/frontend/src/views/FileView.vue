@@ -803,10 +803,8 @@ export default {
       this.targetBranch = this.$route.query.target;
       this.comp_db_path = this.$route.query.compdb;
       this.checkFileExistence();
-      // this.mergeClicked();
     }
 
-    // console.log(sessionStorage.getItem("has-been-merged"));
     if (!sessionStorage.getItem("has-been-merged")) {
       sessionStorage.setItem("has-been-merged", true);
       this.mergeClicked();
