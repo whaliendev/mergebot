@@ -714,7 +714,7 @@ std::vector<std::string> GraphMerger::mergeListTextually(
             std::string_view::npos ||
         sv.find(magic_enum::enum_name(ConflictMark::END)) !=
             std::string_view::npos) {
-      out.emplace_back("\n" + std::string(sv));
+      out.emplace_back("\n" + std::string(sv) + "\n");
       continue;
     }
     out.emplace_back(std::string(sv));
