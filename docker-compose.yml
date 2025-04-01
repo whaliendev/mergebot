@@ -29,7 +29,7 @@ services:
     # build:
     #   context: .
     #   dockerfile: ./docker/backend/Dockerfile
-    image: whalien52/mergebot-backend:v1.5.1
+    image: whalien52/mergebot-backend:v1.5.2
     container_name: mergebot-backend
     restart: on-failure:3
     ports:
@@ -75,7 +75,7 @@ services:
     # build:
     #   context: .
     #   dockerfile: ./docker/frontend/Dockerfile
-    image: whalien52/mergebot-frontend:v1.5.0
+    image: whalien52/mergebot-frontend:v1.5.1
     container_name: mergebot-frontend
     restart: always
     ports:
