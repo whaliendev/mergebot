@@ -63,15 +63,12 @@ export const customGitDiff = (original, target, startLine = -1) => {
     }
   }
 
-  // console.log(startLine);
   hunks = hunks.filter(hunk => {
     if (hunk.start + hunk.offset - 1 < startLine) return false;
     return (
       hunk.oldContent.replace(/\s/g, "") !== hunk.newContent.replace(/\s/g, "")
     );
   });
-
-  // console.log(hunks);
 
   return hunks;
 };
@@ -171,7 +168,7 @@ export const constructSemanticPatch = (original, hunks) => {
           intersectingHunks[intersectingHunks.length - 1].start +
             intersectingHunks[intersectingHunks.length - 1].offset -
             1,
-          block.theirMarkerLineNo,
+          block.endMarkerLineNo, // fix: replace theirMarkerLineNo with endMarkerLineNo
         ) -
         start +
         1;

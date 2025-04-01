@@ -94,7 +94,7 @@ crow::json::wvalue getFileResolution(const std::string& project,
                       resBlock["index"] = block.index - 1;
                       resBlock["label"] = "";
                       resBlock["desc"] = block.desc;
-                      resBlock["confidence"] = 0.7;
+                      resBlock["confidence"] = block.confidence;
                       resolutionList.push_back(std::move(resBlock));
                     });
     }

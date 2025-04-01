@@ -177,6 +177,11 @@ const getters = {
   remainingConflictBlocksCnt: state => {
     return state.remainingConflictBlocks.length;
   },
+  conflictBlocksLines: state => {
+    return state.editor.conflictBlocks.reduce((acc, block) => {
+      return acc + block.endMarkerLineNo - block.ourMarkerLineNo + 1;
+    }, 0);
+  },
 
   getBlockResolutionChoice: state => payload => {
     const blockCode = {
@@ -425,7 +430,7 @@ const actions = {
 
   async getSAResolutions({ commit }, payload) {
     commit("resetSAResolutions");
-    const maxAttempts = 7;
+    const maxAttempts = 12;
     const waitInterval = 5000;
 
     let currentAttempt = 0;
@@ -462,7 +467,7 @@ const actions = {
       }
     }
 
-    if (res && res.patches && res.patches.length === 0) {
+    if (res && res.merged && res.merged.length === 0) {
       commit("setSAResolutionNoPatches", true);
     }
 

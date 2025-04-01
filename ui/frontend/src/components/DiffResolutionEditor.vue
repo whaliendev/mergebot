@@ -8,6 +8,7 @@ import {
   watch,
   computed,
 } from "vue";
+import Vue from "vue";
 import * as monaco from "monaco-editor";
 import { getConflictBlockDecorations } from "@/utils/merge";
 import {
@@ -95,22 +96,42 @@ export default {
       return store.getters["diff/patches"];
     });
 
+    const conflictBlocksLines = computed(() => {
+      return store.getters["diff/conflictBlocksLines"];
+    });
+
     watch(patches, (newVal, oldVal) => {
-      console.log(`patch update at ${new Date()}`);
+      const patchesTotalLines = newVal.reduce((acc, patch) => {
+        return acc + patch.offset;
+      }, 0);
+
+      // console.log(
+      //   "patch lines ratio: ",
+      //   patchesTotalLines,
+      //   conflictBlocksLines.value,
+      //   patchesTotalLines / conflictBlocksLines.value,
+      // );
+      // TODO(hwa): a better threshold is needed
+      let newPatches = newVal;
+      if (patchesTotalLines >= 3 * conflictBlocksLines.value) {
+        Vue.prototype.$message.warning(
+          "It seems thatMergeSyn encountered a parsing error with this file. Recommended patches from MergeSyn have been disabled.",
+        );
+        newPatches = [];
+      }
+
       addPatchInteractions(
-        newVal,
+        newPatches,
         editor,
         modifiedProviders,
         props.lang,
         modifiedMenuActions,
       );
-    });
 
-    watch(patches, (newVal, oldVal) => {
       if (editor && showModifiedCondition) {
         hackModifiedContextMenu(
           editor.getModifiedEditor(),
-          newVal,
+          newPatches,
           showModifiedCondition,
         );
       }
@@ -118,7 +139,7 @@ export default {
 
     const decorateOriginalEditor = editor => {
       const newDecorations = getConflictBlockDecorations(conflictBlocks.value);
-      // console.log(newDecorations);
+
       const originalEditor = editor.getOriginalEditor();
       originalEditor.deltaDecorations([], newDecorations);
 

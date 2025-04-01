@@ -573,7 +573,6 @@ export const addPatchInteractions = (
       modifiedMenuActions,
     );
     addContextMenuItemToModified(modifiedEditor);
-    // console.log(patchDecorations);
 
     modifiedProviders.forEach(provider => {
       provider.dispose();
@@ -598,6 +597,13 @@ export const addPatchInteractions = (
           {
             value: `
 **Semantic Patch：**
+
+strategy: semi-structured merge.
+
+confidence: 0.6
+
+patch:
+
 \`\`\`${lang}
 ${patch.newContent}
 \`\`\`

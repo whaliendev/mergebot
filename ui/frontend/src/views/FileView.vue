@@ -27,7 +27,7 @@
         <el-option v-for="item in branch" :key="item" :value="item">
         </el-option>
       </el-select>
-      <div title="Note: this is the file path on the server">
+      <!-- <div title="Note: this is the file path on the server">
         Path of compile_commands.json
       </div>
       <el-input
@@ -41,7 +41,7 @@
         class="text-left text-sm text-red-400 ml-4 mt-[-6px] mb-1 font-bold"
       >
         The file does not exist on the server
-      </div>
+      </div> -->
       <el-button @click="mergeClicked" id="merge-button">Merge</el-button>
       <el-input
         type="textarea"
@@ -805,11 +805,14 @@ export default {
       this.checkFileExistence();
     }
 
-    if (!sessionStorage.getItem("has-been-merged")) {
-      sessionStorage.setItem("has-been-merged", true);
-      this.mergeClicked();
-    } else {
-      this.mergeRoutine();
+    const evaMode = sessionStorage.getItem("eva-mode");
+    if (evaMode) {
+      if (!sessionStorage.getItem("has-been-merged")) {
+        sessionStorage.setItem("has-been-merged", true);
+        this.mergeClicked();
+      } else {
+        this.mergeRoutine();
+      }
     }
 
     window.addEventListener("keydown", event => {

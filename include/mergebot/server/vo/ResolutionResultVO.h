@@ -20,22 +20,24 @@ struct BlockResolutionResult {
   std::string desc = "";
   /// resolution code to apply
   std::string code = "";
+  /// resolution confidence
+  double confidence = 0.0;
 
   explicit operator std::string() const {
     return fmt::format(
-        "BlockResolutionResult(index = {}, desc = {}, code = {})", index, desc,
-        code);
+        "BlockResolutionResult(index = {}, desc = {}, code = {}, confidence = {})", index, desc,
+        code, confidence);
   }
 
   friend bool operator==(BlockResolutionResult const &Lhs,
                          BlockResolutionResult const &Rhs) {
     return Lhs.index == Rhs.index && Lhs.desc == Rhs.desc &&
-           Lhs.code == Rhs.code;
+           Lhs.code == Rhs.code && Lhs.confidence == Rhs.confidence;
   }
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(BlockResolutionResult, index,
-                                                desc, code);
+                                                desc, code, confidence);
 struct FileResolutionResult {
   std::string filepath;
   std::vector<BlockResolutionResult> resolutions;

@@ -342,6 +342,7 @@ bool TextBasedHandler::checkOneSideDelta(std::string_view Our,
   if (OurDeflated == BaseDeflated) {
     BRR.code = std::string(Their);
     BRR.desc = "De facto one-sided modification, accept their side.";
+    BRR.confidence = 0.7;
     spdlog::info(
         "one side delta detected for conflict block [{}] in conflict file [{}]",
         BRR.index, CF.Filename);
@@ -349,7 +350,8 @@ bool TextBasedHandler::checkOneSideDelta(std::string_view Our,
   }
   if (TheirDeflated == BaseDeflated) {
     BRR.code = std::string(Our);
-    BRR.desc = "De facto one-sided modification, accept their side.";
+    BRR.desc = "De facto one-sided modification, accept our side.";
+    BRR.confidence = 0.7;
     spdlog::info(
         "one side delta detected for conflict block [{}] in conflict file [{}]",
         BRR.index, CF.Filename);
@@ -382,6 +384,7 @@ bool TextBasedHandler::checkInclusion(std::string_view Our,
       if (_details::isSubSequence(OurLineVec, TheirLineVec)) {
         BRR.code = std::string(Our);
         BRR.desc = "Added code or method extraction, accept our side.";
+        BRR.confidence = 0.7;
         spdlog::info("more check or method extraction found for conflict "
                      "block[{}] in conflict file[{}]",
                      BRR.index, CF.Filename);
@@ -390,7 +393,8 @@ bool TextBasedHandler::checkInclusion(std::string_view Our,
     } else {
       if (_details::isSubSequence(TheirLineVec, OurLineVec)) {
         BRR.code = std::string(Their);
-        BRR.desc = "Added code or method extraction, accept our side";
+        BRR.desc = "Added code or method extraction, accept their side";
+        BRR.confidence = 0.7;
         spdlog::info("add check or method extraction found for conflict "
                      "block[{}] in conflict file[{}]",
                      BRR.index, CF.Filename);
@@ -433,6 +437,7 @@ bool TextBasedHandler::checkInclusion(std::string_view Our,
     if (OurContain) {
       BRR.code = std::string(Our);
       BRR.desc = "Our side contains all the modifications, accept our side";
+      BRR.confidence = 0.7;
       spdlog::info("inclusion merged for conflict block[{}] in file[{}]",
                    BRR.index, CF.Filename);
       return true;
@@ -440,7 +445,8 @@ bool TextBasedHandler::checkInclusion(std::string_view Our,
 
     if (TheirContain) {
       BRR.code = std::string(Their);
-      BRR.desc = "Their side contains all the modifications, accept their side";
+      BRR.desc = "Their side contains all the modifications, accept their side.";
+      BRR.confidence = 0.7;
       spdlog::info("inclusion merged for conflict block[{}] in file[{}]",
                    BRR.index, CF.Filename);
       return true;
@@ -463,6 +469,7 @@ bool TextBasedHandler::doListMerge(std::string_view Our, std::string_view Their,
     if (_details::mergeVectors(OurInclusions, TheirInclusions, Merged)) {
       BRR.code = util::string_join(Merged, "");
       BRR.desc = "Headers merge.";
+      BRR.confidence = 0.7;
       spdlog::info("both sides of header include modified, we do a list merge "
                    "for conflict block[{}] in file[{}]",
                    BRR.index, CF.Filename);
@@ -485,6 +492,7 @@ bool TextBasedHandler::doListMerge(std::string_view Our, std::string_view Their,
     if (_details::mergeVectors(OurDecls, TheirDecls, Merged)) {
       BRR.code = util::string_join(Merged, "\n");
       BRR.desc = "Declarations merge.";
+      BRR.confidence = 0.5;
       return true;
     }
     return false;
@@ -504,6 +512,7 @@ bool TextBasedHandler::doListMerge(std::string_view Our, std::string_view Their,
     if (_details::mergeVectors(OurDefinitions, TheirDefinitions, Merged)) {
       BRR.code = util::string_join(Merged, "\n");
       BRR.desc = "List merge.";
+      BRR.confidence = 0.4;
       spdlog::info("new feature added, we do a list merge for conflict "
                    "block[{}] in file[{}]",
                    BRR.index, CF.Filename);
@@ -680,6 +689,7 @@ bool TextBasedHandler::checkDeletion(std::string_view Our,
   if (Our.empty()) {
     BRR.code = deletionOrModification(Their);
     BRR.desc = "Single side deletion.";
+    BRR.confidence = 0.7;
     spdlog::info("deletion detected for conflict block [{}] in file [{}]",
                  BRR.index, CF.Filename);
     return true;
@@ -687,6 +697,7 @@ bool TextBasedHandler::checkDeletion(std::string_view Our,
   if (Their.empty()) {
     BRR.code = deletionOrModification(Our);
     BRR.desc = "Single side deletion.";
+    BRR.confidence = 0.7;
     spdlog::info("deletion detected for conflict block [{}] in file [{}]",
                  BRR.index, CF.Filename);
     return true;

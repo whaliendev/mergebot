@@ -146,7 +146,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
             BaseFuncPtr->BeforeFuncName = mergeText(
                 OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
                 TheirFuncPtr->BeforeFuncName);
-            BaseFuncPtr->ParameterList = mergeListTextually(
+            BaseFuncPtr->ParameterList = mergeStrVecByUnion(
                 OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
                 TheirFuncPtr->ParameterList);
             BaseFuncPtr->AfterParameterList = mergeText(
@@ -178,11 +178,11 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
             BaseFuncPtr->BeforeFuncName = mergeText(
                 OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
                 TheirFuncPtr->BeforeFuncName);
-            BaseFuncPtr->ParameterList = mergeListTextually(
+            BaseFuncPtr->ParameterList = mergeStrVecByUnion(
                 OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
                 TheirFuncPtr->ParameterList);
             BaseFuncPtr->InitList =
-                mergeListTextually(OurFuncPtr->InitList, BaseFuncPtr->InitList,
+                mergeStrVecByUnion(OurFuncPtr->InitList, BaseFuncPtr->InitList,
                                    TheirFuncPtr->InitList);
           } else if (llvm::isa<FuncOperatorCastNode>(BaseNode.get())) {
             // 3. func operator cast, the same as func def node
@@ -199,7 +199,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
             BaseFuncPtr->BeforeFuncName = mergeText(
                 OurFuncPtr->BeforeFuncName, BaseFuncPtr->BeforeFuncName,
                 TheirFuncPtr->BeforeFuncName);
-            BaseFuncPtr->ParameterList = mergeListTextually(
+            BaseFuncPtr->ParameterList = mergeStrVecByUnion(
                 OurFuncPtr->ParameterList, BaseFuncPtr->ParameterList,
                 TheirFuncPtr->ParameterList);
             BaseFuncPtr->AfterParameterList = mergeText(
@@ -229,7 +229,7 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
           BaseTU->TraditionGuard = OurTU->TraditionGuard;
           BaseTU->HeaderGuard = OurTU->HeaderGuard;
           // merge front decls
-          BaseTU->FrontDecls = mergeListTextually(
+          BaseTU->FrontDecls = mergeStrVecByUnion(
               OurTU->FrontDecls, BaseTU->FrontDecls, TheirTU->FrontDecls);
         }
       }
@@ -252,11 +252,11 @@ void GraphMerger::mergeSemanticNode(std::shared_ptr<SemanticNode> &BaseNode) {
 
       /// merge children
       // conservative approach
-      //      threeWayMergeChildren(OurNode->Children, BaseNode->Children,
-      //                            TheirNode->Children);
+//      threeWayMergeChildren(OurNode->Children, BaseNode->Children,
+//                            TheirNode->Children);
 
-      // radical approach
-      BaseNode->Children = directMergeChildren(OurNode, BaseNode, TheirNode);
+        // radical approach
+        BaseNode->Children = directMergeChildren(OurNode, BaseNode, TheirNode);
     }
   } else {
     // base node exists, any one side doesn't exist, delete it
@@ -279,7 +279,6 @@ std::string GraphMerger::mergeText(const std::string &OurText,
   return MergedText;
 }
 
-/// not used
 void GraphMerger::threeWayMergeChildren(
     const std::vector<std::shared_ptr<SemanticNode>> &OurChildren,
     std::vector<std::shared_ptr<SemanticNode>> &BaseChildren,
@@ -388,6 +387,7 @@ void GraphMerger::threeWayMergeChildren(
   BaseChildren.erase(it, BaseChildren.end());
 }
 
+/// not used, may introduce larger diffs
 std::vector<std::shared_ptr<SemanticNode>> GraphMerger::directMergeChildren(
     const std::shared_ptr<SemanticNode> &OurNode,
     const std::shared_ptr<SemanticNode> &BaseNode,
@@ -403,7 +403,7 @@ std::vector<std::shared_ptr<SemanticNode>> GraphMerger::directMergeChildren(
 }
 
 std::vector<std::shared_ptr<SemanticNode>>
-GraphMerger::directMergeChildrenInOurOrder(
+GraphMerger::directMergeChildrenInTheirOrder(
     const std::shared_ptr<SemanticNode> &OurNode,
     const std::shared_ptr<SemanticNode> &BaseNode,
     const std::shared_ptr<SemanticNode> &TheirNode) {
@@ -486,7 +486,7 @@ GraphMerger::directMergeChildrenInOurOrder(
 /// @param TheirNode The node from their version
 /// @return A vector of merged children nodes
 std::vector<std::shared_ptr<SemanticNode>>
-GraphMerger::directMergeChildrenInTheirOrder(
+GraphMerger::directMergeChildrenInOurOrder(
     const std::shared_ptr<SemanticNode> &OurNode,
     const std::shared_ptr<SemanticNode> &BaseNode,
     const std::shared_ptr<SemanticNode> &TheirNode) {
@@ -649,7 +649,7 @@ GraphMerger::getNeighbors(const RCSemanticNode &Node) const {
   }
 }
 
-/// not used, too aggressive
+/// not used, too aggressive, this function will try to merge all the items in three versions
 std::vector<std::string>
 GraphMerger::mergeStrVecByUnion(const std::vector<std::string> &V1,
                                 const std::vector<std::string> &V2,

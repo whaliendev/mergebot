@@ -55,7 +55,7 @@ private:
                       const std::shared_ptr<SemanticNode> &TheirNode);
 
   /// Merge children nodes from three versions (base, ours, theirs),
-  /// prioritizing the order from their version
+  /// prioritizing the order from our version
   /// @param OurNode The node from our version
   /// @param BaseNode The node from base version
   /// @param TheirNode The node from their version
@@ -81,6 +81,7 @@ private:
                      const std::vector<std::string> &V2,
                      const std::vector<std::string> &V3) const;
 
+  /// merge textual content using a patience diff with whitespace differences ignored
   std::string mergeText(const std::string &OurText, const std::string &BaseText,
                         const std::string &TheirText) const;
   std::vector<std::string>
