@@ -276,12 +276,20 @@ public class ConflictImpl implements ConflictService {
                         mergeScenario.theirs = new String(binaryTheirs);
                     }
                 }
-                if (fileInfo.getBase() != null) {
-                    ObjectId baseId = git.getRepository().resolve(fileInfo.getBase());
-                    RevCommit baseCommit = gitUtils.getSpecificCommit(repository, baseId);
-                    binaryBase = getFileByCommitAndPath(fileInfo.getRelPath(), baseCommit, repository);
-                    if (binaryBase != null) {
-                        mergeScenario.base = new String(binaryBase);
+                if (fileInfo.getBase() != null && !fileInfo.getBase().equals(NO_BASE_STR)) {
+                    try {
+                        ObjectId baseId = git.getRepository().resolve(fileInfo.getBase());
+                        if (baseId != null) {
+                            RevCommit baseCommit = gitUtils.getSpecificCommit(repository, baseId);
+                            if (baseCommit != null) {
+                                binaryBase = getFileByCommitAndPath(fileInfo.getRelPath(), baseCommit, repository);
+                                if (binaryBase != null) {
+                                    mergeScenario.base = new String(binaryBase);
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        logger.warn("Failed to process base commit: {}", e.getMessage());
                     }
                 }
                 if (fileInfo.getPath() != null) {

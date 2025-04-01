@@ -425,8 +425,8 @@ std::string_view extractCodeFromConflictRange(std::string_view Source,
   assert(StartPos != std::string_view::npos && StartPos != Source.length() &&
          "illegal conflict range, start marker line is in bad format");
   size_t EndPos = Source.find(EndMarker, StartPos);
-  assert(EndPos != std::string_view::npos &&
-         "illegal conflict range, no end marker");
+  // assert(EndPos != std::string_view::npos &&
+         // "illegal conflict range, no end marker");
   if (StartPos == std::string_view::npos || StartPos == Source.length() ||
       EndPos == std::string_view::npos) {
     return std::string_view();

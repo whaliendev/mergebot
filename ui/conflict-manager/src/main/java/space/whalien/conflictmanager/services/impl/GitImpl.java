@@ -50,7 +50,7 @@ public class GitImpl implements GitService {
             // 等待命令执行完毕
             process.waitFor();
             // 创建一个ProcessBuilder对象
-            processBuilder = new ProcessBuilder("git", "merge", b2, "-s", "recursive", "-X", "patience", "--no-edit", "--no-ff");
+            processBuilder = new ProcessBuilder("git", "merge", b2, "-s", "recursive", "--no-edit", "--no-ff");
             logger.info("execute Command: " + String.join(" ", processBuilder.command()));
             // 设置工作目录
             processBuilder.directory(new File(path));

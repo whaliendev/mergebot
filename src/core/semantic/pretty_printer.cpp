@@ -275,6 +275,13 @@ std::string PrettyPrintTU(const std::shared_ptr<SemanticNode> &TUNode,
 
   util::file_overwrite_content(DestFile, ss.str());
 
+  // check if ClangFormatPath exists, if not, skip
+  if (!fs::exists(ClangFormatPath)) {
+    spdlog::warn("clang-format file {} doesn't exist, skip formatting",
+                  ClangFormatPath);
+      return DestFile;
+  }
+  
   FormatSource(DestFile, ClangFormatPath);
 
   return DestFile;

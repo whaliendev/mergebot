@@ -27,7 +27,7 @@
         <el-option v-for="item in branch" :key="item" :value="item">
         </el-option>
       </el-select>
-      <!-- <div title="Note: this is the file path on the server">
+      <div title="Note: this is the file path on the server">
         Path of compile_commands.json
       </div>
       <el-input
@@ -41,7 +41,7 @@
         class="text-left text-sm text-red-400 ml-4 mt-[-6px] mb-1 font-bold"
       >
         The file does not exist on the server
-      </div> -->
+      </div>
       <el-button @click="mergeClicked" id="merge-button">Merge</el-button>
       <el-input
         type="textarea"
@@ -260,16 +260,15 @@ export default {
         });
       }
     },
+    async mergeRoutine() {
+      await this.mergeConflict();
+      await this.collectConflict();
+      await this.helper();
+    },
     async mergeClicked() {
       this.loading = true;
       try {
-        const mergeRoutine = async () => {
-          await this.mergeConflict();
-          await this.collectConflict();
-          await this.helper();
-        };
-        // await Promise.all([mergeRoutine(), this.startMergeAlgorithm()]);
-        await mergeRoutine();
+        await this.mergeRoutine();
         await this.startMergeAlgorithm(); // run merge algorithm after conflictFiles constructed
       } catch (err) {
         this.$message({
@@ -564,7 +563,15 @@ export default {
       // 获取文件树
       const res = await this.$axios.get("/files?path=" + this.filePath);
       if (res.data.code === 200) {
-        this.files = res.data.data;
+        let files = res.data.data;
+
+        // 如果是eva-mode，在数据源级别过滤文件
+        if (sessionStorage.getItem("eva-mode")) {
+          this.showConflictButtons = true; // 确保状态标志正确设置
+          files = this.filterConflictFiles(files);
+        }
+
+        this.files = files;
 
         for (const file of this.files) {
           if (file.fileType === "file") {
@@ -754,8 +761,31 @@ export default {
         this.showCompDBWarining = true;
       }
     },
+    // 递归过滤文件树，只保留冲突文件及其所在的目录
+    filterConflictFiles(files) {
+      return files.filter(file => {
+        if (file.fileType === "file") {
+          // 保留冲突文件
+          return file.isConflictFile === 1 || file.isConflictFile === 2;
+        } else if (file.fileType === "direction") {
+          // 递归过滤子目录
+          file.childTree = this.filterConflictFiles(file.childTree);
+          // 保留包含冲突文件的目录
+          return file.childTree.length > 0 || file.conflictNumber > 0;
+        }
+        return false;
+      });
+    },
   },
   mounted() {
+    // 处理eva-mode
+    if (this.$route.query.eva) {
+      sessionStorage.setItem("eva-mode", true);
+      this.showConflictButtons = true;
+    } else {
+      sessionStorage.removeItem("eva-mode");
+    }
+
     // 使用动态路由参数初始化 data 中的属性
     if (
       this.$route.query.repo &&
@@ -773,7 +803,13 @@ export default {
       this.targetBranch = this.$route.query.target;
       this.comp_db_path = this.$route.query.compdb;
       this.checkFileExistence();
+    }
+
+    if (!sessionStorage.getItem("has-been-merged")) {
+      sessionStorage.setItem("has-been-merged", true);
       this.mergeClicked();
+    } else {
+      this.mergeRoutine();
     }
 
     window.addEventListener("keydown", event => {

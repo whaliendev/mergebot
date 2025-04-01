@@ -1,6 +1,7 @@
 import os
 import pytest
-from ..utils import gitservice
+
+from utils import gitservice
 
 
 class TestCommitHashOfRev:

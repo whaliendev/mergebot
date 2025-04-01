@@ -5,7 +5,7 @@ from typing import Any, Callable
 from pygit2.ffi import ffi
 import os
 
-logger = logging.getLogger(__package__)
+logger = logging.getLogger()
 
 
 def timing(func: Callable[..., Any]) -> Callable[..., Any]:

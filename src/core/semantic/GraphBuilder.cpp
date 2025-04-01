@@ -741,7 +741,7 @@ GraphBuilder::parseEnumNode(const ts::Node &Node, bool IsConflicting,
   if (re2::RE2::PartialMatch(input, re, &OriginalSignature, &EnumKey, nullptr,
                              &Attrs, nullptr, &enum_name_pieces, &EnumBase)) {
     EnumName = enum_name_pieces.ToString();
-    if (EnumName.back() == ' ') {
+    if (!EnumName.empty() && EnumName.back() == ' ') {
       EnumName.pop_back();
     }
     // 获取最后一个层级名称的位置
